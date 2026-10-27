@@ -159,6 +159,19 @@ body.driving-mode #jgProPanel{bottom:110px;max-height:35dvh}
 #jg3dMap{position:fixed;inset:0;z-index:2;display:none}
 #jg3dMap.jgshown{display:block}
 #jg3dBadge{position:fixed;top:82px;left:12px;z-index:520;background:#0f172ae8;color:white;border-radius:12px;padding:8px;font:12px Inter,sans-serif;display:none}
+
+@media(max-width:767px){
+ #jgProPanel{left:10px;bottom:96px;padding:5px 7px;border-radius:14px;max-width:min(310px,calc(100vw - 90px));}
+ #jgProPanel.jgfolded{width:auto;max-width:200px;overflow:visible}
+ #jgProPanel.jgfolded>button{font-size:11px;padding:7px 9px}
+ #jgProPanel:not(.jgfolded){max-height:60dvh;overflow:auto}
+ #speed47{bottom:177px;right:12px;padding:5px 8px}
+ body.driving-mode #speed47{bottom:182px;right:12px}
+ body.driving-mode #jgProPanel{bottom:118px;max-width:190px}
+ body.driving-mode #jgProPanel:not(.jgfolded){max-width:min(340px,calc(100vw - 25px))}
+}
+#smartRoute48{margin-top:7px}
+#jgProPanel .jgtoolsToggle{margin-top:6px;width:100%;text-align:left}
 </style>
 </head>
 <body class="bg-slate-900 select-none relative">
@@ -204,10 +217,10 @@ body.driving-mode #jgProPanel{bottom:110px;max-height:35dvh}
 
     <!-- Butang mod pemanduan: kembali ke peta dan buka panel jika perlu -->
     <div id="drivingControls" class="hidden fixed top-16 right-3 z-[650] flex-col gap-2 pointer-events-auto">
-      <button onclick="recenterNavigation()" class="bg-blue-600 text-white shadow-xl rounded-2xl px-4 py-3 text-sm font-bold"><i class="fa-solid fa-location-crosshairs"></i> Ikut GPS</button>
-      <button onclick="toggleDrivingPanels()" id="drivingPanelsBtn" class="bg-white/95 text-slate-800 shadow-xl rounded-2xl px-4 py-3 text-sm font-bold"><i class="fa-solid fa-list"></i> Lihat Butiran</button>
+      <button onclick="recenterNavigation()" class="bg-blue-600 text-white shadow-xl rounded-xl p-3 text-sm font-bold" title="Ikut GPS / Follow GPS" aria-label="Ikut GPS / Follow GPS"><i class="fa-solid fa-location-crosshairs"></i></button>
+      <button onclick="toggleDrivingPanels()" id="drivingPanelsBtn" class="bg-white/95 text-slate-800 shadow-xl rounded-xl p-3 text-sm font-bold" title="Lihat Butiran / View Details" aria-label="Lihat Butiran / View Details"><i class="fa-solid fa-list"></i></button>
     </div>
-<div id="speed47" class="hidden fixed top-20 right-3 z-[520] bg-slate-950/90 text-white p-3 rounded-2xl shadow-xl text-center"><div class="text-[10px]">GPS SPEED</div><div class="text-2xl font-extrabold"><span id="speedNum47">--</span> <span class="text-xs">km/j</span></div><div class="text-[10px] text-amber-300">Had laju: tidak tersedia</div></div>
+<div id="speed47" class="hidden fixed bottom-[176px] right-3 z-[520] bg-slate-950/90 text-white px-2 py-2 rounded-xl shadow-xl text-center"><div class="text-[10px]">GPS SPEED</div><div class="text-xl font-extrabold"><span id="speedNum47">--</span> <span class="text-xs">km/j</span></div><div class="text-[9px] text-amber-300">Had laju: N/A</div></div>
 <div id="mapStyleControls" class="fixed bottom-24 left-3 z-[480] pointer-events-auto">
   <button onclick="toggleMapStyles48()" class="bg-white/95 dark:bg-slate-900/95 dark:text-white text-slate-800 shadow-xl rounded-2xl px-4 py-3 text-xs font-extrabold border border-slate-200 dark:border-slate-700"><i class="fa-solid fa-layer-group mr-1"></i> <span id="mapStyleLabel48">Map Style</span></button>
   <div id="mapStyles48" class="hidden mt-2 bg-white/95 dark:bg-slate-900/95 text-slate-900 dark:text-white shadow-2xl rounded-2xl p-3 w-56 border border-slate-200 dark:border-slate-700">
@@ -230,8 +243,17 @@ body.driving-mode #jgProPanel{bottom:110px;max-height:35dvh}
 </div>
 <div id="jg3dMap" aria-label="3D navigation map"></div><div id="jg3dBadge">3D vector map · MapTiler</div>
 <div id="jgProPanel" class="jgfolded">
- <button onclick="jgTogglePro()" style="width:100%;text-align:left;background:#dbeafe">🚘 Journey Intelligence <span style="float:right">⚙ ▾</span></button>
+ <button onclick="jgTogglePro()" style="width:100%;text-align:left;background:#dbeafe">🚘 Journey <span style="float:right">⚙</span></button>
  <div id="jgProBody">
+ <button onclick="document.getElementById('smartRoute48').classList.toggle('hidden')" class="jgtoolsToggle">🛣️ Route Tools / Tetapan Laluan ▾</button>
+<div id="smartRoute48" class="hidden rounded-xl p-3 bg-blue-50 dark:bg-slate-800 text-xs space-y-2 border border-blue-200 dark:border-blue-900">
+<b class="text-blue-800 dark:text-blue-200">🛣️ Route Tools / Tetapan Laluan</b>
+<div class="flex gap-3 flex-wrap text-slate-700 dark:text-white">
+<label><input id="avoidToll47" type="checkbox" onchange="settings47()"> Elak tol*</label>
+<label><input id="avoidHighway47" type="checkbox" onchange="settings47()"> Elak highway*</label>
+</div><p class="text-[10px] text-amber-700 dark:text-amber-300">* Belum disokong OSRM awam; tidak mengubah laluan. Tol sebenar belum dapat disahkan.</p>
+</div>
+
  <div class="jgrow"><button onclick="jgToggle3D()" id="jg3dBtn">🧭 3D View</button><button onclick="jgTollCheck()">🛣️ Toll status</button><button onclick="jgWeatherAlerts()">🌦 Weather & flood</button></div>
  <div class="jgrow"><button onclick="jgShowHistory()">🕘 Trip history</button><button onclick="showSavedDestinations()">⭐ Saved places</button><button onclick="alongRoute47()">⛽ Route facilities</button></div>
  <div class="jgrow"><button onclick="jgRefreshReports()">🔄 Community reports</button><button onclick="jgDownloadTrip()">📄 Export trip</button></div>
@@ -349,18 +371,6 @@ body.driving-mode #jgProPanel{bottom:110px;max-height:35dvh}
                   <button onclick="showSavedDestinations()" class="text-xs font-bold bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-white rounded-xl px-3 py-2">⌚ Tersimpan</button>
                   <button onclick="shareCurrentRoute()" class="text-xs font-bold bg-emerald-100 dark:bg-emerald-900 text-emerald-800 dark:text-white rounded-xl px-3 py-2">↗ Kongsi</button>
                 </div>
-<div id="smartRoute48" class="hidden rounded-xl p-3 bg-blue-50 dark:bg-slate-800 text-xs space-y-2 border border-blue-200 dark:border-blue-900">
-<b class="text-blue-800 dark:text-blue-200">🛣️ Smart Route Malaysia V4.7</b>
-<div class="flex gap-3 flex-wrap text-slate-700 dark:text-white">
-<label><input id="avoidToll47" type="checkbox" onchange="settings47()"> Elak tol*</label>
-<label><input id="avoidHighway47" type="checkbox" onchange="settings47()"> Elak highway*</label>
-</div><p class="text-[10px] text-amber-700 dark:text-amber-300">* Belum disokong OSRM awam; tidak mengubah laluan. Tol sebenar belum dapat disahkan.</p>
-<div class="flex flex-wrap gap-2">
-<button onclick="weather47()" class="bg-cyan-200 dark:bg-cyan-900 rounded-lg p-2 font-bold">🌦 Cuaca</button>
-<button onclick="alongRoute47()" class="bg-orange-200 dark:bg-orange-900 rounded-lg p-2 font-bold">⛽ POI Laluan</button>
-<button onclick="toll47()" class="bg-amber-200 dark:bg-amber-900 rounded-lg p-2 font-bold">🛣️ Info Tol</button>
-</div></div>
-                <button onclick="document.getElementById('smartRoute48').classList.toggle('hidden')" class="w-full text-left text-xs font-bold text-blue-700 dark:text-blue-300 bg-blue-50 dark:bg-slate-800 rounded-xl px-3 py-2"><i class="fa-solid fa-sliders mr-1"></i> Route Settings / Tetapan Laluan <i class="fa-solid fa-chevron-down float-right"></i></button>
                 <!-- Lokasi Pantas Popular Lembah Klang -->
                 <div class="pt-1 flex items-center gap-1.5 overflow-x-auto pb-0.5 no-scrollbar">
                     <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider shrink-0 mr-1">Pantas:</span>
@@ -734,15 +744,19 @@ function jgSync3DRoute(){
 }
 async function jgToggle3D(){
  if(jg3dActive){jg3dActive=false;document.getElementById('jg3dMap').classList.remove('jgshown');document.getElementById('jg3dBadge').style.display='none';map.invalidateSize();return;}
- if(!JG_CFG.maptilerKey){jgStatus('To enable true 3D, set maptilerKey in config.js. A licensed vector tile service is required.');document.getElementById('jgProPanel').classList.remove('jgfolded');return;}
+ const hasVector3D=Boolean(JG_CFG.maptilerKey);
+ if(!hasVector3D)jgStatus('3D perspective uses OpenStreetMap raster tiles. For detailed vector 3D buildings, add a MapTiler key in config.js.');
  try{
   await jgLoadMapLibre();
   const center=lastGps||map.getCenter();
   document.getElementById('jg3dMap').classList.add('jgshown');
   if(!jg3d){
-   jg3d=new maplibregl.Map({container:'jg3dMap',style:'https://api.maptiler.com/maps/streets-v2/style.json?key='+encodeURIComponent(JG_CFG.maptilerKey),center:[center.lng,center.lat],zoom:16,pitch:60,bearing:0});
+   const style=hasVector3D
+    ?'https://api.maptiler.com/maps/streets-v2/style.json?key='+encodeURIComponent(JG_CFG.maptilerKey)
+    :{version:8,sources:{osm:{type:'raster',tiles:['https://tile.openstreetmap.org/{z}/{x}/{y}.png'],tileSize:256,attribution:'© OpenStreetMap contributors',maxzoom:19}},layers:[{id:'osm',type:'raster',source:'osm'}]};
+   jg3d=new maplibregl.Map({container:'jg3dMap',style,center:[center.lng,center.lat],zoom:16,pitch:60,bearing:0,maxPitch:75,attributionControl:true});
    jg3d.addControl(new maplibregl.NavigationControl(),'bottom-right');
-   jg3d.on('load',jgSync3DRoute);jg3d.on('error',e=>{if(e.error)jgStatus('3D tiles error: '+e.error.message);});
+   jg3d.on('load',()=>{jgSync3DRoute();jg3d.resize();});jg3d.on('error',e=>{if(e.error)jgStatus('3D tiles error: '+e.error.message);});
   }else{jg3d.resize();jgSync3DRoute();}
   jg3dActive=true;document.getElementById('jg3dBadge').style.display='block';
   jg3d.easeTo({center:[center.lng,center.lat],zoom:16,pitch:60,duration:600});
