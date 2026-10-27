@@ -139,7 +139,16 @@
           body.driving-mode #liveNavHUD { left:10px; right:10px; }
           body.driving-mode #liveInstruction { white-space:normal; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
         }
-    </style>
+    /* V4.8 compact map-first mobile layout */
+@media(max-width:767px){
+ #searchPanelWrap{top:max(8px,env(safe-area-inset-top));left:10px;right:10px;max-height:80dvh;overflow-y:auto;scrollbar-width:none;}
+ #searchPanelWrap > div:first-child{padding:12px;border-radius:22px;}
+ #mapStyleControls{bottom:max(86px,env(safe-area-inset-bottom) + 78px);}
+ body.driving-mode #mapStyleControls{bottom:110px;left:10px;}
+ body.driving-mode #mapStyles48{max-height:50dvh;overflow-y:auto;}
+}
+.mapstyle-btn.active48{outline:2px solid #2563eb;background:#dbeafe;color:#1e40af;}
+</style>
 </head>
 <body class="bg-slate-900 select-none relative">
 
@@ -188,6 +197,26 @@
       <button onclick="toggleDrivingPanels()" id="drivingPanelsBtn" class="bg-white/95 text-slate-800 shadow-xl rounded-2xl px-4 py-3 text-sm font-bold"><i class="fa-solid fa-list"></i> Lihat Butiran</button>
     </div>
 <div id="speed47" class="hidden fixed top-20 right-3 z-[520] bg-slate-950/90 text-white p-3 rounded-2xl shadow-xl text-center"><div class="text-[10px]">GPS SPEED</div><div class="text-2xl font-extrabold"><span id="speedNum47">--</span> <span class="text-xs">km/j</span></div><div class="text-[10px] text-amber-300">Had laju: tidak tersedia</div></div>
+<div id="mapStyleControls" class="fixed bottom-24 left-3 z-[480] pointer-events-auto">
+  <button onclick="toggleMapStyles48()" class="bg-white/95 dark:bg-slate-900/95 dark:text-white text-slate-800 shadow-xl rounded-2xl px-4 py-3 text-xs font-extrabold border border-slate-200 dark:border-slate-700"><i class="fa-solid fa-layer-group mr-1"></i> <span id="mapStyleLabel48">Map Style</span></button>
+  <div id="mapStyles48" class="hidden mt-2 bg-white/95 dark:bg-slate-900/95 text-slate-900 dark:text-white shadow-2xl rounded-2xl p-3 w-56 border border-slate-200 dark:border-slate-700">
+    <div class="font-bold text-sm mb-2">🗺️ Map Style</div>
+    <div class="grid grid-cols-2 gap-2">
+      <button data-map-style="standard" onclick="setMapStyle48('standard')" class="mapstyle-btn bg-slate-100 dark:bg-slate-700 rounded-xl p-2 text-xs font-bold">🗺️ Standard</button>
+      <button data-map-style="smart" onclick="setMapStyle48('smart')" class="mapstyle-btn bg-slate-100 dark:bg-slate-700 rounded-xl p-2 text-xs font-bold">🚙 Smart</button>
+      <button data-map-style="satellite" onclick="setMapStyle48('satellite')" class="mapstyle-btn bg-slate-100 dark:bg-slate-700 rounded-xl p-2 text-xs font-bold">🛰️ Satellite</button>
+      <button data-map-style="night" onclick="setMapStyle48('night')" class="mapstyle-btn bg-slate-100 dark:bg-slate-700 rounded-xl p-2 text-xs font-bold">🌙 Night</button>
+    </div>
+    <div class="border-t border-slate-200 dark:border-slate-700 mt-3 pt-2">
+      <label class="block text-xs font-bold mb-1" for="mapView48">Map View</label>
+      <select id="mapView48" onchange="setMapView48(this.value)" class="w-full rounded-lg p-2 text-xs bg-slate-100 dark:bg-slate-700">
+        <option value="north">2D · North Up</option>
+        <option value="follow">2D · Follow GPS</option>
+      </select>
+      <p class="text-[10px] text-slate-500 dark:text-slate-400 mt-2">True 3D / heading rotation needs a vector map engine. GPS follow works during navigation.</p>
+    </div>
+  </div>
+</div>
     <!-- PANEL KIRI / ATAS: Carian, Kawalan Suara, Mod Malam & Navigasi -->
     <div id="searchPanelWrap" class="fixed top-14 md:top-3 left-3 right-3 md:right-auto md:w-[400px] z-[500] flex flex-col gap-2.5 max-h-[85vh] md:max-h-[94vh] pointer-events-none">
         
@@ -203,7 +232,7 @@
                     <div>
                         <h1 class="font-extrabold text-slate-800 dark:text-white text-base leading-tight flex items-center gap-1.5">
                             JomGerak
-                            <span class="bg-blue-100 dark:bg-blue-900/60 text-blue-700 dark:text-blue-300 text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider">V4.4 PRO</span>
+                            
                         </h1>
                         <p class="text-[11px] text-slate-500 dark:text-slate-400 font-medium">Navigasi GPS & Komuniti</p>
                     </div>
@@ -297,7 +326,7 @@
                   <button onclick="showSavedDestinations()" class="text-xs font-bold bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-white rounded-xl px-3 py-2">⌚ Tersimpan</button>
                   <button onclick="shareCurrentRoute()" class="text-xs font-bold bg-emerald-100 dark:bg-emerald-900 text-emerald-800 dark:text-white rounded-xl px-3 py-2">↗ Kongsi</button>
                 </div>
-<div class="rounded-xl p-3 bg-blue-50 dark:bg-slate-800 text-xs space-y-2 border border-blue-200 dark:border-blue-900">
+<div id="smartRoute48" class="hidden rounded-xl p-3 bg-blue-50 dark:bg-slate-800 text-xs space-y-2 border border-blue-200 dark:border-blue-900">
 <b class="text-blue-800 dark:text-blue-200">🛣️ Smart Route Malaysia V4.7</b>
 <div class="flex gap-3 flex-wrap text-slate-700 dark:text-white">
 <label><input id="avoidToll47" type="checkbox" onchange="settings47()"> Elak tol*</label>
@@ -308,6 +337,7 @@
 <button onclick="alongRoute47()" class="bg-orange-200 dark:bg-orange-900 rounded-lg p-2 font-bold">⛽ POI Laluan</button>
 <button onclick="toll47()" class="bg-amber-200 dark:bg-amber-900 rounded-lg p-2 font-bold">🛣️ Info Tol</button>
 </div></div>
+                <button onclick="document.getElementById('smartRoute48').classList.toggle('hidden')" class="w-full text-left text-xs font-bold text-blue-700 dark:text-blue-300 bg-blue-50 dark:bg-slate-800 rounded-xl px-3 py-2"><i class="fa-solid fa-sliders mr-1"></i> Route Settings / Tetapan Laluan <i class="fa-solid fa-chevron-down float-right"></i></button>
                 <!-- Lokasi Pantas Popular Lembah Klang -->
                 <div class="pt-1 flex items-center gap-1.5 overflow-x-auto pb-0.5 no-scrollbar">
                     <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider shrink-0 mr-1">Pantas:</span>
@@ -718,16 +748,60 @@
             if('serviceWorker' in navigator && location.protocol==='https:')navigator.serviceWorker.register('./sw.js').catch(()=>{});
         };
 
+        // V4.8: Tile providers with required attribution. Smart is a visual style,
+        // not Waze data or a copy of Google's map.
+        let mapTiles48=null;
+        let mapStyle48='standard';
+        let mapView48='north';
+        const mapSources48={
+          standard:{url:'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',maxZoom:19,attribution:'&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap contributors</a>'},
+          smart:{url:'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',maxZoom:20,attribution:'&copy; OpenStreetMap contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'},
+          night:{url:'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',maxZoom:20,attribution:'&copy; OpenStreetMap contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'},
+          satellite:{url:'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',maxZoom:19,attribution:'Tiles &copy; Esri and imagery contributors'}
+        };
+        function initMapStyle48(){
+          let saved='standard';
+          try{saved=localStorage.getItem('jomgerak_mapstyle48')||'standard';}catch{}
+          setMapStyle48(mapSources48[saved]?saved:'standard',true);
+          try{mapView48=localStorage.getItem('jomgerak_mapview48')||'north';}catch{}
+          if(!['north','follow'].includes(mapView48))mapView48='north';
+          document.getElementById('mapView48').value=mapView48;
+        }
+        function toggleMapStyles48(){
+          document.getElementById('mapStyles48').classList.toggle('hidden');
+        }
+        function setMapStyle48(style,quiet=false){
+          if(!mapSources48[style]||!map)return;
+          const config=mapSources48[style];
+          const next=L.tileLayer(config.url,{maxZoom:config.maxZoom,attribution:config.attribution});
+          next.on('tileerror',()=>{if(!next._jgWarned){next._jgWarned=true;showToast('Some map tiles failed to load. Check internet or change map style.','warning');}});
+          next.addTo(map);
+          if(mapTiles48)map.removeLayer(mapTiles48);
+          next.bringToBack();mapTiles48=next;mapStyle48=style;
+          document.querySelectorAll('[data-map-style]').forEach(b=>b.classList.toggle('active48',b.dataset.mapStyle===style));
+          try{localStorage.setItem('jomgerak_mapstyle48',style);}catch{}
+          if(!quiet){document.getElementById('mapStyles48').classList.add('hidden');showToast('Map style: '+style,'success');}
+        }
+        function setMapView48(mode){
+          if(!['north','follow'].includes(mode))return;
+          mapView48=mode;
+          try{localStorage.setItem('jomgerak_mapview48',mode);}catch{}
+          if(mode==='follow'){
+            followGps=true;
+            if(lastGps)map.setView([lastGps.lat,lastGps.lng],17,{animate:true});
+            showToast('Follow GPS enabled during navigation.','info');
+          }else{
+            followGps=false;
+            showToast('North-up 2D view selected.','info');
+          }
+        }
         function initMap() {
             map = L.map('map', {
                 zoomControl: false,
                 attributionControl: true
             }).setView(KL_CENTER, 12);
 
-            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                maxZoom: 19,
-                attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-            }).addTo(map);
+            initMapStyle48();
 
             stepMarkersGroup = L.layerGroup().addTo(map);
             communityMarkersGroup = L.layerGroup().addTo(map);
