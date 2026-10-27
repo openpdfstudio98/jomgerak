@@ -9,6 +9,7 @@
     
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
+    <script src="./config.js"></script>
     <script>
         tailwind.config = {
             darkMode: 'class',
@@ -148,6 +149,16 @@
  body.driving-mode #mapStyles48{max-height:50dvh;overflow-y:auto;}
 }
 .mapstyle-btn.active48{outline:2px solid #2563eb;background:#dbeafe;color:#1e40af;}
+
+#jgProPanel{position:fixed;left:12px;bottom:84px;z-index:490;max-width:min(340px,calc(100vw - 24px));max-height:54dvh;overflow:auto;background:rgba(255,255,255,.97);color:#172033;border-radius:18px;box-shadow:0 12px 35px #0003;padding:12px;font:12px Inter,sans-serif}
+#jgProPanel button,#jgProPanel select{border:1px solid #cbd5e1;border-radius:9px;padding:7px;background:#f1f5f9;color:#172033;font-weight:600}
+#jgProPanel .jgrow{display:flex;flex-wrap:wrap;gap:6px;margin:7px 0}
+#jgProPanel .jgmuted{font-size:10px;color:#64748b}
+#jgProPanel.jgfolded #jgProBody{display:none}
+body.driving-mode #jgProPanel{bottom:110px;max-height:35dvh}
+#jg3dMap{position:fixed;inset:0;z-index:2;display:none}
+#jg3dMap.jgshown{display:block}
+#jg3dBadge{position:fixed;top:82px;left:12px;z-index:520;background:#0f172ae8;color:white;border-radius:12px;padding:8px;font:12px Inter,sans-serif;display:none}
 </style>
 </head>
 <body class="bg-slate-900 select-none relative">
@@ -216,6 +227,18 @@
       <p class="text-[10px] text-slate-500 dark:text-slate-400 mt-2">True 3D / heading rotation needs a vector map engine. GPS follow works during navigation.</p>
     </div>
   </div>
+</div>
+<div id="jg3dMap" aria-label="3D navigation map"></div><div id="jg3dBadge">3D vector map · MapTiler</div>
+<div id="jgProPanel" class="jgfolded">
+ <button onclick="jgTogglePro()" style="width:100%;text-align:left;background:#dbeafe">🚘 Journey Intelligence <span style="float:right">⚙ ▾</span></button>
+ <div id="jgProBody">
+ <div class="jgrow"><button onclick="jgToggle3D()" id="jg3dBtn">🧭 3D View</button><button onclick="jgTollCheck()">🛣️ Toll status</button><button onclick="jgWeatherAlerts()">🌦 Weather & flood</button></div>
+ <div class="jgrow"><button onclick="jgShowHistory()">🕘 Trip history</button><button onclick="showSavedDestinations()">⭐ Saved places</button><button onclick="alongRoute47()">⛽ Route facilities</button></div>
+ <div class="jgrow"><button onclick="jgRefreshReports()">🔄 Community reports</button><button onclick="jgDownloadTrip()">📄 Export trip</button></div>
+ <div class="jgrow"><label>Voice rate <select id="jgVoiceRate" onchange="jgStoreVoice()"><option value="0.85">Slow</option><option value="1" selected>Normal</option><option value="1.15">Fast</option></select></label></div>
+ <div class="jgmuted" id="jgProStatus">Route toll rates, speed limits, flood alerts and true offline routing need verified external datasets. Community sync needs backend setup.</div>
+ <div id="jgTripHistory" style="max-height:140px;overflow:auto"></div>
+ </div>
 </div>
     <!-- PANEL KIRI / ATAS: Carian, Kawalan Suara, Mod Malam & Navigasi -->
     <div id="searchPanelWrap" class="fixed top-14 md:top-3 left-3 right-3 md:right-auto md:w-[400px] z-[500] flex flex-col gap-2.5 max-h-[85vh] md:max-h-[94vh] pointer-events-none">
@@ -662,6 +685,105 @@
           }catch{showToast('POI sepanjang laluan gagal dimuatkan.','warning');}
         }
 
+
+// ===== JomGerak Advanced Beta: production-safe feature boundaries =====
+const JG_CFG=window.JOMGERAK_CONFIG||{};
+let jg3d=null,jg3dActive=false,jgTripStarted=0,jgLastGpsLog=0,jgTripPoints=[],jgReportTimer=null;
+function jgTogglePro(){document.getElementById('jgProPanel').classList.toggle('jgfolded');}
+function jgStatus(t){document.getElementById('jgProStatus').textContent=t;}
+function jgStoreVoice(){try{localStorage.setItem('jg_voice_rate',document.getElementById('jgVoiceRate').value);}catch{}}
+function jgLoadVoice(){try{document.getElementById('jgVoiceRate').value=localStorage.getItem('jg_voice_rate')||'1';}catch{}}
+function jgTollCheck(){
+ if(!currentRouteData){showToast('Cari laluan dahulu.','warning');return;}
+ const summary=routes47.map((r,i)=>`${i+1}: ${(r.distance/1000).toFixed(1)} km / ${Math.round(r.duration/60)} min`).join(' · ');
+ jgStatus('Route comparison: '+summary+'. Toll presence, toll avoidance and toll charges are unverified; do not treat as RM0.');
+ document.getElementById('jgProPanel').classList.remove('jgfolded');
+}
+function jgGetHistory(){try{const x=JSON.parse(localStorage.getItem('jg_trip_history_v5')||'[]');return Array.isArray(x)?x:[];}catch{return [];}}
+function jgFinishTrip(){
+ if(!jgTripStarted)return;
+ const trip={startedAt:jgTripStarted,endedAt:Date.now(),from:originCoords?.name||'GPS',to:destCoords?.name||'Destination',distanceKm:currentRouteData?+(currentRouteData.distance/1000).toFixed(2):null,track:jgTripPoints.slice(0,1200)};
+ jgTripStarted=0;jgTripPoints=[];
+ try{localStorage.setItem('jg_trip_history_v5',JSON.stringify([trip,...jgGetHistory()].slice(0,20)));}catch{}
+}
+function jgShowHistory(){
+ const el=document.getElementById('jgTripHistory');el.replaceChildren();
+ const history=jgGetHistory();
+ if(!history.length){el.textContent='No recorded trips on this device.';}else history.forEach(t=>{
+ const row=document.createElement('div');row.style.padding='6px';row.style.borderBottom='1px solid #ddd';
+ row.textContent=new Date(t.startedAt).toLocaleString()+' · '+t.to+' · '+(t.distanceKm??'?')+' km';el.appendChild(row);
+ });
+ document.getElementById('jgProPanel').classList.remove('jgfolded');
+}
+function jgDownloadTrip(){
+ const trips=jgGetHistory();if(!trips.length){showToast('No trip history to export.','info');return;}
+ const blob=new Blob([JSON.stringify(trips,null,2)],{type:'application/json'}),url=URL.createObjectURL(blob);
+ const a=document.createElement('a');a.href=url;a.download='jomgerak-trip-history.json';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);
+}
+async function jgLoadMapLibre(){
+ if(window.maplibregl)return;
+ if(!document.getElementById('jgMaplibreCSS')){const l=document.createElement('link');l.id='jgMaplibreCSS';l.rel='stylesheet';l.href='https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css';document.head.appendChild(l);}
+ await new Promise((resolve,reject)=>{const el=document.createElement('script');el.src='https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js';el.onload=resolve;el.onerror=reject;document.head.appendChild(el);});
+}
+function jgSync3DRoute(){
+ if(!jg3d||!jg3d.isStyleLoaded())return;
+ const route=currentRouteData?.geometry;
+ if(jg3d.getLayer('jg-route'))jg3d.removeLayer('jg-route');
+ if(jg3d.getSource('jg-route'))jg3d.removeSource('jg-route');
+ if(route){jg3d.addSource('jg-route',{type:'geojson',data:{type:'Feature',geometry:route,properties:{}}});jg3d.addLayer({id:'jg-route',type:'line',source:'jg-route',paint:{'line-color':'#2563eb','line-width':7,'line-opacity':0.9}});}
+}
+async function jgToggle3D(){
+ if(jg3dActive){jg3dActive=false;document.getElementById('jg3dMap').classList.remove('jgshown');document.getElementById('jg3dBadge').style.display='none';map.invalidateSize();return;}
+ if(!JG_CFG.maptilerKey){jgStatus('To enable true 3D, set maptilerKey in config.js. A licensed vector tile service is required.');document.getElementById('jgProPanel').classList.remove('jgfolded');return;}
+ try{
+  await jgLoadMapLibre();
+  const center=lastGps||map.getCenter();
+  document.getElementById('jg3dMap').classList.add('jgshown');
+  if(!jg3d){
+   jg3d=new maplibregl.Map({container:'jg3dMap',style:'https://api.maptiler.com/maps/streets-v2/style.json?key='+encodeURIComponent(JG_CFG.maptilerKey),center:[center.lng,center.lat],zoom:16,pitch:60,bearing:0});
+   jg3d.addControl(new maplibregl.NavigationControl(),'bottom-right');
+   jg3d.on('load',jgSync3DRoute);jg3d.on('error',e=>{if(e.error)jgStatus('3D tiles error: '+e.error.message);});
+  }else{jg3d.resize();jgSync3DRoute();}
+  jg3dActive=true;document.getElementById('jg3dBadge').style.display='block';
+  jg3d.easeTo({center:[center.lng,center.lat],zoom:16,pitch:60,duration:600});
+ }catch(e){document.getElementById('jg3dMap').classList.remove('jgshown');jgStatus('3D unavailable: '+e.message);}
+}
+function jgGPSAdvanced(pos){
+ if(navigationActive){
+  if(!jgTripStarted)jgTripStarted=Date.now();
+  if(Date.now()-jgLastGpsLog>5000&&pos.coords.accuracy<100){jgTripPoints.push([+pos.coords.longitude.toFixed(5),+pos.coords.latitude.toFixed(5)]);jgLastGpsLog=Date.now();}
+ }
+ if(jg3dActive&&jg3d){
+  const bearing=Number.isFinite(pos.coords.heading)&&pos.coords.speed>1.5?pos.coords.heading:jg3d.getBearing();
+  if(followGps)jg3d.easeTo({center:[pos.coords.longitude,pos.coords.latitude],bearing,pitch:60,zoom:17,duration:900});
+ }
+}
+async function jgWeatherAlerts(){
+ await weather47();
+ jgStatus('Weather uses Open-Meteo forecast. Official Malaysian flood warnings are NOT connected. Check official warnings before travelling.');
+ document.getElementById('jgProPanel').classList.remove('jgfolded');
+}
+async function jgRefreshReports(){
+ if(!JG_CFG.communityApi){jgStatus('Community reports are stored locally on this device. Configure communityApi and Supabase backend to sync between users.');document.getElementById('jgProPanel').classList.remove('jgfolded');return;}
+ try{
+  const r=await fetch(JG_CFG.communityApi,{cache:'no-store'});if(!r.ok)throw Error('server '+r.status);
+  const data=await r.json();if(!Array.isArray(data.reports))throw Error('invalid data');
+  loadCommunityReports();
+  for(const x of data.reports){if(Number.isFinite(x.lat)&&Number.isFinite(x.lng)&&typeof x.type==='string')addCommunityReportMarker(x.lat,x.lng,x.type,String(x.note||'').slice(0,180),new Date(x.created_at).toLocaleTimeString('ms-MY',{hour:'2-digit',minute:'2-digit'}));}
+  jgStatus(data.reports.length+' shared reports loaded (last 24h). Reports are user-submitted and unverified.');
+ }catch(e){jgStatus('Shared reports unavailable: '+e.message+'. Local reports remain available.');}
+}
+async function jgSendReport(r){
+ if(!JG_CFG.communityApi)return;
+ try{const res=await fetch(JG_CFG.communityApi,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({lat:r.lat,lng:r.lng,type:r.type,note:r.note})});if(!res.ok)throw Error('server '+res.status);jgStatus('Report shared. Community reports are unverified.');}
+ catch(e){jgStatus('Report saved locally only. Community sync failed: '+e.message);}
+}
+function jgOfflineStatus(){
+ const online=navigator.onLine;
+ if(!online)jgStatus('Offline: previously cached app shell may work; routing, search, GPS tiles and 3D tiles are NOT guaranteed.');
+}
+window.addEventListener('online',jgOfflineStatus);window.addEventListener('offline',jgOfflineStatus);
+
         // ==========================================
         // 1. TETAPAN ASAS & PEMBOLEHUBAH GLOBAL
         // ==========================================
@@ -702,9 +824,9 @@
         const STORAGE_KEY_REPORTS = 'jomgerak_community_reports_v2';
         const STORAGE_KEY_THEME = 'jomgerak_dark_mode_v2';
 
-        // Kadar Harga Bahan Api Semasa Malaysia (Anggaran Purata 12 km/L untuk kereta, 6 km/kWh untuk EV)
+        // Kadar Bahan Api CONTOH BOLEH UBAH (bukan harga langsung) (Anggaran Purata 12 km/L untuk kereta, 6 km/kWh untuk EV)
         const FUEL_RATES = {
-            'RON95': { pricePerUnit: 2.05, efficiency: 12, unit: 'L', label: 'RON95 (RM2.05/L)' },
+            'RON95': { pricePerUnit: 2.05, efficiency: 12, unit: 'L', label: 'RON95 (contoh RM2.05/L)' },
             'RON97': { pricePerUnit: 3.47, efficiency: 12, unit: 'L', label: 'RON97 (RM3.47/L)' },
             'EV':    { pricePerUnit: 0.80, efficiency: 6,  unit: 'kWh', label: 'EV (RM0.80/kWh)' }
         };
@@ -743,6 +865,9 @@
             initTheme();
             initLanguage();
             initMap();
+            jgLoadVoice();
+            jgOfflineStatus();
+            if(JG_CFG.communityApi){jgRefreshReports();jgReportTimer=setInterval(()=>{if(!document.hidden)jgRefreshReports();},60000);}
             setupSearchListeners();
             loadCommunityReports();
             if('serviceWorker' in navigator && location.protocol==='https:')navigator.serviceWorker.register('./sw.js').catch(()=>{});
@@ -874,7 +999,7 @@
                 utterance.voice = msVoice;
             }
             utterance.lang = appLanguage === 'en' ? 'en-US' : 'ms-MY';
-            utterance.rate = 1.0;
+            utterance.rate = Number(document.getElementById("jgVoiceRate")?.value)||1;
 
             if (onEndCallback) {
                 utterance.onend = onEndCallback;
@@ -889,6 +1014,7 @@
             if(!currentRouteData||!destCoords){showToast(tr('Cari laluan dahulu.'),'warning');return;}
             if(!navigator.geolocation||!window.isSecureContext){showToast(tr('GPS memerlukan HTTPS dan kebenaran lokasi.'),'error');return;}
             navigationActive=true;lastSpokenStep=-1;
+            jgTripStarted=Date.now();jgTripPoints=[];
             document.getElementById('speed47').classList.remove('hidden');
             previousMapZoom=map.getZoom();
             followGps=true;
@@ -906,6 +1032,7 @@
             showToast(tr('GPS langsung diaktifkan. Elakkan mengendalikan telefon ketika memandu.'),'success');
         }
         function stopLiveNavigation(silent=false) {
+            jgFinishTrip();
             if(gpsWatchId!==null&&navigator.geolocation)navigator.geolocation.clearWatch(gpsWatchId);
             gpsWatchId=null;navigationActive=false;
             document.getElementById('speed47').classList.add('hidden');
@@ -953,6 +1080,7 @@
         function updateLivePosition(pos){
             const p={lat:pos.coords.latitude,lng:pos.coords.longitude};lastGps=p;
             document.getElementById('speedNum47').textContent=Number.isFinite(pos.coords.speed)&&pos.coords.speed>=0?Math.round(pos.coords.speed*3.6):'--';
+            jgGPSAdvanced(pos);
             if(!userLocationMarker){
                 userLocationMarker=L.marker([p.lat,p.lng],{icon:L.divIcon({className:'gps-user-icon',html:'<div class="w-5 h-5 rounded-full bg-blue-600 border-2 border-white shadow-md pulse-marker"></div>',iconSize:[20,20],iconAnchor:[10,10]})}).addTo(map);
             }else userLocationMarker.setLatLng([p.lat,p.lng]);
@@ -1571,6 +1699,7 @@
                 renderRouteSummary(route);
                 updateFuelCalculation();
                 renderChoices47();
+                jgSync3DRoute();
 
                 showToast('Laluan terbaik & anggaran kos berjaya dikira!', 'success');
             } catch (error) {
@@ -1867,6 +1996,7 @@
             } catch (e) {}
 
             addCommunityReportMarker(newReport.lat, newReport.lng, newReport.type, newReport.note, newReport.time);
+            jgSendReport(newReport);
             showToast(`Laporan "${type}" disimpan & ditanda di peta!`, 'success');
             speakText(`Amaran ${type} telah dilaporkan.`);
         }
