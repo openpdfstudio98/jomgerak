@@ -1,0 +1,1868 @@
+<!DOCTYPE html>
+<html lang="ms">
+<head>
+    <meta charset="UTF-8">
+    <meta name="theme-color" content="#0f172a">
+    <link rel="manifest" href="./manifest.webmanifest">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>JomGerak V4.4 Driving Mode</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+        }
+    </script>
+    
+    <!-- Leaflet CSS & JS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    
+    <!-- Font Awesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
+    
+    <!-- Google Fonts: Inter -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            overflow: hidden;
+            touch-action: manipulation;
+        }
+        
+        /* Custom Map Styling */
+        #map {
+            height: 100vh;
+            width: 100vw;
+            z-index: 1;
+            transition: filter 0.4s ease;
+        }
+
+        /* Sleek Night Driving Dark Filter for Leaflet Map Tiles */
+        html.dark #map .leaflet-tile-pane {
+            filter: invert(100%) hue-rotate(180deg) brightness(92%) contrast(90%) saturate(110%);
+        }
+
+        /* Custom Scrollbar for Steps & Dropdowns */
+        ::-webkit-scrollbar {
+            width: 5px;
+            height: 5px;
+        }
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 8px;
+        }
+        html.dark ::-webkit-scrollbar-thumb {
+            background: #475569;
+        }
+
+        /* Hide scrollbar for horizontal pills */
+        .no-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .no-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+
+        /* Custom Marker Pulse Effect */
+        @keyframes pulse-ring {
+            0% { transform: scale(0.8); opacity: 0.8; }
+            80%, 100% { opacity: 0; transform: scale(2.3); }
+        }
+        .pulse-marker::before {
+            content: '';
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            border-radius: 9999px;
+            background-color: inherit;
+            animation: pulse-ring 2s cubic-bezier(0.215, 0.61, 0.355, 1) infinite;
+            z-index: -1;
+        }
+
+        /* Glowing Route Polyline */
+        .glowing-route {
+            filter: drop-shadow(0 0 6px rgba(37, 99, 235, 0.65));
+        }
+        html.dark .glowing-route {
+            filter: drop-shadow(0 0 8px rgba(56, 189, 248, 0.85));
+        }
+
+        /* Attribution Styling */
+        .leaflet-control-attribution {
+            font-size: 10px !important;
+            background: rgba(255, 255, 255, 0.8) !important;
+            backdrop-filter: blur(4px);
+            border-radius: 6px 0 0 0;
+        }
+        html.dark .leaflet-control-attribution {
+            background: rgba(15, 23, 42, 0.85) !important;
+            color: #94a3b8 !important;
+        }
+        html.dark .leaflet-control-attribution a {
+            color: #38bdf8 !important;
+        }
+
+        /* Custom Popup Styling */
+        .leaflet-popup-content-wrapper {
+            border-radius: 16px !important;
+            padding: 4px !important;
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.25) !important;
+        }
+        html.dark .leaflet-popup-content-wrapper,
+        html.dark .leaflet-popup-tip {
+            background: #1e293b !important;
+            color: #f8fafc !important;
+            border: 1px solid #334155;
+        }
+        .leaflet-popup-content {
+            margin: 10px 14px !important;
+            font-family: 'Inter', sans-serif !important;
+        }
+        /* Driving mode: keep the map visible while navigating */
+        body.driving-mode #poiPillsContainer,
+        body.driving-mode #routeSummaryPanel,
+        body.driving-mode #searchPanelWrap,
+        body.driving-mode #floatingMapTools { display:none !important; }
+        body.driving-mode #liveNavHUD { display:block !important; }
+        body.driving-mode #drivingControls { display:flex !important; }
+        body.driving-mode #liveNavHUD { bottom: max(16px, env(safe-area-inset-bottom)); }
+        body.driving-mode .leaflet-control-attribution { font-size:8px !important; }
+        @media(max-width:767px){
+          body.driving-mode #map { height:100dvh; }
+          body.driving-mode #liveNavHUD { left:10px; right:10px; }
+          body.driving-mode #liveInstruction { white-space:normal; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
+        }
+    </style>
+</head>
+<body class="bg-slate-900 select-none relative">
+
+    <!-- Peta Utama -->
+    <div id="map"></div>
+
+    <!-- Notifikasi Toast (Ganti Alert) -->
+    <div id="toastContainer" class="fixed top-16 md:top-4 left-1/2 transform -translate-x-1/2 z-[1000] flex flex-col items-center gap-2 pointer-events-none w-11/12 max-w-md"></div>
+
+    <!-- Banner Mod Menanda Peta -->
+    <div id="mapSelectBanner" class="hidden fixed top-16 md:top-4 left-1/2 transform -translate-x-1/2 z-[900] bg-indigo-600 text-white px-5 py-3 rounded-2xl shadow-2xl border border-indigo-400 flex items-center gap-3 w-11/12 max-w-md animate-bounce">
+        <i class="fa-solid fa-location-crosshairs text-xl"></i>
+        <div class="flex-1 text-sm font-medium" id="mapSelectBannerText">Sila klik mana-mana lokasi di atas peta...</div>
+        <button onclick="cancelMapSelectionMode()" class="bg-indigo-800 hover:bg-indigo-900 text-xs px-3 py-1.5 rounded-xl font-semibold transition">Batal</button>
+    </div>
+
+    <!-- BARIS BUTANG CARIAN PANTAS POI (TOP RIGHT / CENTER) -->
+    <div class="fixed top-3 left-3 right-3 md:left-[435px] md:right-4 z-[450] pointer-events-none flex items-center justify-between gap-2">
+        <div id="poiPillsContainer" class="flex items-center gap-2 overflow-x-auto no-scrollbar pointer-events-auto py-1 max-w-full">
+            <button onclick="searchNearbyPOI('fuel')" id="poiBtn-fuel" class="poi-pill bg-white/95 dark:bg-slate-900/95 hover:bg-blue-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200 border border-slate-200/80 dark:border-slate-700 px-3.5 py-2 rounded-2xl shadow-lg backdrop-blur-md text-xs font-bold flex items-center gap-2 shrink-0 transition active:scale-95">
+                <span>⛽</span>
+                <span>Stesen Minyak</span>
+            </button>
+            <button onclick="searchNearbyPOI('mosque')" id="poiBtn-mosque" class="poi-pill bg-white/95 dark:bg-slate-900/95 hover:bg-emerald-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200 border border-slate-200/80 dark:border-slate-700 px-3.5 py-2 rounded-2xl shadow-lg backdrop-blur-md text-xs font-bold flex items-center gap-2 shrink-0 transition active:scale-95">
+                <span>🕌</span>
+                <span>Masjid / Surau</span>
+            </button>
+            <button onclick="searchNearbyPOI('food')" id="poiBtn-food" class="poi-pill bg-white/95 dark:bg-slate-900/95 hover:bg-amber-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200 border border-slate-200/80 dark:border-slate-700 px-3.5 py-2 rounded-2xl shadow-lg backdrop-blur-md text-xs font-bold flex items-center gap-2 shrink-0 transition active:scale-95">
+                <span>🍔</span>
+                <span>R&R / Makan</span>
+            </button>
+            <button onclick="searchNearbyPOI('ev')" id="poiBtn-ev" class="poi-pill bg-white/95 dark:bg-slate-900/95 hover:bg-cyan-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200 border border-slate-200/80 dark:border-slate-700 px-3.5 py-2 rounded-2xl shadow-lg backdrop-blur-md text-xs font-bold flex items-center gap-2 shrink-0 transition active:scale-95">
+                <span>⚡</span>
+                <span>EV Charger</span>
+            </button>
+            <button onclick="clearPOIMarkers()" id="clearPoiBtn" class="hidden bg-rose-600 hover:bg-rose-700 text-white px-3 py-2 rounded-2xl shadow-lg text-xs font-bold flex items-center gap-1.5 shrink-0 transition">
+                <i class="fa-solid fa-xmark"></i>
+                <span>Padam POI</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- Butang mod pemanduan: kembali ke peta dan buka panel jika perlu -->
+    <div id="drivingControls" class="hidden fixed top-16 right-3 z-[650] flex-col gap-2 pointer-events-auto">
+      <button onclick="recenterNavigation()" class="bg-blue-600 text-white shadow-xl rounded-2xl px-4 py-3 text-sm font-bold"><i class="fa-solid fa-location-crosshairs"></i> Ikut GPS</button>
+      <button onclick="toggleDrivingPanels()" id="drivingPanelsBtn" class="bg-white/95 text-slate-800 shadow-xl rounded-2xl px-4 py-3 text-sm font-bold"><i class="fa-solid fa-list"></i> Lihat Butiran</button>
+    </div>
+<div id="speed47" class="hidden fixed top-20 right-3 z-[520] bg-slate-950/90 text-white p-3 rounded-2xl shadow-xl text-center"><div class="text-[10px]">GPS SPEED</div><div class="text-2xl font-extrabold"><span id="speedNum47">--</span> <span class="text-xs">km/j</span></div><div class="text-[10px] text-amber-300">Had laju: tidak tersedia</div></div>
+    <!-- PANEL KIRI / ATAS: Carian, Kawalan Suara, Mod Malam & Navigasi -->
+    <div id="searchPanelWrap" class="fixed top-14 md:top-3 left-3 right-3 md:right-auto md:w-[400px] z-[500] flex flex-col gap-2.5 max-h-[85vh] md:max-h-[94vh] pointer-events-none">
+        
+        <!-- Kad Utama: Jenama, Mod Malam, Suara & Input Carian -->
+        <div class="bg-white/95 dark:bg-slate-900/95 backdrop-blur-md rounded-2xl shadow-xl border border-slate-200/80 dark:border-slate-700/80 p-4 pointer-events-auto transition-all duration-300">
+            
+            <!-- Header App -->
+            <div class="flex items-center justify-between mb-3">
+                <div class="flex items-center gap-2.5">
+                    <div class="w-9 h-9 rounded-xl bg-gradient-to-tr from-blue-600 to-cyan-500 flex items-center justify-center text-white shadow-md shadow-blue-500/30">
+                        <i class="fa-solid fa-location-arrow text-lg"></i>
+                    </div>
+                    <div>
+                        <h1 class="font-extrabold text-slate-800 dark:text-white text-base leading-tight flex items-center gap-1.5">
+                            JomGerak
+                            <span class="bg-blue-100 dark:bg-blue-900/60 text-blue-700 dark:text-blue-300 text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider">V4.4 PRO</span>
+                        </h1>
+                        <p class="text-[11px] text-slate-500 dark:text-slate-400 font-medium">Navigasi GPS & Komuniti</p>
+                    </div>
+                </div>
+                
+                <!-- Kawalan Atas: Suara (Mute/Unmute), Mod Malam & Toggle Mobile -->
+                <div class="flex items-center gap-1.5">
+                    <label for="languageSelect" class="sr-only">Language / Bahasa</label>
+                    <select id="languageSelect" onchange="setLanguage(this.value)" aria-label="Language / Bahasa" class="bg-blue-50 dark:bg-slate-800 text-blue-700 dark:text-blue-200 text-[11px] font-bold rounded-lg px-1 py-2 border border-blue-100 dark:border-slate-700">
+                      <option value="ms">BM</option><option value="en">EN</option>
+                    </select>
+                    <!-- Butang Toggle Suara -->
+                    <button id="voiceMuteBtn" onclick="toggleVoiceMute()" title="Hidup/Matikan Panduan Suara" class="w-8 h-8 rounded-xl bg-blue-50 dark:bg-slate-800 text-blue-600 dark:text-blue-400 flex items-center justify-center hover:bg-blue-100 dark:hover:bg-slate-700 transition">
+                        <i id="voiceMuteIcon" class="fa-solid fa-volume-high text-sm"></i>
+                    </button>
+
+                    <!-- Butang Toggle Mod Malam -->
+                    <button id="darkModeBtn" onclick="toggleDarkMode()" title="Tukar Mod Siang / Malam" class="w-8 h-8 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-amber-400 flex items-center justify-center hover:bg-slate-200 dark:hover:bg-slate-700 transition">
+                        <i id="darkModeIcon" class="fa-solid fa-moon text-sm"></i>
+                    </button>
+
+                    <!-- Butang Toggle Panel di Mobile -->
+                    <button id="toggleSearchBtn" onclick="toggleSearchCard()" class="md:hidden w-8 h-8 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 flex items-center justify-center hover:bg-slate-200 transition">
+                        <i id="toggleSearchIcon" class="fa-solid fa-chevron-up text-sm"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Bahagian Input yang boleh disembunyikan di skrin kecil -->
+            <div id="searchInputsContainer" class="space-y-2.5 transition-all">
+                
+                <!-- Input Lokasi Permulaan -->
+                <div class="relative">
+                    <div class="flex items-center bg-slate-100 dark:bg-slate-800/90 focus-within:bg-white dark:focus-within:bg-slate-800 focus-within:ring-2 focus-within:ring-blue-500 rounded-xl border border-slate-200/80 dark:border-slate-700 px-3 py-2 transition">
+                        <i class="fa-solid fa-circle-dot text-emerald-500 text-sm mr-2.5"></i>
+                        <input 
+                            type="text" 
+                            id="originInput" 
+                            placeholder="Lokasi Permulaan (cth: KLCC)" 
+                            class="w-full bg-transparent text-sm text-slate-800 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none font-medium"
+                            autocomplete="off"
+                        >
+                        <button onclick="clearInput('origin')" id="clearOriginBtn" class="hidden text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 px-1.5">
+                            <i class="fa-solid fa-xmark text-sm"></i>
+                        </button>
+                        <button onclick="activateMapPick('origin')" title="Pilih di atas peta" class="text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 pl-1.5 border-l border-slate-200 dark:border-slate-700 ml-1">
+                            <i class="fa-solid fa-map-pin text-sm"></i>
+                        </button>
+                    </div>
+                    <div id="originSuggestions" class="hidden absolute left-0 right-0 top-full mt-1 bg-white dark:bg-slate-800 rounded-xl shadow-2xl border border-slate-200 dark:border-slate-700 max-h-52 overflow-y-auto z-[600] divide-y divide-slate-100 dark:divide-slate-700/60"></div>
+                </div>
+
+                <!-- Input Destinasi -->
+                <div class="relative">
+                    <div class="flex items-center bg-slate-100 dark:bg-slate-800/90 focus-within:bg-white dark:focus-within:bg-slate-800 focus-within:ring-2 focus-within:ring-blue-500 rounded-xl border border-slate-200/80 dark:border-slate-700 px-3 py-2 transition">
+                        <i class="fa-solid fa-location-dot text-rose-500 text-base mr-2.5"></i>
+                        <input 
+                            type="text" 
+                            id="destInput" 
+                            placeholder="Destinasi (cth: Putrajaya / Shah Alam)" 
+                            class="w-full bg-transparent text-sm text-slate-800 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none font-medium"
+                            autocomplete="off"
+                        >
+                        <button onclick="clearInput('dest')" id="clearDestBtn" class="hidden text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 px-1.5">
+                            <i class="fa-solid fa-xmark text-sm"></i>
+                        </button>
+                        <button onclick="activateMapPick('dest')" title="Pilih di atas peta" class="text-slate-400 hover:text-rose-600 dark:hover:text-rose-400 pl-1.5 border-l border-slate-200 dark:border-slate-700 ml-1">
+                            <i class="fa-solid fa-map-pin text-sm"></i>
+                        </button>
+                    </div>
+                    <div id="destSuggestions" class="hidden absolute left-0 right-0 top-full mt-1 bg-white dark:bg-slate-800 rounded-xl shadow-2xl border border-slate-200 dark:border-slate-700 max-h-52 overflow-y-auto z-[600] divide-y divide-slate-100 dark:divide-slate-700/60"></div>
+                </div>
+
+                <!-- Baris Butang Tindakan Pantas -->
+                <div class="flex items-center gap-2 pt-1">
+                    <button onclick="useMyLocation()" class="flex-1 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 text-xs font-semibold py-2.5 px-3 rounded-xl flex items-center justify-center gap-1.5 transition">
+                        <i class="fa-solid fa-location-crosshairs text-blue-600 dark:text-blue-400"></i>
+                        <span>Lokasi Saya</span>
+                    </button>
+                    <button onclick="swapLocations()" title="Tukar arah" class="bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 p-2.5 rounded-xl transition">
+                        <i class="fa-solid fa-right-left text-xs rotate-90"></i>
+                    </button>
+                    <button onclick="calculateRoute()" id="calcRouteBtn" class="flex-1 bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white text-xs font-semibold py-2.5 px-4 rounded-xl flex items-center justify-center gap-1.5 shadow-md shadow-blue-500/20 transition">
+                        <i class="fa-solid fa-route"></i>
+                        <span>Cari Laluan</span>
+                    </button>
+                </div>
+
+                <div class="flex flex-wrap gap-2">
+                  <button onclick="saveCurrentDestination()" class="text-xs font-bold bg-indigo-100 dark:bg-indigo-900 text-indigo-700 dark:text-white rounded-xl px-3 py-2">★ Simpan Destinasi</button>
+                  <button onclick="showSavedDestinations()" class="text-xs font-bold bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-white rounded-xl px-3 py-2">⌚ Tersimpan</button>
+                  <button onclick="shareCurrentRoute()" class="text-xs font-bold bg-emerald-100 dark:bg-emerald-900 text-emerald-800 dark:text-white rounded-xl px-3 py-2">↗ Kongsi</button>
+                </div>
+<div class="rounded-xl p-3 bg-blue-50 dark:bg-slate-800 text-xs space-y-2 border border-blue-200 dark:border-blue-900">
+<b class="text-blue-800 dark:text-blue-200">🛣️ Smart Route Malaysia V4.7</b>
+<div class="flex gap-3 flex-wrap text-slate-700 dark:text-white">
+<label><input id="avoidToll47" type="checkbox" onchange="settings47()"> Elak tol*</label>
+<label><input id="avoidHighway47" type="checkbox" onchange="settings47()"> Elak highway*</label>
+</div><p class="text-[10px] text-amber-700 dark:text-amber-300">* Belum disokong OSRM awam; tidak mengubah laluan. Tol sebenar belum dapat disahkan.</p>
+<div class="flex flex-wrap gap-2">
+<button onclick="weather47()" class="bg-cyan-200 dark:bg-cyan-900 rounded-lg p-2 font-bold">🌦 Cuaca</button>
+<button onclick="alongRoute47()" class="bg-orange-200 dark:bg-orange-900 rounded-lg p-2 font-bold">⛽ POI Laluan</button>
+<button onclick="toll47()" class="bg-amber-200 dark:bg-amber-900 rounded-lg p-2 font-bold">🛣️ Info Tol</button>
+</div></div>
+                <!-- Lokasi Pantas Popular Lembah Klang -->
+                <div class="pt-1 flex items-center gap-1.5 overflow-x-auto pb-0.5 no-scrollbar">
+                    <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider shrink-0 mr-1">Pantas:</span>
+                    <button onclick="setQuickDestination('KLCC, Kuala Lumpur', 3.1579, 101.7116)" class="text-[11px] bg-slate-100 dark:bg-slate-800 hover:bg-blue-50 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 px-2.5 py-1 rounded-lg font-medium shrink-0 transition">🗼 KLCC</button>
+                    <button onclick="setQuickDestination('KL Sentral, Kuala Lumpur', 3.1342, 101.6861)" class="text-[11px] bg-slate-100 dark:bg-slate-800 hover:bg-blue-50 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 px-2.5 py-1 rounded-lg font-medium shrink-0 transition">🚆 KL Sentral</button>
+                    <button onclick="setQuickDestination('Sunway Pyramid, Subang Jaya', 3.0733, 101.6067)" class="text-[11px] bg-slate-100 dark:bg-slate-800 hover:bg-blue-50 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 px-2.5 py-1 rounded-lg font-medium shrink-0 transition">🦁 Sunway</button>
+                    <button onclick="setQuickDestination('Dataran Putrajaya', 2.9264, 101.6964)" class="text-[11px] bg-slate-100 dark:bg-slate-800 hover:bg-blue-50 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 px-2.5 py-1 rounded-lg font-medium shrink-0 transition">🏛️ Putrajaya</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Panel Ringkasan Perjalanan, Kalkulator Minyak & Navigasi Suara -->
+        <div id="routeSummaryPanel" class="hidden bg-white/95 dark:bg-slate-900/95 backdrop-blur-md rounded-2xl shadow-xl border border-slate-200/80 dark:border-slate-700/80 overflow-hidden pointer-events-auto flex flex-col max-h-[50vh] md:max-h-[58vh]">
+            
+            <!-- Ringkasan Masa, Jarak & Butang Mula Navigasi -->
+            <div class="p-3.5 bg-gradient-to-r from-slate-900 to-slate-800 text-white">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <div class="flex items-baseline gap-2">
+                            <span id="summaryTime" class="text-2xl font-extrabold text-emerald-400">0 min</span>
+                            <span id="summaryDistance" class="text-sm font-semibold text-slate-300">(0.0 km)</span>
+                        </div>
+                        <p id="summaryEta" class="text-[11px] text-slate-400 mt-0.5">Anggaran tiba: --:--</p>
+                    </div>
+                    <div class="flex items-center gap-1.5">
+                        <button onclick="startVoiceNavigation()" id="startNavBtn" class="bg-emerald-500 hover:bg-emerald-600 active:scale-95 text-slate-950 font-extrabold text-xs px-3 py-2 rounded-xl flex items-center gap-1.5 shadow-lg shadow-emerald-500/20 transition">
+                            <i id="startNavIcon" class="fa-solid fa-volume-high"></i>
+                            <span id="startNavText">Mula Navigasi</span>
+                        </button>
+                        <button onclick="clearRoute()" title="Padam Laluan" class="bg-rose-500/20 hover:bg-rose-500/40 text-rose-300 p-2 rounded-xl transition">
+                            <i class="fa-solid fa-trash-can text-xs"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Kalkulator Anggaran Kos Minyak / EV Malaysia -->
+                <div class="mt-3 pt-2.5 border-t border-slate-700/80 flex items-center justify-between gap-2">
+                    <div class="flex items-center gap-2">
+                        <div class="w-7 h-7 rounded-lg bg-amber-500/20 text-amber-400 flex items-center justify-center text-xs">
+                            <i class="fa-solid fa-gas-pump"></i>
+                        </div>
+                        <div>
+                            <div class="text-[10px] text-slate-400 font-medium uppercase tracking-wider">Anggaran Kos Perjalanan</div>
+                            <div class="flex items-baseline gap-1.5">
+                                <span id="fuelCostDisplay" class="text-sm font-extrabold text-amber-300">RM 0.00</span>
+                                <span id="fuelLitresDisplay" class="text-[11px] text-slate-400">(~0.0 L)</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Pemilih Jenis Bahan Api -->
+                    <div class="flex bg-slate-800 p-0.5 rounded-lg border border-slate-700 text-[10px] font-bold">
+                        <button onclick="setFuelType('RON95')" id="fuelBtn-RON95" class="fuel-type-btn px-2 py-1 rounded-md bg-amber-500 text-slate-950 transition">RON95</button>
+                        <button onclick="setFuelType('RON97')" id="fuelBtn-RON97" class="fuel-type-btn px-2 py-1 rounded-md text-slate-300 hover:text-white transition">RON97</button>
+                        <button onclick="setFuelType('EV')" id="fuelBtn-EV" class="fuel-type-btn px-2 py-1 rounded-md text-slate-300 hover:text-white transition">⚡ EV</button>
+                    </div>
+                </div>
+            </div>
+
+<div id="routeChoices47" class="hidden px-3 py-2 bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-white text-xs"><b>🧭 Laluan Alternatif</b><div id="routeButtons47" class="flex flex-wrap gap-2 mt-2"></div><p class="text-amber-700 dark:text-amber-300 mt-1">Caj tol dan status tol belum disahkan.</p></div>
+            <!-- Senarai Arahan Belok-demi-Belok (Turn-by-Turn) -->
+            <div id="stepsContainer" class="overflow-y-auto divide-y divide-slate-100 dark:divide-slate-800 p-2 space-y-1 flex-1">
+                <!-- Diisi secara dinamik oleh JS -->
+            </div>
+        </div>
+    </div>
+
+    <div id="liveNavHUD" class="hidden fixed bottom-5 left-3 right-3 md:left-[435px] md:right-24 z-[520] pointer-events-auto">
+      <div class="bg-slate-950/95 text-white rounded-2xl p-3 shadow-2xl border border-blue-500/40">
+        <div class="flex items-center gap-3">
+          <div class="bg-blue-600 rounded-xl p-3"><i class="fa-solid fa-location-arrow"></i></div>
+          <div class="min-w-0 flex-1"><div id="liveInstruction" class="font-extrabold text-sm truncate">Mencari GPS...</div><div id="liveDetail" class="text-xs text-slate-300">Benarkan akses lokasi</div></div>
+          <button onclick="stopLiveNavigation()" class="bg-rose-600 rounded-xl px-3 py-2 font-bold text-xs">Henti</button>
+        </div>
+      </div>
+    </div>
+    <!-- BUTANG TERAPUNG KANAN BAWAH: Kawalan Peta & Lapor Trafik (Gaya Waze) -->
+    <div id="floatingMapTools" class="fixed bottom-6 right-4 z-[500] flex flex-col items-end gap-3 pointer-events-none">
+        
+        <!-- Butang Zoom & Lokasi Semasa -->
+        <div class="flex flex-col bg-white/95 dark:bg-slate-900/95 backdrop-blur-md rounded-2xl shadow-lg border border-slate-200/80 dark:border-slate-700 overflow-hidden pointer-events-auto">
+            <button onclick="useMyLocation(true)" title="Pusatkan ke Lokasi Saya" class="p-3 text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition border-b border-slate-100 dark:border-slate-800">
+                <i class="fa-solid fa-location-crosshairs text-blue-600 dark:text-blue-400 text-lg"></i>
+            </button>
+            <button onclick="map.zoomIn()" title="Besarkan Peta" class="p-3 text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition border-b border-slate-100 dark:border-slate-800">
+                <i class="fa-solid fa-plus text-sm"></i>
+            </button>
+            <button onclick="map.zoomOut()" title="Kecilkan Peta" class="p-3 text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition">
+                <i class="fa-solid fa-minus text-sm"></i>
+            </button>
+        </div>
+
+        <!-- Butang Utama Lapor Trafik (Gaya Waze) -->
+        <button onclick="openReportModal()" class="pointer-events-auto group relative flex items-center gap-2.5 bg-gradient-to-tr from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white font-bold px-4 py-3.5 rounded-2xl shadow-xl shadow-orange-500/30 border-2 border-white dark:border-slate-800 transform active:scale-95 transition-all">
+            <i class="fa-solid fa-triangle-exclamation text-xl animate-pulse"></i>
+            <span class="text-sm tracking-wide">Lapor Trafik</span>
+        </button>
+    </div>
+
+    <!-- MODAL LAPORAN KOMUNITI (GAYA WAZE) DENGAN LOCALSTORAGE -->
+    <div id="reportModal" class="hidden fixed inset-0 z-[800] bg-slate-900/60 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4">
+        <div class="bg-white dark:bg-slate-900 w-full sm:max-w-md rounded-t-3xl sm:rounded-3xl shadow-2xl border border-slate-100 dark:border-slate-800 p-6">
+            <div class="flex items-center justify-between pb-4 border-b border-slate-100 dark:border-slate-800">
+                <div class="flex items-center gap-2.5">
+                    <div class="w-10 h-10 rounded-2xl bg-amber-100 dark:bg-amber-500/20 text-amber-600 dark:text-amber-400 flex items-center justify-center text-xl">
+                        <i class="fa-solid fa-bullhorn"></i>
+                    </div>
+                    <div>
+                        <h3 class="font-extrabold text-slate-800 dark:text-white text-base">Laporan Komuniti</h3>
+                        <p class="text-xs text-slate-500 dark:text-slate-400">Disimpan secara automatik di peranti anda</p>
+                    </div>
+                </div>
+                <button onclick="closeReportModal()" class="w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 hover:bg-slate-200 flex items-center justify-center">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+
+            <!-- Pilihan Jenis Laporan -->
+            <div class="grid grid-cols-2 gap-3 my-5">
+                <button onclick="selectReportType('Kesesakan Trafik')" class="group flex flex-col items-center p-4 rounded-2xl border-2 border-slate-100 dark:border-slate-800 hover:border-red-500 hover:bg-red-50/50 dark:hover:bg-red-950/30 transition text-center">
+                    <div class="w-12 h-12 rounded-2xl bg-red-100 dark:bg-red-500/20 text-red-600 dark:text-red-400 flex items-center justify-center text-2xl mb-2 group-hover:scale-110 transition">
+                        <i class="fa-solid fa-car-tunnel"></i>
+                    </div>
+                    <span class="font-bold text-slate-800 dark:text-slate-100 text-sm">Kesesakan Trafik</span>
+                    <span class="text-[11px] text-slate-400 mt-0.5">Jalan sesak / perlahan</span>
+                </button>
+
+                <button onclick="selectReportType('Polis')" class="group flex flex-col items-center p-4 rounded-2xl border-2 border-slate-100 dark:border-slate-800 hover:border-blue-500 hover:bg-blue-50/50 dark:hover:bg-blue-950/30 transition text-center">
+                    <div class="w-12 h-12 rounded-2xl bg-blue-100 dark:bg-blue-500/20 text-blue-600 dark:text-blue-400 flex items-center justify-center text-2xl mb-2 group-hover:scale-110 transition">
+                        <i class="fa-solid fa-shield-halved"></i>
+                    </div>
+                    <span class="font-bold text-slate-800 dark:text-slate-100 text-sm">Polis / Roadblock</span>
+                    <span class="text-[11px] text-slate-400 mt-0.5">Rondaan atau SJR</span>
+                </button>
+
+                <button onclick="selectReportType('Kemalangan')" class="group flex flex-col items-center p-4 rounded-2xl border-2 border-slate-100 dark:border-slate-800 hover:border-orange-500 hover:bg-orange-50/50 dark:hover:bg-orange-950/30 transition text-center">
+                    <div class="w-12 h-12 rounded-2xl bg-orange-100 dark:bg-orange-500/20 text-orange-600 dark:text-orange-400 flex items-center justify-center text-2xl mb-2 group-hover:scale-110 transition">
+                        <i class="fa-solid fa-car-burst"></i>
+                    </div>
+                    <span class="font-bold text-slate-800 dark:text-slate-100 text-sm">Kemalangan</span>
+                    <span class="text-[11px] text-slate-400 mt-0.5">Kenderaan berlanggar</span>
+                </button>
+
+                <button onclick="selectReportType('Bahaya di Jalan')" class="group flex flex-col items-center p-4 rounded-2xl border-2 border-slate-100 dark:border-slate-800 hover:border-amber-500 hover:bg-amber-50/50 dark:hover:bg-amber-950/30 transition text-center">
+                    <div class="w-12 h-12 rounded-2xl bg-amber-100 dark:bg-amber-500/20 text-amber-600 dark:text-amber-400 flex items-center justify-center text-2xl mb-2 group-hover:scale-110 transition">
+                        <i class="fa-solid fa-triangle-exclamation"></i>
+                    </div>
+                    <span class="font-bold text-slate-800 dark:text-slate-100 text-sm">Bahaya di Jalan</span>
+                    <span class="text-[11px] text-slate-400 mt-0.5">Lubang / banjir / objek</span>
+                </button>
+            </div>
+
+            <!-- Nota Tambahan & Pilihan Kaedah Lokasi -->
+            <div class="space-y-3">
+                <input 
+                    type="text" 
+                    id="reportNoteInput" 
+                    placeholder="Nota tambahan (pilihan, cth: Lorong kanan terhalang)" 
+                    class="w-full bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3.5 py-2.5 text-sm text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-amber-500"
+                >
+                <div class="flex items-center justify-between text-xs text-slate-500 dark:text-slate-400 bg-slate-50 dark:bg-slate-800/60 p-3 rounded-xl">
+                    <span>Kaedah penandaan:</span>
+                    <div class="flex items-center gap-3">
+                        <label class="flex items-center gap-1 cursor-pointer font-semibold text-slate-700 dark:text-slate-200">
+                            <input type="radio" name="reportLocMode" value="map" checked class="accent-amber-600">
+                            Klik Peta
+                        </label>
+                        <label class="flex items-center gap-1 cursor-pointer font-semibold text-slate-700 dark:text-slate-200">
+                            <input type="radio" name="reportLocMode" value="center" class="accent-amber-600">
+                            Tengah Skrin
+                        </label>
+                    </div>
+                </div>
+                <div class="flex justify-end pt-1">
+                    <button onclick="resetSavedReports()" class="text-[11px] text-rose-500 hover:underline font-medium">
+                        Reset Laporan Tersimpan
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const TRANSLATIONS = {
+          'Navigasi GPS & Komuniti':'GPS Navigation & Community',
+          'Stesen Minyak':'Petrol Stations','Masjid / Surau':'Mosques / Prayer Rooms',
+          'R&R / Makan':'Rest Stops / Food','EV Charger':'EV Chargers','Padam POI':'Clear POIs',
+          'Lokasi Saya':'My Location','Cari Laluan':'Find Route',
+          'Simpan Destinasi':'Save Destination','Tersimpan':'Saved','Kongsi':'Share',
+          'PANTAS:':'QUICK:','Anggaran Kos Perjalanan':'Estimated Travel Cost',
+          'Anggaran tiba: --:--':'Estimated arrival: --:--',
+          'Mula Navigasi':'Start Navigation','Henti GPS':'Stop GPS',
+          'Lihat Butiran':'View Details','Papar Peta':'Show Map',
+          'Henti':'Stop','Lapor Trafik':'Report Traffic',
+          'Laporan Komuniti':'Community Reports','Disimpan secara automatik di peranti anda':'Saved locally on your device',
+          'Kesesakan Trafik':'Traffic Jam','Jalan sesak / perlahan':'Slow or congested traffic',
+          'Polis / Roadblock':'Police / Roadblock','Rondaan atau SJR':'Patrol or checkpoint',
+          'Kemalangan':'Accident','Kenderaan berlanggar':'Vehicle collision',
+          'Bahaya di Jalan':'Road Hazard','Lubang / banjir / objek':'Pothole / flood / obstruction',
+          'Kaedah penandaan:':'Report location:','Klik Peta':'Tap Map','Tengah Skrin':'Map Centre',
+          'Reset Laporan Tersimpan':'Clear Saved Reports','Batal':'Cancel',
+          'Mencari GPS...':'Finding GPS...','Benarkan akses lokasi':'Allow location access',
+          'Hidup/Matikan Panduan Suara':'Toggle voice guidance',
+          'Tukar Mod Siang / Malam':'Toggle day/night mode',
+          'Pusatkan ke Lokasi Saya':'Centre on my location',
+          'Besarkan Peta':'Zoom in','Kecilkan Peta':'Zoom out',
+          'Padam Laluan':'Clear route','Dengar arahan ini':'Listen to instruction',
+          'Lokasi Permulaan':'Starting Point','Destinasi':'Destination',
+          'Panduan suara JomGerak aktif.':'JomGerak voice guidance enabled.',
+          'Anda telah tiba di destinasi.':'You have arrived at your destination.',
+          'Anda telah tiba!':'You have arrived!',
+          'Cari laluan dahulu.':'Find a route first.',
+          'GPS memerlukan HTTPS dan kebenaran lokasi.':'GPS requires HTTPS and location permission.',
+          'Navigasi dihentikan.':'Navigation stopped.',
+          'Menunggu lokasi GPS...':'Waiting for GPS location...',
+          'GPS langsung diaktifkan. Elakkan mengendalikan telefon ketika memandu.':'Live GPS enabled. Do not operate your phone while driving.',
+          'Di luar laluan. Mengira semula...':'Off route. Recalculating...',
+          'Destinasi disimpan.':'Destination saved.',
+          'Tiada destinasi tersimpan.':'No saved destinations.',
+          'Pilih destinasi dahulu.':'Choose a destination first.',
+          'Pautan disalin.':'Link copied.',
+          'Laporan tempatan dipadam.':'Local reports cleared.',
+          'Tiada lokasi untuk ditukar.':'No locations to swap.'
+        };
+        const PLACEHOLDERS = {
+          'Lokasi Permulaan (cth: KLCC)':'Starting point (e.g. KLCC)',
+          'Destinasi (cth: Putrajaya / Shah Alam)':'Destination (e.g. Putrajaya / Shah Alam)',
+          'Nota tambahan (pilihan, cth: Lorong kanan terhalang)':'Optional note (e.g. right lane blocked)'
+        };
+        let appLanguage='ms';
+        function tr(v){return appLanguage==='en'?(TRANSLATIONS[v]||v):v;}
+        function setLanguage(lang){
+          appLanguage=lang==='en'?'en':'ms';
+          try{localStorage.setItem('jomgerak_language',appLanguage);}catch{}
+          document.documentElement.lang=appLanguage;
+          document.getElementById('languageSelect').value=appLanguage;
+          (window.jgTextNodes||[]).forEach(n=>{n.nodeValue=n.nodeValue.replace(n._jgDisplayed||n._jgOriginal,tr(n._jgOriginal));n._jgDisplayed=tr(n._jgOriginal);});
+          document.querySelectorAll('[data-jg-placeholder]').forEach(el=>{
+            const original=el.getAttribute('data-jg-placeholder');
+            el.placeholder=appLanguage==='en'?(PLACEHOLDERS[original]||original):original;
+          });
+          document.querySelectorAll('[data-jg-title]').forEach(el=>{
+            const original=el.getAttribute('data-jg-title');el.title=tr(original);
+          });
+          updateNavButtonUI();
+          if(navigationActive){
+            document.getElementById('drivingPanelsBtn').innerHTML=drivingPanelsOpen?'<i class="fa-solid fa-map"></i> '+tr('Papar Peta'):'<i class="fa-solid fa-list"></i> '+tr('Lihat Butiran');
+          }
+          if(currentRouteData)renderRouteSummary(currentRouteData);
+          if(lastGps&&navigationActive)document.getElementById('liveInstruction').textContent=appLanguage==='en'?'Following your route':'Mengikuti laluan anda';
+          if('speechSynthesis' in window)window.speechSynthesis.cancel();
+          lastSpokenStep=-1;
+        }
+        function initLanguage(){
+          const walker=document.createTreeWalker(document.body,NodeFilter.SHOW_TEXT);
+          const nodes=[];while(walker.nextNode())nodes.push(walker.currentNode);
+          nodes.forEach(n=>{
+            const v=n.nodeValue.trim();if(!TRANSLATIONS[v]||n.parentElement?.closest('script,style'))return;
+            n.parentElement?.setAttribute('data-jg-text-owner','1');
+            n._jgOriginal=v;
+          });
+          window.jgTextNodes=nodes.filter(n=>n._jgOriginal);
+          document.querySelectorAll('[placeholder]').forEach(el=>{if(PLACEHOLDERS[el.placeholder])el.setAttribute('data-jg-placeholder',el.placeholder);});
+          document.querySelectorAll('[title]').forEach(el=>{if(TRANSLATIONS[el.title])el.setAttribute('data-jg-title',el.title);});
+          const saved=(()=>{try{return localStorage.getItem('jomgerak_language')}catch{return null}})();
+          setLanguage(saved==='en'?'en':'ms');
+        }
+
+        let routes47=[];
+        let selected47=0;
+        function settings47(){showToast('Pilihan elak tol/highway belum disokong pelayan OSRM awam.','warning');}
+        function toll47(){showToast('Data tol belum tersedia. Status tol tidak dapat dipastikan; jangan anggap RM0.','warning');}
+        function renderChoices47(){
+          const box=document.getElementById('routeChoices47'),buttons=document.getElementById('routeButtons47');
+          box.classList.toggle('hidden',routes47.length===0);buttons.replaceChildren();
+          routes47.forEach((r,i)=>{
+            const b=document.createElement('button');
+            b.className='rounded-xl p-2 font-bold '+(i===selected47?'bg-blue-600 text-white':'bg-white dark:bg-slate-700');
+            b.textContent=(i+1)+': '+Math.round(r.duration/60)+' min · '+(r.distance/1000).toFixed(1)+' km';
+            b.onclick=()=>selectRoute47(i);buttons.appendChild(b);
+          });
+        }
+        function selectRoute47(i){
+          if(navigationActive){showToast('Hentikan navigasi sebelum tukar laluan.','warning');return;}
+          if(!routes47[i])return;
+          selected47=i;const route=routes47[i];currentRouteData=route;lastSpokenStep=-1;
+          if(routePolyline)map.removeLayer(routePolyline);
+          routePolyline=L.geoJSON(route.geometry,{style:{color:'#2563eb',weight:6,opacity:.9,lineCap:'round',lineJoin:'round',className:'glowing-route'}}).addTo(map);
+          map.fitBounds(routePolyline.getBounds(),{padding:[60,60]});
+          renderRouteSummary(route);updateFuelCalculation();renderChoices47();
+        }
+        async function weather47(){
+          const p=destCoords||lastGps||originCoords;
+          if(!p){showToast('Pilih destinasi dahulu.','warning');return;}
+          try{
+            const u='https://api.open-meteo.com/v1/forecast?latitude='+p.lat+'&longitude='+p.lng+'&current=temperature_2m,precipitation&timezone=Asia%2FKuala_Lumpur';
+            const r=await fetch(u);if(!r.ok)throw Error('API');
+            const d=await r.json(),c=d.current;
+            showToast('Ramalan cuaca lokasi: '+c.temperature_2m+'°C, hujan '+c.precipitation+' mm. Bukan amaran banjir rasmi.','info');
+          }catch{showToast('Cuaca tidak dapat dimuatkan.','warning');}
+        }
+        async function alongRoute47(){
+          const coords=currentRouteData?.geometry?.coordinates;
+          if(!coords?.length){showToast('Cari laluan dahulu.','warning');return;}
+          const samples=[.2,.5,.8].map(f=>coords[Math.floor(f*(coords.length-1))]);
+          const q='[out:json][timeout:18];('+samples.map(c=>'node(around:1500,'+c[1]+','+c[0]+')['+'"amenity"~"fuel|restaurant|charging_station"'+'];').join('')+');out body 25;';
+          showToast('Mencari kemudahan sepanjang laluan...','info');
+          try{
+            const r=await fetch('https://overpass-api.de/api/interpreter?data='+encodeURIComponent(q));
+            if(!r.ok)throw Error('API');
+            const d=await r.json();poiMarkersGroup.clearLayers();let n=0;
+            for(const x of d.elements||[]){
+              if(!Number.isFinite(x.lat)||!Number.isFinite(x.lon))continue;
+              const name=(x.tags?.name||x.tags?.amenity||'Kemudahan').slice(0,100);
+              const div=document.createElement('div'),h=document.createElement('strong'),b=document.createElement('button');
+              h.textContent=name;b.textContent='Pergi Sini';b.className='block mt-2 bg-blue-600 text-white p-2 rounded-lg';
+              b.onclick=()=>{map.closePopup();selectLocation('dest',x.lat,x.lon,name);};
+              div.append(h,b);L.marker([x.lat,x.lon]).addTo(poiMarkersGroup).bindPopup(div);n++;
+            }
+            document.getElementById('clearPoiBtn').classList.toggle('hidden',!n);
+            showToast(n+' POI berhampiran tiga bahagian laluan (tidak semestinya akses terus dari jalan).','info');
+          }catch{showToast('POI sepanjang laluan gagal dimuatkan.','warning');}
+        }
+
+        // ==========================================
+        // 1. TETAPAN ASAS & PEMBOLEHUBAH GLOBAL
+        // ==========================================
+        let map;
+        let originCoords = null;
+        let destCoords = null;
+        let originMarker = null;
+        let destMarker = null;
+        let userLocationMarker = null;
+        let routePolyline = null;
+        let stepMarkersGroup = null;
+        let communityMarkersGroup = null;
+        let poiMarkersGroup = null;
+
+        let currentMapPickMode = null;
+        let pendingReportData = null;
+        let searchTimeout = null;
+        let routeRequestId = 0;
+        let gpsWatchId = null;
+        let navigationActive = false;
+        let followGps = true;
+        let drivingPanelsOpen = false;
+        let previousMapZoom = 12;
+        let lastSpokenStep = -1;
+        let lastRerouteAt = 0;
+        let lastGps = null;
+        const searchControllers = {origin:null,dest:null};
+        const searchSequence = {origin:0,dest:0};
+        let isSearchCollapsed = false;
+
+        // Ciri Baharu 2.0: Suara, Mod Malam, Kalkulator Minyak & LocalStorage
+        let isVoiceMuted = false;
+        let isSpeakingNavigation = false;
+        let currentRouteData = null;
+        let currentRouteStepsBM = [];
+        let selectedFuelType = 'RON95'; // 'RON95' | 'RON97' | 'EV'
+
+        const STORAGE_KEY_REPORTS = 'jomgerak_community_reports_v2';
+        const STORAGE_KEY_THEME = 'jomgerak_dark_mode_v2';
+
+        // Kadar Harga Bahan Api Semasa Malaysia (Anggaran Purata 12 km/L untuk kereta, 6 km/kWh untuk EV)
+        const FUEL_RATES = {
+            'RON95': { pricePerUnit: 2.05, efficiency: 12, unit: 'L', label: 'RON95 (RM2.05/L)' },
+            'RON97': { pricePerUnit: 3.47, efficiency: 12, unit: 'L', label: 'RON97 (RM3.47/L)' },
+            'EV':    { pricePerUnit: 0.80, efficiency: 6,  unit: 'kWh', label: 'EV (RM0.80/kWh)' }
+        };
+
+        // Koordinat asal: Kuala Lumpur / Selangor
+        const KL_CENTER = [3.1390, 101.6869];
+
+        // Konfigurasi Ikon Laporan Komuniti
+        const REPORT_CONFIG = {
+            'Kesesakan Trafik': {
+                icon: 'fa-car-tunnel',
+                bg: 'bg-red-600',
+                badge: 'bg-red-100 text-red-700'
+            },
+            'Polis': {
+                icon: 'fa-shield-halved',
+                bg: 'bg-blue-600',
+                badge: 'bg-blue-100 text-blue-700'
+            },
+            'Kemalangan': {
+                icon: 'fa-car-burst',
+                bg: 'bg-orange-600',
+                badge: 'bg-orange-100 text-orange-700'
+            },
+            'Bahaya di Jalan': {
+                icon: 'fa-triangle-exclamation',
+                bg: 'bg-amber-500',
+                badge: 'bg-amber-100 text-amber-800'
+            }
+        };
+
+        // ==========================================
+        // 2. INISIALISASI PETA & TEMA
+        // ==========================================
+        window.onload = function () {
+            initTheme();
+            initLanguage();
+            initMap();
+            setupSearchListeners();
+            loadCommunityReports();
+            if('serviceWorker' in navigator && location.protocol==='https:')navigator.serviceWorker.register('./sw.js').catch(()=>{});
+        };
+
+        function initMap() {
+            map = L.map('map', {
+                zoomControl: false,
+                attributionControl: true
+            }).setView(KL_CENTER, 12);
+
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                maxZoom: 19,
+                attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+            }).addTo(map);
+
+            stepMarkersGroup = L.layerGroup().addTo(map);
+            communityMarkersGroup = L.layerGroup().addTo(map);
+            poiMarkersGroup = L.layerGroup().addTo(map);
+
+            map.on('click', handleMapClick);
+            map.on('dragstart',()=>{if(navigationActive)followGps=false;});
+        }
+
+        // ==========================================
+        // 3. MOD MALAM (DARK MODE)
+        // ==========================================
+        function initTheme() {
+            const savedTheme = localStorage.getItem(STORAGE_KEY_THEME);
+            if (savedTheme === 'dark') {
+                document.documentElement.classList.add('dark');
+                updateDarkModeIcon(true);
+            }
+        }
+
+        function toggleDarkMode() {
+            const htmlEl = document.documentElement;
+            const isDark = htmlEl.classList.toggle('dark');
+            localStorage.setItem(STORAGE_KEY_THEME, isDark ? 'dark' : 'light');
+            updateDarkModeIcon(isDark);
+            showToast(isDark ? 'Mod Pemanduan Malam diaktifkan 🌙' : 'Mod Siang diaktifkan ☀️', 'info');
+        }
+
+        function updateDarkModeIcon(isDark) {
+            const icon = document.getElementById('darkModeIcon');
+            if (icon) {
+                icon.className = isDark ? 'fa-solid fa-sun text-sm' : 'fa-solid fa-moon text-sm';
+            }
+        }
+
+        // ==========================================
+        // 4. PANDUAN SUARA (WEB SPEECH API TTS)
+        // ==========================================
+        function toggleVoiceMute() {
+            isVoiceMuted = !isVoiceMuted;
+            const btn = document.getElementById('voiceMuteBtn');
+            const icon = document.getElementById('voiceMuteIcon');
+
+            if (isVoiceMuted) {
+                if ('speechSynthesis' in window) window.speechSynthesis.cancel();
+                isSpeakingNavigation = false;
+                updateNavButtonUI();
+                icon.className = 'fa-solid fa-volume-xmark text-sm text-rose-500';
+                showToast('Panduan suara telah disenapkan (Muted).', 'warning');
+            } else {
+                icon.className = 'fa-solid fa-volume-high text-sm';
+                showToast('Panduan suara diaktifkan.', 'success');
+                speakText(tr('Panduan suara JomGerak aktif.'));
+            }
+        }
+
+        function speakText(text, onEndCallback = null) {
+            if (isVoiceMuted || !('speechSynthesis' in window)) {
+                if (onEndCallback) onEndCallback();
+                return;
+            }
+
+            window.speechSynthesis.cancel();
+            const utterance = new SpeechSynthesisUtterance(text);
+
+            // Cuba cari suara Bahasa Melayu (ms-MY) atau Indonesia (id-ID), jika tiada guna lalai
+            const voices = window.speechSynthesis.getVoices();
+            const msVoice = voices.find(v => v.lang.toLowerCase().startsWith(appLanguage === 'en' ? 'en' : 'ms')) || (appLanguage === 'ms' ? voices.find(v=>v.lang.toLowerCase().startsWith('id')) : null);
+            if (msVoice) {
+                utterance.voice = msVoice;
+            }
+            utterance.lang = appLanguage === 'en' ? 'en-US' : 'ms-MY';
+            utterance.rate = 1.0;
+
+            if (onEndCallback) {
+                utterance.onend = onEndCallback;
+                utterance.onerror = onEndCallback;
+            }
+
+            window.speechSynthesis.speak(utterance);
+        }
+
+        function startVoiceNavigation() {
+            if(navigationActive){stopLiveNavigation();return;}
+            if(!currentRouteData||!destCoords){showToast(tr('Cari laluan dahulu.'),'warning');return;}
+            if(!navigator.geolocation||!window.isSecureContext){showToast(tr('GPS memerlukan HTTPS dan kebenaran lokasi.'),'error');return;}
+            navigationActive=true;lastSpokenStep=-1;
+            document.getElementById('speed47').classList.remove('hidden');
+            previousMapZoom=map.getZoom();
+            followGps=true;
+            drivingPanelsOpen=false;
+            document.body.classList.add('driving-mode');
+            document.getElementById('drivingPanelsBtn').innerHTML='<i class="fa-solid fa-list"></i> '+tr('Lihat Butiran');
+            if(lastGps)map.setView([lastGps.lat,lastGps.lng],17,{animate:true});
+            else if(originCoords)map.setView([originCoords.lat,originCoords.lng],16,{animate:true});
+            setTimeout(()=>map.invalidateSize(),100);
+            document.getElementById('liveNavHUD').classList.remove('hidden');
+            updateNavButtonUI();
+            gpsWatchId=navigator.geolocation.watchPosition(updateLivePosition,e=>{
+                showToast('GPS gagal: '+e.message,'warning');stopLiveNavigation(true);
+            },{enableHighAccuracy:true,maximumAge:1500,timeout:15000});
+            showToast(tr('GPS langsung diaktifkan. Elakkan mengendalikan telefon ketika memandu.'),'success');
+        }
+        function stopLiveNavigation(silent=false) {
+            if(gpsWatchId!==null&&navigator.geolocation)navigator.geolocation.clearWatch(gpsWatchId);
+            gpsWatchId=null;navigationActive=false;
+            document.getElementById('speed47').classList.add('hidden');
+            document.body.classList.remove('driving-mode');
+            document.getElementById('searchPanelWrap').style.removeProperty('display');
+            document.getElementById('routeSummaryPanel').style.removeProperty('display');
+            drivingPanelsOpen=false;
+            document.getElementById('drivingControls').style.removeProperty('display');
+            if(map)setTimeout(()=>map.invalidateSize(),100);
+            document.getElementById('liveNavHUD').classList.add('hidden');
+            if('speechSynthesis' in window)window.speechSynthesis.cancel();
+            isSpeakingNavigation=false;updateNavButtonUI();
+            if(!silent)showToast(tr('Navigasi dihentikan.'),'info');
+        }
+        function recenterNavigation(){
+            followGps=true;
+            if(lastGps)map.setView([lastGps.lat,lastGps.lng],17,{animate:true});
+            else showToast(tr('Menunggu lokasi GPS...'),'info');
+        }
+        function toggleDrivingPanels(){
+            drivingPanelsOpen=!drivingPanelsOpen;
+            document.body.classList.toggle('driving-mode',!drivingPanelsOpen);
+            document.getElementById('drivingControls').style.display='flex';
+            document.getElementById('liveNavHUD').classList.remove('hidden');
+            document.getElementById('drivingPanelsBtn').innerHTML=drivingPanelsOpen?'<i class="fa-solid fa-map"></i> '+tr('Papar Peta'):'<i class="fa-solid fa-list"></i> '+tr('Lihat Butiran');
+            if(drivingPanelsOpen){
+                document.getElementById('searchPanelWrap').style.display='flex';
+                document.getElementById('routeSummaryPanel').style.display='flex';
+            }else{
+                document.getElementById('searchPanelWrap').style.display='';
+                document.getElementById('routeSummaryPanel').style.display='';
+            }
+            setTimeout(()=>map.invalidateSize(),100);
+        }
+        function gpsDistance(a,b){
+            const r=Math.PI/180,dlat=(b.lat-a.lat)*r,dlon=(b.lng-a.lng)*r;
+            const h=Math.sin(dlat/2)**2+Math.cos(a.lat*r)*Math.cos(b.lat*r)*Math.sin(dlon/2)**2;
+            return 12742000*Math.asin(Math.min(1,Math.sqrt(h)));
+        }
+        function segmentDistance(p,a,b){
+            const k=111320,c=Math.cos(p.lat*Math.PI/180),ax=(a.lng-p.lng)*k*c,ay=(a.lat-p.lat)*k,bx=(b.lng-p.lng)*k*c,by=(b.lat-p.lat)*k;
+            const vx=bx-ax,vy=by-ay,t=Math.max(0,Math.min(1,-(ax*vx+ay*vy)/(vx*vx+vy*vy||1)));
+            return Math.hypot(ax+t*vx,ay+t*vy);
+        }
+        function updateLivePosition(pos){
+            const p={lat:pos.coords.latitude,lng:pos.coords.longitude};lastGps=p;
+            document.getElementById('speedNum47').textContent=Number.isFinite(pos.coords.speed)&&pos.coords.speed>=0?Math.round(pos.coords.speed*3.6):'--';
+            if(!userLocationMarker){
+                userLocationMarker=L.marker([p.lat,p.lng],{icon:L.divIcon({className:'gps-user-icon',html:'<div class="w-5 h-5 rounded-full bg-blue-600 border-2 border-white shadow-md pulse-marker"></div>',iconSize:[20,20],iconAnchor:[10,10]})}).addTo(map);
+            }else userLocationMarker.setLatLng([p.lat,p.lng]);
+            if(!navigationActive||!currentRouteData)return;
+            if(followGps) {
+                if(map.getZoom()<16)map.setView([p.lat,p.lng],17,{animate:true});
+                else map.panTo([p.lat,p.lng],{animate:true});
+            }
+            const remaining=gpsDistance(p,destCoords);
+            const title=document.getElementById('liveInstruction'),detail=document.getElementById('liveDetail');
+            if(remaining<35&&pos.coords.accuracy<75){
+                speakText(tr('Anda telah tiba di destinasi.'));stopLiveNavigation(true);showToast(tr('Anda telah tiba!'),'success');return;
+            }
+            const steps=currentRouteData.legs?.[0]?.steps||[];
+            let best=-1,bestDist=Infinity;
+            steps.forEach((step,i)=>{
+                const [lng,lat]=step.maneuver.location,d=gpsDistance(p,{lat,lng});
+                if(d<bestDist){bestDist=d;best=i;}
+            });
+            const next=Math.min(steps.length-1,best+1),step=steps[next];
+            if(step){
+                const [lng,lat]=step.maneuver.location,dist=gpsDistance(p,{lat,lng});
+                const phrase=translateManeuverToBM(step.maneuver,step.name).plainText;
+                title.textContent=phrase;
+                detail.textContent=appLanguage==='en'?`Next turn ~${Math.round(dist)} m • Straight-line ${(remaining/1000).toFixed(1)} km • GPS ±${Math.round(pos.coords.accuracy)} m`:`Arahan ~${Math.round(dist)} m • Jarak terus ${(remaining/1000).toFixed(1)} km • GPS ±${Math.round(pos.coords.accuracy)} m`;
+                if(dist<220&&next!==lastSpokenStep){
+                    lastSpokenStep=next;speakText((appLanguage==='en'?'In about ':'Dalam kira-kira ')+Math.round(dist)+(appLanguage==='en'?' meters, ':' meter, ')+phrase);
+                }
+            }
+            const coords=currentRouteData.geometry?.coordinates||[];
+            let nearest=Infinity;
+            for(let i=1;i<coords.length;i++)nearest=Math.min(nearest,segmentDistance(p,{lat:coords[i-1][1],lng:coords[i-1][0]},{lat:coords[i][1],lng:coords[i][0]}));
+            if(nearest>110&&pos.coords.accuracy<60&&Date.now()-lastRerouteAt>30000){
+                lastRerouteAt=Date.now();
+                originCoords={...p,name:'GPS semasa'};
+                document.getElementById('originInput').value='GPS semasa';
+                updateMarker('origin',p.lat,p.lng,'GPS semasa');
+                calculateRoute();
+                showToast(tr('Di luar laluan. Mengira semula...'),'warning');
+            }
+        }
+        function updateNavButtonUI() {
+            const icon = document.getElementById('startNavIcon');
+            const text = document.getElementById('startNavText');
+            const btn = document.getElementById('startNavBtn');
+
+            if (navigationActive) {
+                icon.className = 'fa-solid fa-stop';
+                text.textContent = tr('Henti GPS');
+                btn.classList.replace('bg-emerald-500', 'bg-amber-400');
+            } else {
+                icon.className = 'fa-solid fa-volume-high';
+                text.textContent = tr('Mula Navigasi');
+                btn.classList.replace('bg-amber-400', 'bg-emerald-500');
+            }
+        }
+
+        // ==========================================
+        // 5. KALKULATOR KOS MINYAK & EV MALAYSIA
+        // ==========================================
+        function setFuelType(type) {
+            selectedFuelType = type;
+            ['RON95', 'RON97', 'EV'].forEach(t => {
+                const btn = document.getElementById(`fuelBtn-${t}`);
+                if (t === type) {
+                    btn.className = 'fuel-type-btn px-2 py-1 rounded-md bg-amber-500 text-slate-950 transition';
+                } else {
+                    btn.className = 'fuel-type-btn px-2 py-1 rounded-md text-slate-300 hover:text-white transition';
+                }
+            });
+            updateFuelCalculation();
+        }
+
+        function updateFuelCalculation() {
+            if (!currentRouteData) return;
+            const distanceKm = currentRouteData.distance / 1000;
+            const cfg = FUEL_RATES[selectedFuelType];
+
+            const unitsUsed = distanceKm / cfg.efficiency;
+            const totalCostRM = unitsUsed * cfg.pricePerUnit;
+
+            document.getElementById('fuelCostDisplay').textContent = `RM ${totalCostRM.toFixed(2)}`;
+            document.getElementById('fuelLitresDisplay').textContent = `(~${unitsUsed.toFixed(1)} ${cfg.unit})`;
+        }
+
+        // ==========================================
+        // 6. CARIAN PANTAS POI BERDEKATAN (OVERPASS / NOMINATIM)
+        // ==========================================
+        async function searchNearbyPOI(category) {
+            const center = map.getCenter();
+            const lat = center.lat;
+            const lng = center.lng;
+
+            const poiConfig = {
+                'fuel': {
+                    label: 'Stesen Minyak',
+                    overpass: 'node["amenity"="fuel"]',
+                    nominatim: 'petrol station',
+                    icon: 'fa-gas-pump',
+                    bg: 'bg-amber-500'
+                },
+                'mosque': {
+                    label: 'Masjid / Surau',
+                    overpass: 'node["amenity"="place_of_worship"]["religion"="muslim"]',
+                    nominatim: 'masjid',
+                    icon: 'fa-mosque',
+                    bg: 'bg-emerald-600'
+                },
+                'food': {
+                    label: 'R&R / Restoran',
+                    overpass: 'node["amenity"~"restaurant|fast_food"]',
+                    nominatim: 'restoran',
+                    icon: 'fa-utensils',
+                    bg: 'bg-orange-500'
+                },
+                'ev': {
+                    label: 'EV Charging Station',
+                    overpass: 'node["amenity"="charging_station"]',
+                    nominatim: 'charging station',
+                    icon: 'fa-bolt',
+                    bg: 'bg-cyan-500'
+                }
+            };
+
+            const cfg = poiConfig[category];
+            if (!cfg) return;
+
+            showToast(`Mencari ${cfg.label} sekitar peta...`, 'info');
+            poiMarkersGroup.clearLayers();
+
+            try {
+                // Cuba carian Overpass API (radius 5km dari tengah peta)
+                const query = `[out:json][timeout:8];(${cfg.overpass}(around:5000,${lat},${lng}););out body 12;`;
+                const url = `https://overpass-api.de/api/interpreter?data=${encodeURIComponent(query)}`;
+                
+                const res = await fetch(url);
+                const data = await res.json();
+                let results = [];
+
+                if (data && data.elements && data.elements.length > 0) {
+                    results = data.elements.map(el => ({
+                        lat: el.lat,
+                        lon: el.lon,
+                        name: (el.tags && (el.tags.name || el.tags.brand)) || cfg.label
+                    }));
+                } else {
+                    // Fallback ke Nominatim jika Overpass tiada hasil
+                    const bBox = map.getBounds();
+                    const viewbox = `${bBox.getWest()},${bBox.getNorth()},${bBox.getEast()},${bBox.getSouth()}`;
+                    const nomUrl = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(cfg.nominatim)}&viewbox=${viewbox}&bounded=1&limit=10`;
+                    const nomRes = await fetch(nomUrl);
+                    const nomData = await nomRes.json();
+                    results = nomData.map(item => ({
+                        lat: parseFloat(item.lat),
+                        lon: parseFloat(item.lon),
+                        name: item.name || item.display_name.split(',')[0]
+                    }));
+                }
+
+                if (results.length === 0) {
+                    showToast(`Tiada ${cfg.label} ditemui di kawasan ini. Cuba zum keluar sedikit.`, 'warning');
+                    return;
+                }
+
+                results.forEach(item => {
+                    const markerIcon = L.divIcon({
+                        className: 'poi-custom-marker',
+                        html: `
+                            <div class="w-9 h-9 rounded-2xl ${cfg.bg} text-white flex items-center justify-center shadow-lg border-2 border-white transform hover:scale-110 transition">
+                                <i class="fa-solid ${cfg.icon} text-sm"></i>
+                            </div>
+                        `,
+                        iconSize: [36, 36],
+                        iconAnchor: [18, 18],
+                        popupAnchor: [0, -18]
+                    });
+
+                    const marker = L.marker([item.lat, item.lon], { icon: markerIcon }).addTo(poiMarkersGroup);
+                    
+                    const popupDiv = document.createElement('div');
+                    popupDiv.className = 'min-w-[160px] text-center space-y-2';
+                    popupDiv.innerHTML = `
+                        <div class="text-[10px] font-bold uppercase tracking-wider text-slate-400">${cfg.label}</div>
+                        <div class="text-xs font-extrabold text-slate-800 dark:text-white">${escapeHTML(item.name)}</div>
+                        <button class="go-here-btn w-full bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold py-1.5 px-3 rounded-xl transition flex items-center justify-center gap-1.5">
+                            <i class="fa-solid fa-diamond-turn-right"></i>
+                            <span>Pergi Sini</span>
+                        </button>
+                    `;
+
+                    popupDiv.querySelector('.go-here-btn').onclick = () => {
+                        map.closePopup();
+                        if (!originCoords) {
+                            showToast('Tetapkan lokasi permulaan menggunakan GPS atau peta.','info');
+                        }
+                        selectLocation('dest', item.lat, item.lon, item.name);
+                    };
+
+                    marker.bindPopup(popupDiv);
+                });
+
+                document.getElementById('clearPoiBtn').classList.remove('hidden');
+                showToast(`Menjumpai ${results.length} ${cfg.label} berdekatan!`, 'success');
+            } catch (err) {
+                showToast(`Gagal memuatkan senarai ${cfg.label}. Sila cuba lagi.`, 'error');
+            }
+        }
+
+        function clearPOIMarkers() {
+            poiMarkersGroup.clearLayers();
+            document.getElementById('clearPoiBtn').classList.add('hidden');
+            showToast('Penanda POI telah dibersihkan.', 'info');
+        }
+
+        // ==========================================
+        // 7. SISTEM NOTIFIKASI TOAST
+        // ==========================================
+        function escapeHTML(v) {
+            return String(v ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+        }
+        function showToast(message, type = 'info') {
+            const container = document.getElementById('toastContainer');
+            const toast = document.createElement('div');
+            
+            let colorClasses = 'bg-slate-800 text-white border-slate-700';
+            let iconClass = 'fa-circle-info text-blue-400';
+
+            if (type === 'success') {
+                colorClasses = 'bg-emerald-900/95 text-white border-emerald-700';
+                iconClass = 'fa-circle-check text-emerald-400';
+            } else if (type === 'warning') {
+                colorClasses = 'bg-amber-900/95 text-white border-amber-700';
+                iconClass = 'fa-triangle-exclamation text-amber-400';
+            } else if (type === 'error') {
+                colorClasses = 'bg-rose-900/95 text-white border-rose-700';
+                iconClass = 'fa-circle-exclamation text-rose-400';
+            }
+
+            toast.className = `${colorClasses} backdrop-blur-md px-4 py-3 rounded-2xl shadow-xl border flex items-center gap-3 text-xs sm:text-sm font-medium transition-all duration-300 pointer-events-auto`;
+            toast.innerHTML = `
+                <i class="fa-solid ${iconClass} text-base shrink-0"></i>
+                <span class="flex-1">${escapeHTML(tr(message))}</span>
+            `;
+
+            container.appendChild(toast);
+
+            setTimeout(() => {
+                toast.style.opacity = '0';
+                toast.style.transform = 'translateY(-10px)';
+                setTimeout(() => toast.remove(), 300);
+            }, 3500);
+        }
+
+        // ==========================================
+        // 8. CARIAN & AUTOLENGKAP (NOMINATIM API)
+        // ==========================================
+        function setupSearchListeners() {
+            const originInput = document.getElementById('originInput');
+            const destInput = document.getElementById('destInput');
+
+            originInput.addEventListener('input', (e) => {
+                const val = e.target.value.trim();
+                document.getElementById('clearOriginBtn').classList.toggle('hidden', val.length === 0);
+                triggerNominatimSearch(val, 'origin');
+            });
+
+            destInput.addEventListener('input', (e) => {
+                const val = e.target.value.trim();
+                document.getElementById('clearDestBtn').classList.toggle('hidden', val.length === 0);
+                triggerNominatimSearch(val, 'dest');
+            });
+
+            document.addEventListener('click', (e) => {
+                if (!e.target.closest('#originInput') && !e.target.closest('#originSuggestions')) {
+                    document.getElementById('originSuggestions').classList.add('hidden');
+                }
+                if (!e.target.closest('#destInput') && !e.target.closest('#destSuggestions')) {
+                    document.getElementById('destSuggestions').classList.add('hidden');
+                }
+            });
+        }
+
+        function triggerNominatimSearch(query, type) {
+            const boxId = type === 'origin' ? 'originSuggestions' : 'destSuggestions';
+            const suggestionBox = document.getElementById(boxId);
+
+            if (searchTimeout) clearTimeout(searchTimeout);
+            searchSequence[type]++;
+            if (searchControllers[type]) searchControllers[type].abort();
+            const seq=searchSequence[type];
+
+            if (query.length < 2) {
+                suggestionBox.classList.add('hidden');
+                return;
+            }
+
+            searchTimeout = setTimeout(async () => {
+                suggestionBox.innerHTML = `
+                    <div class="p-3 text-xs text-slate-500 dark:text-slate-400 flex items-center gap-2">
+                        <i class="fa-solid fa-spinner fa-spin text-blue-600"></i>
+                        <span>Mencari lokasi di Malaysia...</span>
+                    </div>
+                `;
+                suggestionBox.classList.remove('hidden');
+
+                try {
+                    const controller=new AbortController();
+                    searchControllers[type]=controller;
+                    const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&countrycodes=my&limit=5&addressdetails=1`;
+                    const res = await fetch(url, {
+                        headers: { 'Accept-Language': 'ms,en' },signal:controller.signal
+                    });
+                    if(!res.ok) throw Error('Geocoding unavailable');
+                    const data = await res.json();
+                    if(seq!==searchSequence[type])return;
+
+                    if (!data || data.length === 0) {
+                        suggestionBox.innerHTML = `
+                            <div class="p-3 text-xs text-slate-400 text-center">
+                                Tiada lokasi ditemui. Cuba kata kunci lain atau pilih di peta.
+                            </div>
+                        `;
+                        return;
+                    }
+
+                    suggestionBox.innerHTML = '';
+                    data.forEach(item => {
+                        const title = item.name || item.display_name.split(',')[0];
+                        const subtitle = item.display_name;
+                        const lat = parseFloat(item.lat);
+                        const lon = parseFloat(item.lon);
+
+                        const btn = document.createElement('button');
+                        btn.type = 'button';
+                        btn.className = 'w-full text-left px-3.5 py-2.5 hover:bg-blue-50/80 dark:hover:bg-slate-700/60 transition flex items-start gap-2.5';
+                        btn.innerHTML = `
+                            <i class="fa-solid fa-location-dot text-slate-400 mt-1 text-xs shrink-0"></i>
+                            <div class="overflow-hidden">
+                                <div class="text-xs font-bold text-slate-800 dark:text-slate-100 truncate">${escapeHTML(title)}</div>
+                                <div class="text-[11px] text-slate-500 dark:text-slate-400 truncate">${escapeHTML(subtitle)}</div>
+                            </div>
+                        `;
+                        btn.onclick = () => {
+                            selectLocation(type, lat, lon, title);
+                            suggestionBox.classList.add('hidden');
+                        };
+                        suggestionBox.appendChild(btn);
+                    });
+                } catch (err) {
+                    if(err.name==='AbortError'||seq!==searchSequence[type])return;
+                    suggestionBox.innerHTML = `
+                        <div class="p-3 text-xs text-rose-500">Ralat sambungan carian. Sila cuba lagi.</div>
+                    `;
+                }
+            }, 350);
+        }
+
+        // ==========================================
+        // 9. TETAPAN TITIK PERMULAAN & DESTINASI
+        // ==========================================
+        function selectLocation(type, lat, lng, labelName) {
+            searchSequence[type]++;
+            if(searchControllers[type])searchControllers[type].abort();
+            if(currentRouteData)clearRoute(true);
+            if (type === 'origin') {
+                originCoords = { lat, lng, name: labelName };
+                document.getElementById('originInput').value = labelName;
+                document.getElementById('clearOriginBtn').classList.remove('hidden');
+                updateMarker('origin', lat, lng, labelName);
+            } else {
+                destCoords = { lat, lng, name: labelName };
+                document.getElementById('destInput').value = labelName;
+                document.getElementById('clearDestBtn').classList.remove('hidden');
+                updateMarker('dest', lat, lng, labelName);
+            }
+
+            if (originCoords && destCoords) {
+                calculateRoute();
+            } else {
+                map.flyTo([lat, lng], 15, { duration: 1.2 });
+            }
+        }
+
+        function updateMarker(type, lat, lng, title) {
+            const isOrigin = type === 'origin';
+            
+            const customIcon = L.divIcon({
+                className: 'custom-pin',
+                html: `
+                    <div class="relative flex items-center justify-center w-8 h-8">
+                        <div class="w-8 h-8 rounded-full ${isOrigin ? 'bg-emerald-600' : 'bg-rose-600'} text-white flex items-center justify-center shadow-lg border-2 border-white pulse-marker">
+                            <i class="fa-solid ${isOrigin ? 'fa-play text-xs' : 'fa-flag-checkered text-xs'}"></i>
+                        </div>
+                    </div>
+                `,
+                iconSize: [32, 32],
+                iconAnchor: [16, 16],
+                popupAnchor: [0, -16]
+            });
+
+            if (isOrigin) {
+                if (originMarker) map.removeLayer(originMarker);
+                originMarker = L.marker([lat, lng], { icon: customIcon, draggable: true })
+                    .addTo(map)
+                    .bindPopup(`<div class="text-xs font-bold text-emerald-500">Lokasi Permulaan</div><div class="text-xs mt-0.5">${escapeHTML(title)}</div>`);
+                
+                originMarker.on('dragend', async (e) => {
+                    const pos = e.target.getLatLng();
+                    const addr = await reverseGeocode(pos.lat, pos.lng);
+                    selectLocation('origin', pos.lat, pos.lng, addr);
+                });
+            } else {
+                if (destMarker) map.removeLayer(destMarker);
+                destMarker = L.marker([lat, lng], { icon: customIcon, draggable: true })
+                    .addTo(map)
+                    .bindPopup(`<div class="text-xs font-bold text-rose-500">Destinasi</div><div class="text-xs mt-0.5">${escapeHTML(title)}</div>`);
+
+                destMarker.on('dragend', async (e) => {
+                    const pos = e.target.getLatLng();
+                    const addr = await reverseGeocode(pos.lat, pos.lng);
+                    selectLocation('dest', pos.lat, pos.lng, addr);
+                });
+            }
+        }
+
+        async function reverseGeocode(lat, lng) {
+            try {
+                const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=18&addressdetails=1`, {
+                    headers: { 'Accept-Language': 'ms,en' }
+                });
+                const data = await res.json();
+                if (data && data.display_name) {
+                    const parts = data.display_name.split(',');
+                    return parts.slice(0, 2).join(', ');
+                }
+            } catch (e) {}
+            return `${lat.toFixed(4)}, ${lng.toFixed(4)}`;
+        }
+
+        // ==========================================
+        // 10. KLIK PADA PETA UNTUK PILIH LOKASI / LAPORAN
+        // ==========================================
+        function activateMapPick(mode) {
+            currentMapPickMode = mode;
+            const banner = document.getElementById('mapSelectBanner');
+            const text = document.getElementById('mapSelectBannerText');
+            banner.classList.remove('hidden');
+
+            if (mode === 'origin') {
+                text.textContent = 'Klik mana-mana tempat di peta untuk dijadikan Lokasi Permulaan.';
+            } else if (mode === 'dest') {
+                text.textContent = 'Klik mana-mana tempat di peta untuk dijadikan Destinasi.';
+            } else if (mode === 'report') {
+                text.textContent = `Klik lokasi di peta untuk menanda laporan "${pendingReportData.type}".`;
+            }
+        }
+
+        function cancelMapSelectionMode() {
+            currentMapPickMode = null;
+            pendingReportData = null;
+            document.getElementById('mapSelectBanner').classList.add('hidden');
+        }
+
+        async function handleMapClick(e) {
+            const { lat, lng } = e.latlng;
+
+            if (currentMapPickMode === 'origin' || currentMapPickMode === 'dest') {
+                const targetMode = currentMapPickMode;
+                cancelMapSelectionMode();
+                showToast('Mengambil maklumat lokasi...', 'info');
+                const placeName = await reverseGeocode(lat, lng);
+                selectLocation(targetMode, lat, lng, placeName);
+                return;
+            }
+
+            if (currentMapPickMode === 'report' && pendingReportData) {
+                const reportInfo = pendingReportData;
+                cancelMapSelectionMode();
+                createAndSaveReport(lat, lng, reportInfo.type, reportInfo.note);
+                return;
+            }
+
+            const popupContent = document.createElement('div');
+            popupContent.className = 'text-center space-y-2 p-1';
+            popupContent.innerHTML = `
+                <div class="text-xs font-bold">Pilih Tindakan Lokasi Ini</div>
+                <div class="text-[11px] text-slate-400">${lat.toFixed(4)}, ${lng.toFixed(4)}</div>
+                <div class="flex items-center gap-1.5 pt-1">
+                    <button id="popupSetOrigin" class="bg-emerald-600 hover:bg-emerald-700 text-white text-[11px] font-semibold px-2.5 py-1.5 rounded-lg transition">
+                        Mula Sini
+                    </button>
+                    <button id="popupSetDest" class="bg-rose-600 hover:bg-rose-700 text-white text-[11px] font-semibold px-2.5 py-1.5 rounded-lg transition">
+                        Ke Sini
+                    </button>
+                </div>
+            `;
+
+            L.popup()
+                .setLatLng([lat, lng])
+                .setContent(popupContent)
+                .openOn(map);
+
+            setTimeout(() => {
+                const btnOrigin = document.getElementById('popupSetOrigin');
+                const btnDest = document.getElementById('popupSetDest');
+
+                if (btnOrigin) {
+                    btnOrigin.onclick = async () => {
+                        map.closePopup();
+                        const name = await reverseGeocode(lat, lng);
+                        selectLocation('origin', lat, lng, name);
+                    };
+                }
+                if (btnDest) {
+                    btnDest.onclick = async () => {
+                        map.closePopup();
+                        const name = await reverseGeocode(lat, lng);
+                        selectLocation('dest', lat, lng, name);
+                    };
+                }
+            }, 50);
+        }
+
+        // ==========================================
+        // 11. GEOLOCATION API ('LOKASI SAYA')
+        // ==========================================
+        function useMyLocation(onlyPan = false) {
+            if (!navigator.geolocation) {
+                showToast('Pelayar web anda tidak menyokong fungsi GPS.', 'error');
+                return;
+            }
+
+            showToast('Mengesan lokasi GPS semasa anda...', 'info');
+
+            navigator.geolocation.getCurrentPosition(
+                async (position) => {
+                    const lat = position.coords.latitude;
+                    const lng = position.coords.longitude;
+
+                    if (userLocationMarker) map.removeLayer(userLocationMarker);
+                    const gpsIcon = L.divIcon({
+                        className: 'gps-user-icon',
+                        html: `<div class="w-5 h-5 rounded-full bg-blue-600 border-2 border-white shadow-md pulse-marker"></div>`,
+                        iconSize: [20, 20],
+                        iconAnchor: [10, 10]
+                    });
+
+                    userLocationMarker = L.marker([lat, lng], { icon: gpsIcon })
+                        .addTo(map)
+                        .bindPopup('<div class="text-xs font-bold text-blue-500">Lokasi Semasa Anda</div>');
+
+                    if (onlyPan && originCoords) {
+                        map.flyTo([lat, lng], 16, { duration: 1.2 });
+                        showToast('Peta dipusatkan ke lokasi semasa anda.', 'success');
+                        return;
+                    }
+
+                    const placeName = await reverseGeocode(lat, lng);
+                    selectLocation('origin', lat, lng, `Lokasi Saya (${placeName})`);
+                    showToast('Lokasi permulaan ditetapkan ke kedudukan semasa anda!', 'success');
+                },
+                () => {
+                    showToast('Akses GPS ditolak atau gagal. Sila pilih lokasi secara manual di peta.', 'warning');
+                },
+                { enableHighAccuracy: true, timeout: 10000 }
+            );
+        }
+
+        // ==========================================
+        // 12. PENGIRAAN LALUAN & ARAHAN (OSRM API)
+        // ==========================================
+        async function calculateRoute() {
+            if (!originCoords || !destCoords) {
+                showToast('Sila tetapkan Lokasi Permulaan dan Destinasi terlebih dahulu.', 'warning');
+                return;
+            }
+
+            const reqId=++routeRequestId;
+            const btn = document.getElementById('calcRouteBtn');
+            const originalHTML = btn.innerHTML;
+            btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> <span>Mengira...</span>`;
+            btn.disabled = true;
+
+            try {
+                const coordsString = `${originCoords.lng},${originCoords.lat};${destCoords.lng},${destCoords.lat}`;
+                const url = `https://router.project-osrm.org/route/v1/driving/${coordsString}?overview=full&geometries=geojson&steps=true&alternatives=true`;
+
+                const res = await fetch(url);
+                if(!res.ok)throw Error('Routing unavailable');
+                const data = await res.json();
+                if(reqId!==routeRequestId)return;
+
+                if (data.code !== 'Ok' || !data.routes || data.routes.length === 0) {
+                    showToast('Tiada laluan jalan raya ditemui antara dua lokasi ini.', 'error');
+                    return;
+                }
+
+                routes47=data.routes.slice(0,3);selected47=0;
+                const route = routes47[0];
+                currentRouteData = route;
+
+                if (routePolyline) map.removeLayer(routePolyline);
+                routePolyline = L.geoJSON(route.geometry, {
+                    style: {
+                        color: '#2563eb',
+                        weight: 6,
+                        opacity: 0.9,
+                        lineCap: 'round',
+                        lineJoin: 'round',
+                        className: 'glowing-route'
+                    }
+                }).addTo(map);
+
+                map.fitBounds(routePolyline.getBounds(), { padding: [60, 60] });
+
+                renderRouteSummary(route);
+                updateFuelCalculation();
+                renderChoices47();
+
+                showToast('Laluan terbaik & anggaran kos berjaya dikira!', 'success');
+            } catch (error) {
+                showToast('Ralat ketika menghubungi pelayan laluan OSRM.', 'error');
+            } finally {
+                if(reqId===routeRequestId){btn.innerHTML = originalHTML;btn.disabled = false;}
+            }
+        }
+
+        function renderRouteSummary(route) {
+            const distanceKm = (route.distance / 1000).toFixed(1);
+            const durationSec = route.duration;
+            
+            const totalMinutes = Math.round(durationSec / 60);
+            let timeFormatted = '';
+            if (totalMinutes >= 60) {
+                const hrs = Math.floor(totalMinutes / 60);
+                const mins = totalMinutes % 60;
+                timeFormatted = `${hrs} j ${mins} min`;
+            } else {
+                timeFormatted = `${Math.max(1, totalMinutes)} min`;
+            }
+
+            const now = new Date();
+            now.setSeconds(now.getSeconds() + durationSec);
+            const etaStr = now.toLocaleTimeString('ms-MY', { hour: '2-digit', minute: '2-digit' });
+
+            document.getElementById('summaryTime').textContent = timeFormatted;
+            document.getElementById('summaryDistance').textContent = `(${distanceKm} km)`;
+            document.getElementById('summaryEta').textContent = `Anggaran tiba: ${etaStr} • Anggaran tanpa trafik langsung`;
+
+            const stepsContainer = document.getElementById('stepsContainer');
+            stepsContainer.innerHTML = '';
+            stepMarkersGroup.clearLayers();
+            currentRouteStepsBM = [];
+
+            const steps = route.legs[0].steps;
+            steps.forEach((step) => {
+                const instruction = translateManeuverToBM(step.maneuver, step.name);
+                const stepDist = step.distance >= 1000 
+                    ? `${(step.distance / 1000).toFixed(1)} km` 
+                    : `${Math.round(step.distance)} m`;
+
+                currentRouteStepsBM.push({
+                    plainText: `${instruction.plainText} sejauh ${stepDist}`
+                });
+
+                const stepEl = document.createElement('div');
+                stepEl.className = 'flex items-center gap-3 p-2.5 rounded-xl hover:bg-blue-50/80 dark:hover:bg-slate-800 cursor-pointer transition group';
+                stepEl.innerHTML = `
+                    <div class="w-8 h-8 rounded-xl bg-slate-100 dark:bg-slate-800 text-blue-600 dark:text-blue-400 flex items-center justify-center shrink-0 text-sm">
+                        <i class="fa-solid ${instruction.icon}"></i>
+                    </div>
+                    <div class="flex-1 min-w-0">
+                        <div class="text-xs font-bold text-slate-800 dark:text-slate-100 leading-snug">${instruction.htmlText}</div>
+                        <div class="text-[11px] text-slate-400 font-medium mt-0.5">${stepDist}</div>
+                    </div>
+                    <button title="Dengar arahan ini" class="opacity-60 group-hover:opacity-100 text-slate-400 hover:text-blue-500 p-1.5">
+                        <i class="fa-solid fa-volume-low text-xs"></i>
+                    </button>
+                `;
+
+                stepEl.onclick = () => {
+                    const [lon, lat] = step.maneuver.location;
+                    map.flyTo([lat, lon], 17, { duration: 0.8 });
+                    speakText(`${instruction.plainText}, ${stepDist}`);
+                };
+
+                stepsContainer.appendChild(stepEl);
+            });
+
+            document.getElementById('routeSummaryPanel').classList.remove('hidden');
+        }
+
+        function translateManeuverToBM(maneuver, roadName) {
+            if(appLanguage==='en') {
+                const type=maneuver.type,mod=maneuver.modifier||'';
+                const road=roadName?' onto '+roadName:' ahead';
+                const roadHTML=roadName?' onto <span class="text-blue-600 dark:text-blue-400">'+escapeHTML(roadName)+'</span>':' ahead';
+                const dirs={left:['Turn left','fa-turn-up -rotate-90'],right:['Turn right','fa-turn-up rotate-90'],straight:['Continue straight','fa-arrow-up'],uturn:['Make a U-turn','fa-rotate-left'],'slight left':['Keep slightly left','fa-arrow-up -rotate-45'],'slight right':['Keep slightly right','fa-arrow-up rotate-45'],'sharp left':['Turn sharply left','fa-turn-up -rotate-90'],'sharp right':['Turn sharply right','fa-turn-up rotate-90']};
+                let txt,icon='fa-arrow-up';
+                if(type==='depart'){txt='Start your journey';icon='fa-circle-play';}
+                else if(type==='arrive')return {htmlText:'You have arrived at your destination',plainText:'You have arrived at your destination',icon:'fa-flag-checkered text-rose-500'};
+                else if(type==='roundabout'||type==='rotary'){txt='Enter the roundabout'+(maneuver.exit?', take exit '+maneuver.exit:'');icon='fa-circle-notch';}
+                else if(type==='merge'){txt='Merge';icon='fa-code-merge';}
+                else if(['fork','off ramp','on ramp'].includes(type)){txt='Take the '+(mod.includes('left')?'left':'right')+' ramp';icon='fa-code-branch';}
+                else [txt,icon]=dirs[mod]||['Continue','fa-arrow-up'];
+                return {htmlText:txt+roadHTML,plainText:txt+road,icon};
+            }
+            const type = maneuver.type;
+            const modifier = maneuver.modifier || '';
+            const roadHTML = roadName ? `ke <span class="text-blue-600 dark:text-blue-400">${escapeHTML(roadName)}</span>` : 'di hadapan';
+            const roadPlain = roadName ? `ke ${roadName}` : 'di hadapan';
+
+            const modMap = {
+                'left': { text: 'Belok kiri', icon: 'fa-turn-up -rotate-90' },
+                'slight left': { text: 'Ke kiri sedikit', icon: 'fa-arrow-up -rotate-45' },
+                'sharp left': { text: 'Belok tajam ke kiri', icon: 'fa-turn-up -rotate-90' },
+                'right': { text: 'Belok kanan', icon: 'fa-turn-up rotate-90' },
+                'slight right': { text: 'Ke kanan sedikit', icon: 'fa-arrow-up rotate-45' },
+                'sharp right': { text: 'Belok tajam ke kanan', icon: 'fa-turn-up rotate-90' },
+                'uturn': { text: 'Buat pusingan U', icon: 'fa-rotate-left' },
+                'straight': { text: 'Teruskan perjalanan lurus', icon: 'fa-arrow-up' }
+            };
+
+            if (type === 'depart') {
+                return {
+                    htmlText: `Mulakan perjalanan ${roadHTML}`,
+                    plainText: `Mulakan perjalanan ${roadPlain}`,
+                    icon: 'fa-circle-play'
+                };
+            }
+            if (type === 'arrive') {
+                return {
+                    htmlText: `Tiba di destinasi anda`,
+                    plainText: `Anda telah tiba di destinasi`,
+                    icon: 'fa-flag-checkered text-rose-500'
+                };
+            }
+            if (type === 'roundabout' || type === 'rotary') {
+                const exit = maneuver.exit ? `ambil susur keluar ke-${maneuver.exit} ` : '';
+                return {
+                    htmlText: `Masuk bulatan, ${exit}${roadHTML}`,
+                    plainText: `Masuk bulatan, ${exit}${roadPlain}`,
+                    icon: 'fa-circle-notch'
+                };
+            }
+            if (type === 'merge') {
+                return {
+                    htmlText: `Masuk ke laluan utama ${roadHTML}`,
+                    plainText: `Masuk ke laluan utama ${roadPlain}`,
+                    icon: 'fa-code-merge'
+                };
+            }
+            if (type === 'fork' || type === 'off ramp' || type === 'on ramp') {
+                const dir = modifier.includes('left') ? 'kiri' : 'kanan';
+                return {
+                    htmlText: `Ambil susur ${dir} ${roadHTML}`,
+                    plainText: `Ambil susur ${dir} ${roadPlain}`,
+                    icon: 'fa-code-branch'
+                };
+            }
+
+            const chosen = modMap[modifier] || { text: 'Teruskan perjalanan', icon: 'fa-arrow-up' };
+            return {
+                htmlText: `${chosen.text} ${roadHTML}`,
+                plainText: `${chosen.text} ${roadPlain}`,
+                icon: chosen.icon
+            };
+        }
+
+        // ==========================================
+        // 13. FUNGSI BANTUAN UI
+        // ==========================================
+        function clearInput(type) {
+            clearRoute(true);
+            if (type === 'origin') {
+                originCoords = null;
+                document.getElementById('originInput').value = '';
+                document.getElementById('clearOriginBtn').classList.add('hidden');
+                if (originMarker) map.removeLayer(originMarker);
+            } else {
+                destCoords = null;
+                document.getElementById('destInput').value = '';
+                document.getElementById('clearDestBtn').classList.add('hidden');
+                if (destMarker) map.removeLayer(destMarker);
+            }
+        }
+
+        function swapLocations() {
+            if (!originCoords && !destCoords) {
+                showToast('Tiada lokasi untuk ditukar.', 'warning');
+                return;
+            }
+            const temp = originCoords;
+            originCoords = destCoords;
+            destCoords = temp;
+
+            document.getElementById('originInput').value = originCoords ? originCoords.name : '';
+            document.getElementById('destInput').value = destCoords ? destCoords.name : '';
+            document.getElementById('clearOriginBtn').classList.toggle('hidden', !originCoords);
+            document.getElementById('clearDestBtn').classList.toggle('hidden', !destCoords);
+
+            if (originMarker) map.removeLayer(originMarker);
+            if (destMarker) map.removeLayer(destMarker);
+
+            if (originCoords) updateMarker('origin', originCoords.lat, originCoords.lng, originCoords.name);
+            if (destCoords) updateMarker('dest', destCoords.lat, destCoords.lng, destCoords.name);
+
+            if (originCoords && destCoords) calculateRoute();
+        }
+
+        function clearRoute(silent=false) {
+            routeRequestId++;
+            stopLiveNavigation(true);
+            if ('speechSynthesis' in window) window.speechSynthesis.cancel();
+            isSpeakingNavigation = false;
+            updateNavButtonUI();
+            currentRouteData = null;
+            routes47=[];
+            document.getElementById('routeChoices47').classList.add('hidden');
+
+            if (routePolyline) map.removeLayer(routePolyline);
+            stepMarkersGroup.clearLayers();
+            document.getElementById('routeSummaryPanel').classList.add('hidden');
+            if(!silent)showToast('Laluan telah dipadamkan dari peta.', 'info');
+        }
+
+        function setQuickDestination(name, lat, lng) {
+            selectLocation('dest', lat, lng, name);
+            if(!originCoords)showToast('Tetapkan lokasi mula melalui GPS atau peta.', 'info');
+        }
+
+        function toggleSearchCard() {
+            const container = document.getElementById('searchInputsContainer');
+            const icon = document.getElementById('toggleSearchIcon');
+            isSearchCollapsed = !isSearchCollapsed;
+            container.classList.toggle('hidden', isSearchCollapsed);
+            icon.className = isSearchCollapsed ? 'fa-solid fa-chevron-down text-sm' : 'fa-solid fa-chevron-up text-sm';
+        }
+
+        function getSavedDestinations(){
+            try{const v=JSON.parse(localStorage.getItem('jg_saved_v42')||'[]');return Array.isArray(v)?v:[];}catch{return [];}
+        }
+        function saveCurrentDestination(){
+            if(!destCoords){showToast('Pilih destinasi dahulu.','warning');return;}
+            const a=getSavedDestinations().filter(x=>x.name!==destCoords.name);a.unshift({...destCoords});
+            try{localStorage.setItem('jg_saved_v42',JSON.stringify(a.slice(0,20)));showToast('Destinasi disimpan.','success');}
+            catch{showToast('Tidak dapat menyimpan destinasi.','warning');}
+        }
+        function showSavedDestinations(){
+            const a=getSavedDestinations(),box=document.getElementById('destSuggestions');
+            if(!a.length){showToast('Tiada destinasi tersimpan.','info');return;}
+            box.replaceChildren();
+            a.forEach(x=>{
+                const btn=document.createElement('button');
+                btn.className='w-full text-left px-3 py-3 text-xs font-semibold text-slate-800 dark:text-white hover:bg-blue-50 dark:hover:bg-slate-700';
+                btn.textContent=x.name;
+                btn.onclick=()=>{selectLocation('dest',x.lat,x.lng,x.name);box.classList.add('hidden');};
+                box.appendChild(btn);
+            });
+            box.classList.remove('hidden');
+        }
+        async function shareCurrentRoute(){
+            if(!destCoords){showToast('Pilih destinasi dahulu.','warning');return;}
+            const url=`https://www.openstreetmap.org/?mlat=${destCoords.lat}&mlon=${destCoords.lng}#map=16/${destCoords.lat}/${destCoords.lng}`;
+            if(navigator.share){try{await navigator.share({title:'Destinasi JomGerak',text:destCoords.name,url});}catch{}}
+            else if(navigator.clipboard){await navigator.clipboard.writeText(url);showToast('Pautan disalin.','success');}
+            else showToast('Kongsi tidak tersedia.','warning');
+        }
+        // ==========================================
+        // 14. KOMUNITI TRAFIK DENGAN LOCALSTORAGE
+        // ==========================================
+        function getDefaultReports() { return []; }
+
+        function loadCommunityReports() {
+            communityMarkersGroup.clearLayers();
+            let reports = [];
+            try {
+                const raw = localStorage.getItem(STORAGE_KEY_REPORTS);
+                if (raw) {
+                    reports = JSON.parse(raw);
+                } else {
+                    reports = [];
+                }
+            } catch (e) {
+                reports = [];
+            }
+
+            reports = reports.filter(r=>r && r.createdAt && Date.now()-r.createdAt<86400000 && Number.isFinite(r.lat) && Number.isFinite(r.lng));
+            try {localStorage.setItem(STORAGE_KEY_REPORTS,JSON.stringify(reports));}catch{}
+            reports.forEach(r => {
+                addCommunityReportMarker(r.lat, r.lng, r.type, r.note, r.time);
+            });
+        }
+
+        function createAndSaveReport(lat, lng, type, note) {
+            const timeStr = new Date().toLocaleTimeString('ms-MY', { hour: '2-digit', minute: '2-digit' });
+            const newReport = {
+                id: 'rep-' + Date.now(),
+                lat,
+                lng,
+                type,
+                note: note || 'Dilaporkan oleh komuniti JomGerak',
+                time: timeStr,
+                createdAt: Date.now()
+            };
+
+            try {
+                const raw = localStorage.getItem(STORAGE_KEY_REPORTS);
+                const list = raw ? JSON.parse(raw) : [];
+                list.push(newReport);
+                localStorage.setItem(STORAGE_KEY_REPORTS, JSON.stringify(list));
+            } catch (e) {}
+
+            addCommunityReportMarker(newReport.lat, newReport.lng, newReport.type, newReport.note, newReport.time);
+            showToast(`Laporan "${type}" disimpan & ditanda di peta!`, 'success');
+            speakText(`Amaran ${type} telah dilaporkan.`);
+        }
+
+        function resetSavedReports() {
+            localStorage.removeItem(STORAGE_KEY_REPORTS);
+            loadCommunityReports();
+            closeReportModal();
+            showToast('Laporan tempatan dipadam.', 'info');
+        }
+
+        function openReportModal() {
+            document.getElementById('reportNoteInput').value = '';
+            document.getElementById('reportModal').classList.remove('hidden');
+        }
+
+        function closeReportModal() {
+            document.getElementById('reportModal').classList.add('hidden');
+        }
+
+        function selectReportType(type) {
+            const note = document.getElementById('reportNoteInput').value.trim();
+            const locMode = document.querySelector('input[name="reportLocMode"]:checked').value;
+            
+            closeReportModal();
+
+            if (locMode === 'center') {
+                const center = map.getCenter();
+                createAndSaveReport(center.lat, center.lng, type, note);
+            } else {
+                pendingReportData = { type, note };
+                activateMapPick('report');
+            }
+        }
+
+        function addCommunityReportMarker(lat, lng, type, customNote = '', customTimeStr = null) {
+            const cfg = REPORT_CONFIG[type] || REPORT_CONFIG['Bahaya di Jalan'];
+            const timeStr = customTimeStr || new Date().toLocaleTimeString('ms-MY', { hour: '2-digit', minute: '2-digit' });
+            const noteText = customNote || 'Dilaporkan oleh komuniti JomGerak';
+
+            const reportIcon = L.divIcon({
+                className: 'waze-report-marker',
+                html: `
+                    <div class="relative group cursor-pointer transform hover:scale-110 transition">
+                        <div class="w-10 h-10 rounded-2xl ${cfg.bg} text-white flex items-center justify-center shadow-xl border-2 border-white">
+                            <i class="fa-solid ${cfg.icon} text-base"></i>
+                        </div>
+                        <div class="w-2.5 h-2.5 ${cfg.bg} rotate-45 mx-auto -mt-1.5 border-r border-b border-white"></div>
+                    </div>
+                `,
+                iconSize: [40, 44],
+                iconAnchor: [20, 42],
+                popupAnchor: [0, -38]
+            });
+
+            const marker = L.marker([lat, lng], { icon: reportIcon }).addTo(communityMarkersGroup);
+            
+            marker.bindPopup(`
+                <div class="min-w-[190px]">
+                    <div class="flex items-center justify-between gap-2 mb-1.5">
+                        <span class="text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-full ${cfg.badge}">${type}</span>
+                        <span class="text-[10px] text-slate-400 font-medium"><i class="fa-regular fa-clock mr-1"></i>${escapeHTML(timeStr)}</span>
+                    </div>
+                    <p class="text-xs font-semibold mb-2">${escapeHTML(noteText)}</p>
+                    <div class="flex items-center justify-between pt-1.5 border-t border-slate-100 dark:border-slate-700 text-[11px] text-slate-400">
+                        <span>👍 Terima kasih pemandu!</span>
+                    </div>
+                </div>
+            `);
+        }
+    </script>
+</body>
+</html>
