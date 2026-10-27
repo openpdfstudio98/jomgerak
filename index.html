@@ -181,6 +181,24 @@ body.driving-mode #jgProPanel{bottom:110px;max-height:35dvh}
  body.driving-mode #mapStyleControls{bottom:118px!important}
  body.driving-mode #jgProPanel{bottom:177px!important}
 }
+
+/* JomGerak 5.2 unified controls and compact navigation */
+#mapStyleControls{display:none!important}
+#jgProPanel{position:fixed!important;left:12px!important;bottom:92px!important;z-index:540!important;width:max-content;max-width:min(355px,calc(100vw - 24px))!important;pointer-events:auto}
+#jgProPanel.jgfolded{width:auto!important;max-width:145px!important}
+#jgProPanel:not(.jgfolded){width:min(355px,calc(100vw - 24px))!important;max-height:65dvh!important;overflow-y:auto!important;overscroll-behavior:contain}
+#jgProPanel>button{font-size:12px!important;padding:9px 12px!important;border-radius:14px!important}
+.jg52-section-title{font-size:12px;font-weight:800;margin:8px 0 5px;color:#2563eb}
+.jg52-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.jg52-grid button{font-size:12px;border-radius:10px;padding:8px 4px;background:#e2e8f0;color:#0f172a;font-weight:700}
+#jg52TripMetrics{font-size:11px;color:#6ee7b7;font-weight:700;margin-bottom:3px;white-space:normal}
+#jg52Safety{position:fixed;top:86px;left:50%;transform:translateX(-50%);max-width:min(390px,90vw);background:#92400e;color:white;border-radius:13px;padding:10px 14px;z-index:650;font-size:12px;font-weight:700;box-shadow:0 8px 20px #0003;pointer-events:none}
+#jg52Install{position:fixed;right:12px;bottom:115px;z-index:515;background:#0f766e;color:white;border-radius:12px;padding:9px 12px;font-size:12px;font-weight:700;box-shadow:0 8px 20px #0003}
+#speed47{right:12px!important;bottom:166px!important;z-index:525!important}
+body.driving-mode #jgProPanel{bottom:117px!important}
+body.driving-mode #speed47{bottom:172px!important;right:12px!important}
+body.driving-mode #jgProPanel:not(.jgfolded){bottom:116px!important;max-height:50dvh!important}
+@media(min-width:768px){#jgProPanel{bottom:20px!important;left:20px!important}#speed47{bottom:115px!important}}
 </style>
 </head>
 <body class="bg-slate-900 select-none relative">
@@ -230,7 +248,7 @@ body.driving-mode #jgProPanel{bottom:110px;max-height:35dvh}
       <button onclick="toggleDrivingPanels()" id="drivingPanelsBtn" class="bg-white/95 text-slate-800 shadow-xl rounded-xl p-3 text-sm font-bold" title="Lihat Butiran / View Details" aria-label="Lihat Butiran / View Details"><i class="fa-solid fa-list"></i></button>
     </div>
 <div id="speed47" class="hidden fixed bottom-[176px] right-3 z-[520] bg-slate-950/90 text-white px-2 py-2 rounded-xl shadow-xl text-center"><div class="text-[10px]">GPS SPEED</div><div class="text-xl font-extrabold"><span id="speedNum47">--</span> <span class="text-xs">km/j</span></div><div class="text-[9px] text-amber-300">Had laju: N/A</div></div>
-<div id="mapStyleControls" class="fixed bottom-24 left-3 z-[480] pointer-events-auto">
+<div id="mapStyleControls" class="hidden" aria-hidden="true"><div id="mapStyleControls" class="fixed bottom-24 left-3 z-[480] pointer-events-auto">
   <button onclick="toggleMapStyles48()" class="bg-white/95 dark:bg-slate-900/95 dark:text-white text-slate-800 shadow-xl rounded-2xl px-4 py-3 text-xs font-extrabold border border-slate-200 dark:border-slate-700"><i class="fa-solid fa-layer-group mr-1"></i> <span id="mapStyleLabel48">Map Style</span></button>
   <div id="mapStyles48" class="hidden mt-2 bg-white/95 dark:bg-slate-900/95 text-slate-900 dark:text-white shadow-2xl rounded-2xl p-3 w-56 border border-slate-200 dark:border-slate-700">
     <div class="font-bold text-sm mb-2">🗺️ Map Style</div>
@@ -250,10 +268,20 @@ body.driving-mode #jgProPanel{bottom:110px;max-height:35dvh}
     </div>
   </div>
 </div>
-<div id="jg3dMap" aria-label="3D navigation map"></div><div id="jg3dBadge">3D vector map · MapTiler</div>
+</div>
+<div id="jg3dMap" aria-label="3D navigation map"></div><div id="jg3dBadge">Perspective map · 3D buildings require compatible vector data</div>
 <div id="jgProPanel" class="jgfolded">
- <button onclick="jgTogglePro()" style="width:100%;text-align:left;background:#dbeafe">🚘 Journey <span style="float:right">⚙</span></button>
+ <button onclick="jgTogglePro()" style="width:100%;text-align:left;background:#dbeafe"><i class="fa-solid fa-sliders"></i> <span id="jgUnifiedLabel">Kawalan</span> <span style="float:right">▾</span></button>
  <div id="jgProBody">
+ <div class="jg52-section-title">🗺️ Peta / Map</div>
+ <div class="jg52-grid">
+  <button onclick="setMapStyle48('standard')">🗺️ Standard</button>
+  <button onclick="setMapStyle48('smart')">🚙 Smart</button>
+  <button onclick="setMapStyle48('satellite')">🛰️ Satellite</button>
+  <button onclick="setMapStyle48('night')">🌙 Night</button>
+ </div>
+ <div class="jg52-grid"><button onclick="setMapView48('north')">⬆️ North Up</button><button onclick="setMapView48('follow')">📍 Follow GPS</button></div>
+ <div class="jg52-section-title">🚘 Perjalanan / Journey</div>
  <button onclick="document.getElementById('smartRoute48').classList.toggle('hidden')" class="jgtoolsToggle">🛣️ Route Tools / Tetapan Laluan ▾</button>
 <div id="smartRoute48" class="hidden rounded-xl p-3 bg-blue-50 dark:bg-slate-800 text-xs space-y-2 border border-blue-200 dark:border-blue-900">
 <b class="text-blue-800 dark:text-blue-200">🛣️ Route Tools / Tetapan Laluan</b>
@@ -451,11 +479,13 @@ body.driving-mode #jgProPanel{bottom:110px;max-height:35dvh}
       <div class="bg-slate-950/95 text-white rounded-2xl p-3 shadow-2xl border border-blue-500/40">
         <div class="flex items-center gap-3">
           <div class="bg-blue-600 rounded-xl p-3"><i class="fa-solid fa-location-arrow"></i></div>
-          <div class="min-w-0 flex-1"><div id="liveInstruction" class="font-extrabold text-sm truncate">Mencari GPS...</div><div id="liveDetail" class="text-xs text-slate-300">Benarkan akses lokasi</div></div>
+          <div class="min-w-0 flex-1"><div id="jg52TripMetrics" class="jg52-metrics">GPS menunggu…</div><div id="liveInstruction" class="font-extrabold text-sm truncate">Mencari GPS...</div><div id="liveDetail" class="text-xs text-slate-300">Benarkan akses lokasi</div></div>
           <button onclick="stopLiveNavigation()" class="bg-rose-600 rounded-xl px-3 py-2 font-bold text-xs">Henti</button>
         </div>
       </div>
     </div>
+    <div id="jg52Safety" class="hidden" role="status" aria-live="polite"></div>
+    <button id="jg52Install" class="hidden" onclick="jg52InstallApp()" title="Install JomGerak">⬇ Install App</button>
     <!-- BUTANG TERAPUNG KANAN BAWAH: Kawalan Peta & Lapor Trafik (Gaya Waze) -->
     <div id="floatingMapTools" class="fixed bottom-6 right-4 z-[500] flex flex-col items-end gap-3 pointer-events-none">
         
@@ -626,7 +656,7 @@ body.driving-mode #jgProPanel{bottom:110px;max-height:35dvh}
           });
           updateNavButtonUI();
           if(navigationActive){
-            document.getElementById('drivingPanelsBtn').innerHTML=drivingPanelsOpen?'<i class="fa-solid fa-map"></i> '+tr('Papar Peta'):'<i class="fa-solid fa-list"></i> '+tr('Lihat Butiran');
+            document.getElementById('drivingPanelsBtn').innerHTML=drivingPanelsOpen?'<i class="fa-solid fa-map"></i>':'<i class="fa-solid fa-list"></i>';
           }
           if(currentRouteData)renderRouteSummary(currentRouteData);
           if(lastGps&&navigationActive)document.getElementById('liveInstruction').textContent=appLanguage==='en'?'Following your route':'Mengikuti laluan anda';
@@ -684,8 +714,8 @@ body.driving-mode #jgProPanel{bottom:110px;max-height:35dvh}
         async function alongRoute47(){
           const coords=currentRouteData?.geometry?.coordinates;
           if(!coords?.length){showToast('Cari laluan dahulu.','warning');return;}
-          const samples=[.2,.5,.8].map(f=>coords[Math.floor(f*(coords.length-1))]);
-          const q='[out:json][timeout:18];('+samples.map(c=>'node(around:1500,'+c[1]+','+c[0]+')['+'"amenity"~"fuel|restaurant|charging_station"'+'];').join('')+');out body 25;';
+          const samples=[.1,.3,.5,.7,.9].map(f=>coords[Math.floor(f*(coords.length-1))]);
+          const q='[out:json][timeout:18];('+samples.map(c=>'node(around:1000,'+c[1]+','+c[0]+')['+'"amenity"~"fuel|restaurant|charging_station"'+'];').join('')+');out body 25;';
           showToast('Mencari kemudahan sepanjang laluan...','info');
           try{
             const r=await fetch('https://overpass-api.de/api/interpreter?data='+encodeURIComponent(q));
@@ -756,10 +786,13 @@ function jgSync3DRoute(){
  if(jg3d.getSource('jg-route'))jg3d.removeSource('jg-route');
  if(route){jg3d.addSource('jg-route',{type:'geojson',data:{type:'Feature',geometry:route,properties:{}}});jg3d.addLayer({id:'jg-route',type:'line',source:'jg-route',paint:{'line-color':'#2563eb','line-width':7,'line-opacity':0.9}});}
 }
+let jg52Loading3D=false;
 async function jgToggle3D(){
+ if(jg52Loading3D)return;
  if(jg3dActive){jg3dActive=false;document.getElementById('jg3dMap').classList.remove('jgshown');document.getElementById('jg3dBadge').style.display='none';map.invalidateSize();return;}
  const hasVector3D=Boolean(JG_CFG.maptilerKey);
  if(!hasVector3D)jgStatus('3D perspective uses OpenStreetMap raster tiles. For detailed vector 3D buildings, add a MapTiler key in config.js.');
+ jg52Loading3D=true;
  try{
   await jgLoadMapLibre();
   const center=lastGps||map.getCenter();
@@ -774,7 +807,7 @@ async function jgToggle3D(){
   }else{jg3d.resize();jgSync3DRoute();}
   jg3dActive=true;document.getElementById('jg3dBadge').style.display='block';
   jg3d.easeTo({center:[center.lng,center.lat],zoom:16,pitch:60,duration:600});
- }catch(e){document.getElementById('jg3dMap').classList.remove('jgshown');jgStatus('3D unavailable: '+e.message);}
+ }catch(e){document.getElementById('jg3dMap').classList.remove('jgshown');jgStatus('3D unavailable: '+e.message);}finally{jg52Loading3D=false;}
 }
 function jgGPSAdvanced(pos){
  if(navigationActive){
@@ -783,7 +816,13 @@ function jgGPSAdvanced(pos){
  }
  if(jg3dActive&&jg3d){
   const bearing=Number.isFinite(pos.coords.heading)&&pos.coords.speed>1.5?pos.coords.heading:jg3d.getBearing();
-  if(followGps)jg3d.easeTo({center:[pos.coords.longitude,pos.coords.latitude],bearing,pitch:60,zoom:17,duration:900});
+  if(followGps){
+   const prev=jg52LastHeading;
+   const delta=prev===null?0:((bearing-prev+540)%360)-180;
+   const smooth=prev===null?bearing:(prev+Math.max(-30,Math.min(30,delta))*0.45+360)%360;
+   jg52LastHeading=smooth;
+   jg3d.easeTo({center:[pos.coords.longitude,pos.coords.latitude],bearing:smooth,pitch:65,zoom:17,padding:{top:Math.round(window.innerHeight*0.30),bottom:0,left:0,right:0},duration:1100});
+  }
  }
 }
 async function jgWeatherAlerts(){
@@ -811,6 +850,70 @@ function jgOfflineStatus(){
  if(!online)jgStatus('Offline: previously cached app shell may work; routing, search, GPS tiles and 3D tiles are NOT guaranteed.');
 }
 window.addEventListener('online',jgOfflineStatus);window.addEventListener('offline',jgOfflineStatus);
+
+// V5.2: explicit service limits and safety-conscious trip metrics
+let jg52Rerouting=false,jg52OffRouteSince=0,jg52LastSafety='',jg52SafetyAt=0;
+let jg52InstallPrompt=null,jg52LastHeading=null;
+window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();jg52InstallPrompt=e;document.getElementById('jg52Install')?.classList.remove('hidden');});
+window.addEventListener('appinstalled',()=>{jg52InstallPrompt=null;document.getElementById('jg52Install')?.classList.add('hidden');});
+async function jg52InstallApp(){if(!jg52InstallPrompt)return;const p=jg52InstallPrompt;jg52InstallPrompt=null;document.getElementById('jg52Install')?.classList.add('hidden');await p.prompt();}
+function jg52Safety(text,priority=false){
+ const now=Date.now();if(!priority&&text===jg52LastSafety&&now-jg52SafetyAt<60000)return;
+ jg52LastSafety=text;jg52SafetyAt=now;const e=document.getElementById('jg52Safety');if(!e)return;
+ e.textContent=text;e.classList.remove('hidden');clearTimeout(jg52Safety._timer);
+ jg52Safety._timer=setTimeout(()=>e.classList.add('hidden'),priority?8000:5000);
+}
+function jg52RouteProgress(p){
+ const coords=currentRouteData?.geometry?.coordinates;
+ if(!coords?.length)return null;
+ // nearest route vertex; inexpensive approximation for the dashboard (not live traffic)
+ let nearest=Infinity,idx=0;
+ for(let i=0;i<coords.length;i++){
+   const d=gpsDistance(p,{lat:coords[i][1],lng:coords[i][0]});
+   if(d<nearest){nearest=d;idx=i;}
+ }
+ let remaining=0;
+ for(let i=idx+1;i<coords.length;i++)remaining+=gpsDistance({lat:coords[i-1][1],lng:coords[i-1][0]},{lat:coords[i][1],lng:coords[i][0]});
+ return {remaining,nearest};
+}
+function jg52Dashboard(pos){
+ const e=document.getElementById('jg52TripMetrics');if(!e||!navigationActive)return;
+ const p={lat:pos.coords.latitude,lng:pos.coords.longitude};
+ const progress=jg52RouteProgress(p);if(!progress)return;
+ const duration=Math.max(1,currentRouteData.duration||1),distance=Math.max(1,currentRouteData.distance||1);
+ const speed=pos.coords.speed!=null&&pos.coords.speed>2?pos.coords.speed:distance/duration;
+ const etaSeconds=progress.remaining/Math.max(2,speed);
+ const eta=new Date(Date.now()+etaSeconds*1000).toLocaleTimeString(appLanguage==='en'?'en-MY':'ms-MY',{hour:'2-digit',minute:'2-digit'});
+ e.textContent=(progress.remaining/1000).toFixed(1)+' km · '+Math.round(etaSeconds/60)+' min · ETA '+eta+' (no live traffic)';
+ if(pos.coords.accuracy>80)jg52Safety(appLanguage==='en'?'GPS accuracy is low. Follow road signs.':'Ketepatan GPS rendah. Ikut papan tanda jalan.');
+ if(!navigator.onLine)jg52Safety(appLanguage==='en'?'Offline: routing and map tiles may not load.':'Tiada internet: laluan dan peta mungkin tidak dimuatkan.');
+}
+async function jg52Reroute(pos){
+ if(jg52Rerouting||!navigationActive||!destCoords||!navigator.onLine)return;
+ jg52Rerouting=true;const oldOrigin=originCoords;
+ try{
+   const url='https://router.project-osrm.org/route/v1/driving/'+pos.coords.longitude+','+pos.coords.latitude+';'+destCoords.lng+','+destCoords.lat+'?overview=full&geometries=geojson&steps=true&alternatives=true';
+   const res=await fetch(url,{signal:AbortSignal.timeout(13000)});
+   if(!res.ok)throw Error('OSRM '+res.status);
+   const data=await res.json();if(data.code!=='Ok'||!data.routes?.length)throw Error('No route');
+   routes47=data.routes.slice(0,3);selected47=0;currentRouteData=routes47[0];lastSpokenStep=-1;
+   if(routePolyline)map.removeLayer(routePolyline);
+   routePolyline=L.geoJSON(currentRouteData.geometry,{style:{color:'#2563eb',weight:6,opacity:.9}}).addTo(map);
+   jgSync3DRoute();renderRouteSummary(currentRouteData);updateFuelCalculation();renderChoices47();
+   jg52Safety(appLanguage==='en'?'Route recalculated.':'Laluan dikira semula.');
+ }catch(e){originCoords=oldOrigin;jg52Safety(appLanguage==='en'?'Rerouting unavailable. Follow road signs.':'Gagal kira semula. Ikut papan tanda jalan.',true);}
+ finally{jg52Rerouting=false;}
+}
+function jg52TrackOffRoute(pos,progress){
+ if(!navigationActive||!progress||pos.coords.accuracy>45||!navigator.onLine)return;
+ if(progress.nearest>100){
+   if(!jg52OffRouteSince)jg52OffRouteSince=Date.now();
+   if(Date.now()-jg52OffRouteSince>7000&&Date.now()-lastRerouteAt>45000){
+     lastRerouteAt=Date.now();jg52OffRouteSince=0;jg52Reroute(pos);
+   }
+ }else jg52OffRouteSince=0;
+}
+
 
         // ==========================================
         // 1. TETAPAN ASAS & PEMBOLEHUBAH GLOBAL
@@ -938,7 +1041,7 @@ window.addEventListener('online',jgOfflineStatus);window.addEventListener('offli
           next.bringToBack();mapTiles48=next;mapStyle48=style;
           document.querySelectorAll('[data-map-style]').forEach(b=>b.classList.toggle('active48',b.dataset.mapStyle===style));
           try{localStorage.setItem('jomgerak_mapstyle48',style);}catch{}
-          if(!quiet){document.getElementById('mapStyles48').classList.add('hidden');document.getElementById('jgProPanel').style.visibility='';showToast('Map style: '+style,'success');}
+          if(!quiet){document.getElementById('mapStyles48').classList.add('hidden');document.getElementById('jgProPanel').style.visibility='';}
         }
         function setMapView48(mode){
           if(!['north','follow'].includes(mode))return;
@@ -1052,7 +1155,7 @@ window.addEventListener('online',jgOfflineStatus);window.addEventListener('offli
             followGps=true;
             drivingPanelsOpen=false;
             document.body.classList.add('driving-mode');
-            document.getElementById('drivingPanelsBtn').innerHTML='<i class="fa-solid fa-list"></i> '+tr('Lihat Butiran');
+            document.getElementById('drivingPanelsBtn').innerHTML='<i class="fa-solid fa-list"></i>';
             if(lastGps)map.setView([lastGps.lat,lastGps.lng],17,{animate:true});
             else if(originCoords)map.setView([originCoords.lat,originCoords.lng],16,{animate:true});
             setTimeout(()=>map.invalidateSize(),100);
@@ -1089,7 +1192,7 @@ window.addEventListener('online',jgOfflineStatus);window.addEventListener('offli
             document.body.classList.toggle('driving-mode',!drivingPanelsOpen);
             document.getElementById('drivingControls').style.display='flex';
             document.getElementById('liveNavHUD').classList.remove('hidden');
-            document.getElementById('drivingPanelsBtn').innerHTML=drivingPanelsOpen?'<i class="fa-solid fa-map"></i> '+tr('Papar Peta'):'<i class="fa-solid fa-list"></i> '+tr('Lihat Butiran');
+            document.getElementById('drivingPanelsBtn').innerHTML=drivingPanelsOpen?'<i class="fa-solid fa-map"></i>':'<i class="fa-solid fa-list"></i>';
             if(drivingPanelsOpen){
                 document.getElementById('searchPanelWrap').style.display='flex';
                 document.getElementById('routeSummaryPanel').style.display='flex';
@@ -1145,14 +1248,8 @@ window.addEventListener('online',jgOfflineStatus);window.addEventListener('offli
             const coords=currentRouteData.geometry?.coordinates||[];
             let nearest=Infinity;
             for(let i=1;i<coords.length;i++)nearest=Math.min(nearest,segmentDistance(p,{lat:coords[i-1][1],lng:coords[i-1][0]},{lat:coords[i][1],lng:coords[i][0]}));
-            if(nearest>110&&pos.coords.accuracy<60&&Date.now()-lastRerouteAt>30000){
-                lastRerouteAt=Date.now();
-                originCoords={...p,name:'GPS semasa'};
-                document.getElementById('originInput').value='GPS semasa';
-                updateMarker('origin',p.lat,p.lng,'GPS semasa');
-                calculateRoute();
-                showToast(tr('Di luar laluan. Mengira semula...'),'warning');
-            }
+            jg52Dashboard(pos);
+            jg52TrackOffRoute(pos,{nearest});
         }
         function updateNavButtonUI() {
             const icon = document.getElementById('startNavIcon');

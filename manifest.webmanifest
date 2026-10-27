@@ -12,5 +12,15 @@
       "type": "image/svg+xml",
       "purpose": "any maskable"
     }
+  ],
+  "description": "Malaysia GPS navigation and route planning",
+  "display_override": [
+    "standalone",
+    "minimal-ui"
+  ],
+  "lang": "ms-MY",
+  "categories": [
+    "navigation",
+    "travel"
   ]
 }
