@@ -975,11 +975,10 @@ window.addEventListener('online',jgOfflineStatus);window.addEventListener('offli
                 isSpeakingNavigation = false;
                 updateNavButtonUI();
                 icon.className = 'fa-solid fa-volume-xmark text-sm text-rose-500';
-                showToast('Panduan suara telah disenapkan (Muted).', 'warning');
+                btn.setAttribute('aria-label', 'Voice guidance muted');
             } else {
                 icon.className = 'fa-solid fa-volume-high text-sm';
-                showToast('Panduan suara diaktifkan.', 'success');
-                speakText(tr('Panduan suara JomGerak aktif.'));
+                btn.setAttribute('aria-label', 'Voice guidance enabled');
             }
         }
 
