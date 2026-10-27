@@ -172,6 +172,15 @@ body.driving-mode #jgProPanel{bottom:110px;max-height:35dvh}
 }
 #smartRoute48{margin-top:7px}
 #jgProPanel .jgtoolsToggle{margin-top:6px;width:100%;text-align:left}
+
+/* Fix overlapping controls on mobile */
+@media(max-width:767px){
+ #mapStyleControls{left:12px!important;bottom:90px!important;z-index:510!important}
+ #mapStyles48{position:absolute;bottom:calc(100% + 10px);left:0;margin-top:0!important;width:min(260px,calc(100vw - 32px));max-height:55dvh;overflow-y:auto}
+ #jgProPanel{left:12px!important;bottom:155px!important;z-index:500!important}
+ body.driving-mode #mapStyleControls{bottom:118px!important}
+ body.driving-mode #jgProPanel{bottom:177px!important}
+}
 </style>
 </head>
 <body class="bg-slate-900 select-none relative">
@@ -699,7 +708,12 @@ body.driving-mode #jgProPanel{bottom:110px;max-height:35dvh}
 // ===== JomGerak Advanced Beta: production-safe feature boundaries =====
 const JG_CFG=window.JOMGERAK_CONFIG||{};
 let jg3d=null,jg3dActive=false,jgTripStarted=0,jgLastGpsLog=0,jgTripPoints=[],jgReportTimer=null;
-function jgTogglePro(){document.getElementById('jgProPanel').classList.toggle('jgfolded');}
+function jgTogglePro(){
+ document.getElementById('mapStyles48').classList.add('hidden');
+ const journey=document.getElementById('jgProPanel');
+ journey.style.visibility='';
+ journey.classList.toggle('jgfolded');
+}
 function jgStatus(t){document.getElementById('jgProStatus').textContent=t;}
 function jgStoreVoice(){try{localStorage.setItem('jg_voice_rate',document.getElementById('jgVoiceRate').value);}catch{}}
 function jgLoadVoice(){try{document.getElementById('jgVoiceRate').value=localStorage.getItem('jg_voice_rate')||'1';}catch{}}
@@ -907,8 +921,13 @@ window.addEventListener('online',jgOfflineStatus);window.addEventListener('offli
           document.getElementById('mapView48').value=mapView48;
         }
         function toggleMapStyles48(){
-          document.getElementById('mapStyles48').classList.toggle('hidden');
-        }
+ const menu=document.getElementById('mapStyles48');
+ const opening=menu.classList.contains('hidden');
+ menu.classList.toggle('hidden');
+ const journey=document.getElementById('jgProPanel');
+ if(opening){journey.classList.add('jgfolded');journey.style.visibility='hidden';}
+ else journey.style.visibility='';
+}
         function setMapStyle48(style,quiet=false){
           if(!mapSources48[style]||!map)return;
           const config=mapSources48[style];
@@ -919,7 +938,7 @@ window.addEventListener('online',jgOfflineStatus);window.addEventListener('offli
           next.bringToBack();mapTiles48=next;mapStyle48=style;
           document.querySelectorAll('[data-map-style]').forEach(b=>b.classList.toggle('active48',b.dataset.mapStyle===style));
           try{localStorage.setItem('jomgerak_mapstyle48',style);}catch{}
-          if(!quiet){document.getElementById('mapStyles48').classList.add('hidden');showToast('Map style: '+style,'success');}
+          if(!quiet){document.getElementById('mapStyles48').classList.add('hidden');document.getElementById('jgProPanel').style.visibility='';showToast('Map style: '+style,'success');}
         }
         function setMapView48(mode){
           if(!['north','follow'].includes(mode))return;
