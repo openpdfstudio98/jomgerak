@@ -1,25 +1,42 @@
-# JomGerak Advanced Beta — GitHub / Vercel
+# JomGerak V5.2 Smart Navigation (BETA)
 
-Upload contents of this ZIP to the **repository root**. Vercel framework: Other; build command: none; output directory: blank/root. `index.html` is the entrypoint. HTTPS is required for GPS.
+## Deploy
+Extract ZIP and upload the files to the ROOT of your existing GitHub repo, retaining `api/reports.js`. Vercel deploys from GitHub. The ZIP itself must not be uploaded as the web app. HTTPS is required for GPS.
 
-## Implemented now
-- Retains V4.8 Leaflet search, routes, driving mode, map styles, BM/EN, saved destinations, local reports and PWA.
-- Route alternatives from OSRM if returned; distance/time comparison; approximate fuel costs (static illustrative fuel rates, NOT live pricing).
-- GPS speed from browser geolocation; GPS accuracy varies. Voice rate preference; TTS depends on installed voices.
-- Trip history and GPS track saved **only on this device**; export as JSON. Clear browser storage to delete.
-- Route facilities from OpenStreetMap Overpass; weather forecast from Open-Meteo. Not certified hazard/flood data.
-- Optional real MapLibre GL 3D camera (pitch + GPS heading) using MapTiler vector tiles. To enable: create your own MapTiler key, restrict it to your domain, set `maptilerKey` in `config.js`; select 3D View. MapLibre loads only when requested. MapTiler may charge beyond free quota. 3D map route line is shown; advanced 3D labels/buildings depend on the selected style. Leaflet controls and 3D map overlays need device QA.
-- Optional shared community reports via Vercel serverless `api/reports.js` and Supabase. To enable: run `supabase_schema.sql`; set `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` as Vercel environment variables; set `communityApi: '/api/reports'` in `config.js`. **Do not put service role key in browser code**. Add CAPTCHA, per-IP rate limiting, moderation, abuse reporting and spam prevention before public release. User reports are unverified.
+## Features
+- Unified floating control: Map Style, Journey, Route Tools in one menu. Compact driving HUD and speed display.
+- MapLibre 3D perspective with smoothed heading and GPS-follow camera. Without a licensed vector style it uses raster tiles: pitched view is NOT true 3D buildings.
+- Automatic rerouting if off-route by >100 m for >7 seconds with GPS accuracy <=45 m, online, and a 45-second cooldown; OSRM public routing.
+- Trip dashboard shows remaining route distance and ETA based on GPS or OSRM speed, NOT live traffic.
+- Safety notifications for low GPS accuracy, no internet, and failed reroutes. Not official road hazard alerts.
+- Route POI searches around five sampled points; facilities may not have direct road access. No calculated detour time.
+- Installable PWA where supported; basic app shell caching only.
+- Preserved route alternatives, GPS, voice navigation, BM/EN, weather forecast, saved places, local trip history, fuel estimates and optional shared reports.
 
-## Not implemented / needs data or major engine work
-- **Smart Toll Malaysia**: actual toll detection, toll avoidance and prices by vehicle class require a toll-aware routing engine and licensed Malaysian plaza/tariff data. The app labels toll status unknown; the existing Avoid Toll / Highway controls do not modify OSRM routes.
-- **Speed limits**: current road limit and overspeed warnings are not available without map-matching and reliable speed limit data. GPS speed alone is available.
-- **Flood alerts**: official Malaysian warnings not integrated. Open-Meteo gives forecasts, not verified local flood hazards.
-- **Live traffic ETA**: no real-time traffic provider; community markers do not automatically change routing/ETA.
-- **Offline navigation**: service worker caches the app shell only; offline tiles and routing need licensed offline maps, storage quota strategy and offline routing engine. Do not claim offline navigation works.
-- **Native APK**: this package is Website/PWA, not a compiled Android APK. Capacitor wrapping and Android build/signing are a separate step.
+## Important limitations
+- Toll prices/avoidance, live traffic ETA, road speed limits, official flood warnings, full offline map/routing, and native Android APK are NOT implemented.
+- Public OSRM, Nominatim, OpenStreetMap tiles, Overpass, and Open-Meteo are rate-limited or subject to terms. Use licensed/self-hosted providers before public scale.
+- 3D vector buildings require licensed vector tiles with building layers and appropriate configuration. Raster perspective is not building geometry.
+- Community reports need Supabase. Run `supabase_schema.sql`, set `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` in Vercel Environment Variables only; NEVER expose service role key in `config.js` or GitHub. Set `communityApi: '/api/reports'` in config.js. Add anti-spam and moderation for public use.
+- GPS and speech require device/browser permissions. Do not operate controls while driving.
+- Native APK requires Capacitor/Android Studio setup, permissions, testing, and signing. This ZIP is for GitHub/Vercel PWA, not an APK.
 
 ## Testing
-Run `node --check` on extracted inline JavaScript, deploy to Vercel and test on a real Android device: GPS permission, voice, driving mode, 3D tile load, community sync and routing. Public OSRM/Overpass/Nominatim are not production SLA services; use your own/commercial backend for scale.
+JavaScript syntax checked with `node --check` for inline scripts, service worker, config and API. No claim of actual GPS/Android/API live testing. Test GPS, camera, routes, install, and deployment on real Android over HTTPS.
 
-**Safety**: Do not operate the app while driving. This beta must not be the only navigation reference.
+
+## V5.3 UI & bilingual update
+- Unified controls restyled with smaller cards, spacing, responsive scrolling and dark-mode support.
+- Added translations for the unified control menu, route options, saved/share buttons, quick destinations, voice rate and other static UI strings.
+- Language switch changes supported static labels immediately and toast messages with dictionary entries. Dynamic third-party place names, road names, user content, and some generated route messages may remain in their original language.
+- No new routing, map, toll or community backend capabilities in this release.
+- For deployment, replace index.html and sw.js, or upload all ZIP contents to GitHub repository root.
+- JavaScript syntax checked, not browser/device integration tested.
+
+
+## V5.4 Official Branding
+- Unified JomGerak Modern Pin + Road icon across in-app header, navigation HUD, PWA launcher icon, maskable Android icon, favicon and Apple touch icon.
+- New assets: icon.svg, icon-maskable.svg, icon-48.png, icon-192.png, icon-512.png, icon-maskable-512.png, favicon.ico.
+- Updated manifest theme/background colors and service-worker cache version to refresh icons.
+- Deploy ALL files in ZIP to repository root; keep API folder. If Android has an older installed PWA icon, remove its old shortcut/PWA and install again after Vercel deploy. Browser favicon and icon caches may persist.
+- No new routing or GPS behavior changes in this branding release.

@@ -2,10 +2,14 @@
 <html lang="ms">
 <head>
     <meta charset="UTF-8">
-    <meta name="theme-color" content="#0f172a">
+    <meta name="theme-color" content="#0879F5">
     <link rel="manifest" href="./manifest.webmanifest">
+    <link rel="icon" type="image/svg+xml" href="./icon.svg">
+    <link rel="icon" type="image/png" sizes="48x48" href="./icon-48.png">
+    <link rel="shortcut icon" href="./favicon.ico">
+    <link rel="apple-touch-icon" href="./icon-192.png">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>JomGerak V4.4 Driving Mode</title>
+    <title>JomGerak | GPS Navigation & Community</title>
     
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -333,9 +337,7 @@ body.dark #jgProBody .jg52-grid button,body.dark #jgProBody .jgrow button,body.d
             <!-- Header App -->
             <div class="flex items-center justify-between mb-3">
                 <div class="flex items-center gap-2.5">
-                    <div class="w-9 h-9 rounded-xl bg-gradient-to-tr from-blue-600 to-cyan-500 flex items-center justify-center text-white shadow-md shadow-blue-500/30">
-                        <i class="fa-solid fa-location-arrow text-lg"></i>
-                    </div>
+                    <img src="./icon.svg" alt="JomGerak" width="40" height="40" class="w-10 h-10 rounded-xl shadow-md shadow-blue-500/20 flex-shrink-0" decoding="async">
                     <div>
                         <h1 class="font-extrabold text-slate-800 dark:text-white text-base leading-tight flex items-center gap-1.5">
                             JomGerak
@@ -503,7 +505,7 @@ body.dark #jgProBody .jg52-grid button,body.dark #jgProBody .jgrow button,body.d
     <div id="liveNavHUD" class="hidden fixed bottom-5 left-3 right-3 md:left-[435px] md:right-24 z-[520] pointer-events-auto">
       <div class="bg-slate-950/95 text-white rounded-2xl p-3 shadow-2xl border border-blue-500/40">
         <div class="flex items-center gap-3">
-          <div class="bg-blue-600 rounded-xl p-3"><i class="fa-solid fa-location-arrow"></i></div>
+          <img src="./icon.svg" alt="" width="44" height="44" class="w-11 h-11 rounded-xl flex-shrink-0">
           <div class="min-w-0 flex-1"><div id="jg52TripMetrics" class="jg52-metrics">GPS menunggu…</div><div id="liveInstruction" class="font-extrabold text-sm truncate">Mencari GPS...</div><div id="liveDetail" class="text-xs text-slate-300">Benarkan akses lokasi</div></div>
           <button onclick="stopLiveNavigation()" class="bg-rose-600 rounded-xl px-3 py-2 font-bold text-xs">Henti</button>
         </div>

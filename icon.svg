@@ -1,1 +1,14 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><rect width="512" height="512" rx="116" fill="#0f172a"/><path d="M102 365 245 90l41 150 126 40-310 85Z" fill="#22c55e" stroke="#fff" stroke-width="17" stroke-linejoin="round"/><circle cx="257" cy="259" r="20" fill="#fff"/></svg>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="JomGerak navigation logo">
+<defs>
+ <linearGradient id="sky" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#0DA8F5"/><stop offset=".54" stop-color="#0879F5"/><stop offset="1" stop-color="#1454D8"/></linearGradient>
+ <linearGradient id="green" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#24D58D"/><stop offset="1" stop-color="#07975B"/></linearGradient>
+ <filter id="shadow" x="-40%" y="-40%" width="180%" height="180%"><feDropShadow dx="0" dy="10" stdDeviation="10" flood-color="#063D8C" flood-opacity=".26"/></filter>
+</defs>
+<rect width="512" height="512" rx="112" fill="url(#sky)"/>
+<path d="M0 424C90 333 159 346 224 371c79 30 163 12 288-109v250H0Z" fill="url(#green)"/>
+<path d="M28 512c69-111 151-165 245-179" stroke="#F9FFFC" stroke-width="20" fill="none" opacity=".98"/>
+<path d="M93 512c45-77 100-120 162-142" stroke="#F9FFFC" stroke-width="9" stroke-dasharray="30 24" fill="none" opacity=".9"/>
+<path d="M257 64c-107 0-194 83-194 187 0 115 114 193 194 251 80-58 194-136 194-251C451 147 364 64 257 64Z" fill="#fff" filter="url(#shadow)" transform="translate(0,-42) scale(1,.86)"/>
+<path d="m149 205 220-79c14-5 24 7 18 20l-88 219c-6 15-25 16-30 0l-30-87-88-42c-15-7-15-25-2-31Z" fill="#086FF0" transform="translate(0,-20) scale(1,.93)"/>
+<path d="m237 261 132-135-92 162-18 67-20-79Z" fill="#20A6FF" opacity=".9" transform="translate(0,-20) scale(1,.93)"/>
+</svg>
