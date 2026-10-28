@@ -1,6 +1,6 @@
 /* JomGerak V6.6.7 — consistent cache, network-first updates. */
-const CACHE='jomgerak-v668-startup-unblock';
-const ASSETS=["./", "./index.html", "./config.js", "./icon.svg", "./icon-192.png", "./icon-512.png", "./icon-maskable-512.png", "./manifest.webmanifest", "./v55.js", "./v56.js", "./v60.js", "./v63.js", "./v64.js", "./v65.js", "./v652.js", "./v653.js", "./v654.js", "./v655.js", "./v656.js", "./v661.js", "./v662.js", "./v663.js", "./v664.js", "./v665.js", "./v666.js"];
+const CACHE='jomgerak-v669-diagnostics';
+const ASSETS=["./", "./index.html", "./config.js", "./icon.svg", "./icon-192.png", "./icon-512.png", "./icon-maskable-512.png", "./manifest.webmanifest", "./v55.js", "./v56.js", "./v60.js", "./v63.js", "./v64.js", "./v65.js", "./v652.js", "./v653.js", "./v654.js", "./v655.js", "./v656.js", "./v661.js", "./v662.js", "./v663.js", "./v664.js", "./v665.js", "./v666.js", "./v669.js"];
 self.addEventListener('install',event=>{
  event.waitUntil((async()=>{
   const cache=await caches.open(CACHE);
