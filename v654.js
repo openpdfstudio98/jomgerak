@@ -3,7 +3,7 @@
 (function(){
  const $=id=>document.getElementById(id);
  let generation=0,controller=null;
- function status(title,note){if($('jg653TollAmount'))$('jg653TollAmount').textContent=title;if($('jg654TollNote'))$('jg654TollNote').textContent=note;}
+ function status(title,note){window.jg654LastStatus={title,note};if($('jg653TollAmount'))$('jg653TollAmount').textContent=title;if($('jg654TollNote'))$('jg654TollNote').textContent=note;window.jg655Translate?.();}
  const defaultNote='Kos petrol dipaparkan berasingan. Harga tol automatik memerlukan kadar plaza yang disahkan.';
  function sample(coords,count){
   const chosen=[];

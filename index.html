@@ -287,6 +287,19 @@ body.jg65-driving #speed47{bottom:110px!important;right:10px!important}
 body.jg65-driving #jg3dMap{height:100dvh}
 @media(max-width:450px){#jg65Dock button{font-size:12px}body.jg65-driving #liveNavHUD img{width:30px;height:30px}}
 
+
+/* V6.6 Premium navigation views */
+#jgPremiumModes{padding:12px;border:1px solid #c7d8ed;border-radius:15px;background:linear-gradient(140deg,#f2f8ff,#eaf1ff);color:#122443;margin:8px 0 12px}
+#jgPremiumModes .jg-premium-title{font-size:13px;font-weight:800;margin-bottom:10px}
+#jgPremiumModes .jg-premium-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}
+#jgPremiumModes button{background:white;border:1px solid #cbd9e9;border-radius:11px;padding:11px 3px;font-size:11px;font-weight:750;line-height:1.35;color:#10213b}
+#jgPremiumModes button i{display:block;margin-bottom:5px;color:#2563eb;font-size:16px}
+#jgPremiumModes button:focus-visible{outline:3px solid #2563eb}
+#jgPremiumHint{font-size:11px;line-height:1.4;color:#526782;margin:9px 0 0}
+body.dark #jgPremiumModes,.dark #jgPremiumModes{background:#172b46;color:#edf4ff;border-color:#345172}
+body.dark #jgPremiumModes button,.dark #jgPremiumModes button{background:#223954;color:#fff;border-color:#45617d}
+#jg3dMap .maplibregl-control-container{pointer-events:auto}
+body.jg65-driving #jg3dMap .maplibregl-ctrl-top-right{display:none}
 </style>
 <style>
 .jg652voice{display:flex;flex-wrap:wrap;align-items:center;gap:8px;padding:10px 0;font:13px system-ui}
@@ -375,7 +388,7 @@ body.jg65-driving #jg3dMap{height:100dvh}
   </div>
 </div>
 </div>
-<div id="jg3dMap" aria-label="3D navigation map"></div><div id="jg3dBadge">Perspective map · 3D buildings require compatible vector data</div>
+<div id="jg3dMap" aria-label="Premium vector navigation map"></div><div id="jg3dBadge">Perspective map · 3D buildings require compatible vector data</div>
 <div id="jgProPanel" class="jgfolded">
  <button onclick="jgTogglePro()" style="width:100%;text-align:left;background:#dbeafe"><i class="fa-solid fa-sliders"></i> <span id="jgUnifiedLabel">Kawalan</span> <span style="float:right">▾</span></button>
  <div id="jgProBody">
@@ -385,7 +398,8 @@ body.jg65-driving #jg3dMap{height:100dvh}
   <button type="button" id="jg55tab-settings" onclick="jg55Tab('settings')" aria-selected="false"><i class="fa-solid fa-gear"></i> <span data-jg55="settings">Tetapan</span></button>
  </div>
  <div id="jg55MapTab"><div id="jg60Map"></div><div id="jg64Mount"></div>
- <div class="jg52-section-title">🗺️ Peta</div>
+ <section id="jgPremiumModes" aria-label="Premium navigation views"><div class="jg-premium-title"><i class="fa-solid fa-diamond-turn-right"></i> <span id="jgPremiumHeading">Paparan Navigasi Premium</span></div><div class="jg-premium-grid"><button type="button" onclick="jgPremiumMode('2d')"><i class="fa-solid fa-map"></i> <span data-premium="2d">Peta 2D</span></button><button type="button" onclick="jgPremiumMode('3d')"><i class="fa-solid fa-cubes-stacked"></i> <span data-premium="3d">Peta 3D</span></button><button type="button" onclick="jgPremiumMode('follow')"><i class="fa-solid fa-location-arrow"></i> <span data-premium="follow">Ikut GPS</span></button></div><p id="jgPremiumHint">Peta vektor MapTiler dengan kamera perspektif. Bangunan 3D dipaparkan jika data tersedia.</p></section>
+ <div class="jg52-section-title"><i class="fa-solid fa-map"></i> Peta</div>
  <div class="jg52-grid">
   <button onclick="setMapStyle48('navigator')"><i class="fa-solid fa-map"></i> Navigator (OSM)</button>
   <button onclick="jg64MapTiler()"><i class="fa-solid fa-layer-group"></i> MapTiler Streets</button>
@@ -602,7 +616,7 @@ body.jg65-driving #jg3dMap{height:100dvh}
                 </div>
             </div>
 
-<div id="routeChoices47" class="hidden px-3 py-2 bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-white text-xs"><b>🧭 Laluan Alternatif</b><div id="routeButtons47" class="flex flex-wrap gap-2 mt-2"></div><p class="text-amber-700 dark:text-amber-300 mt-1">Caj tol dan status tol belum disahkan.</p></div>
+<div id="routeChoices47" class="hidden px-3 py-2 bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-white text-xs"><b>🧭 Laluan Alternatif</b><div id="routeButtons47" class="flex flex-wrap gap-2 mt-2"></div><p id="jg655Unverified" class="text-amber-700 dark:text-amber-300 mt-1">Caj tol dan status tol belum disahkan.</p></div>
             <!-- Senarai Arahan Belok-demi-Belok (Turn-by-Turn) -->
             <div id="stepsContainer" class="overflow-y-auto divide-y divide-slate-100 dark:divide-slate-800 p-2 space-y-1 flex-1">
                 <!-- Diisi secara dinamik oleh JS -->
@@ -848,6 +862,7 @@ body.jg65-driving #jg3dMap{height:100dvh}
           if(lastGps&&navigationActive)document.getElementById('liveInstruction').textContent=appLanguage==='en'?'Following your route':'Mengikuti laluan anda';
           if('speechSynthesis' in window)window.speechSynthesis.cancel();
           lastSpokenStep=-1;
+          window.jg655Translate?.();window.jgPremiumUpdateLabels?.();
         }
         function initLanguage(){
           const walker=document.createTreeWalker(document.body,NodeFilter.SHOW_TEXT);
@@ -965,27 +980,51 @@ async function jgLoadMapLibre(){
  if(!document.getElementById('jgMaplibreCSS')){const l=document.createElement('link');l.id='jgMaplibreCSS';l.rel='stylesheet';l.href='https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css';document.head.appendChild(l);}
  await new Promise((resolve,reject)=>{const el=document.createElement('script');el.src='https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js';el.onload=resolve;el.onerror=reject;document.head.appendChild(el);});
 }
+function jgPremiumAddBuildings(){
+ if(!jg3d||!jg3d.isStyleLoaded()||jg3d.getLayer('jg-premium-buildings'))return;
+ const style=jg3d.getStyle();const sources=style?.sources||{};
+ const candidate=Object.entries(sources).find(([name,source])=>source.type==='vector'&&(/openmaptiles|maptiler|streets/i.test(name)||Object.keys(sources).filter(k=>sources[k].type==='vector').length===1));
+ if(!candidate)return;
+ try{
+  const before=style.layers?.find(l=>l.type==='symbol'&&l.layout?.['text-field'])?.id;
+  jg3d.addLayer({id:'jg-premium-buildings',type:'fill-extrusion',source:candidate[0],'source-layer':'building',minzoom:15,
+   paint:{'fill-extrusion-color':'#a4b5c8','fill-extrusion-height':['interpolate',['linear'],['zoom'],15,0,15.4,['coalesce',['to-number',['get','render_height']],['to-number',['get','height']],12]],'fill-extrusion-base':['coalesce',['to-number',['get','render_min_height']],['to-number',['get','min_height']],0],'fill-extrusion-opacity':0.68}},before);
+ }catch(err){console.warn('Optional 3D buildings unavailable:',err.message);}
+}
 function jgSync3DRoute(){
  if(!jg3d||!jg3d.isStyleLoaded())return;
+ jgPremiumAddBuildings();
  const route=currentRouteData?.geometry;
- if(jg3d.getLayer('jg-route'))jg3d.removeLayer('jg-route');
+ for(const id of ['jg-route-core','jg-route-outline'])if(jg3d.getLayer(id))jg3d.removeLayer(id);
  if(jg3d.getSource('jg-route'))jg3d.removeSource('jg-route');
- if(route){jg3d.addSource('jg-route',{type:'geojson',data:{type:'Feature',geometry:route,properties:{}}});jg3d.addLayer({id:'jg-route',type:'line',source:'jg-route',paint:{'line-color':'#2563eb','line-width':7,'line-opacity':0.9}});}
+ if(route){
+  jg3d.addSource('jg-route',{type:'geojson',data:{type:'Feature',geometry:route,properties:{}}});
+  jg3d.addLayer({id:'jg-route-outline',type:'line',source:'jg-route',layout:{'line-join':'round','line-cap':'round'},paint:{'line-color':'#fff','line-width':12,'line-opacity':0.96}});
+  jg3d.addLayer({id:'jg-route-core',type:'line',source:'jg-route',layout:{'line-join':'round','line-cap':'round'},paint:{'line-color':'#2563eb','line-width':7,'line-opacity':1}});
+ }
+ if(!jg3d.getSource('jg-premium-gps')){
+  jg3d.addSource('jg-premium-gps',{type:'geojson',data:{type:'FeatureCollection',features:[]}});
+  jg3d.addLayer({id:'jg-premium-gps-ring',type:'circle',source:'jg-premium-gps',paint:{'circle-radius':13,'circle-color':'#ffffff','circle-stroke-color':'#2563eb','circle-stroke-width':2}});
+  jg3d.addLayer({id:'jg-premium-gps-dot',type:'circle',source:'jg-premium-gps',paint:{'circle-radius':8,'circle-color':'#2563eb'}});
+ }
 }
 let jg52Loading3D=false;
 /* 6.0.1 map style adapter. Raster perspective is not real 3D buildings. */
 function jg60MapLibreStyle(){
- const key=window.JOMGERAK_CONFIG?.maptilerKey;
- if(key&&mapStyle48==='navigator')return 'https://api.maptiler.com/maps/streets-v2/style.json?key='+encodeURIComponent(key);
+ const key=window.JOMGERAK_CONFIG?.maptilerKey||window.JG_CFG?.maptilerKey||JG_CFG?.maptilerKey;
+ // MapTiler vector tiles enable legible road names, smooth camera and optional 3D buildings.
+ if(key){
+  const name=mapStyle48==='night'?'streets-v2-dark':mapStyle48==='satellite'?'hybrid':'streets-v2';
+  return 'https://api.maptiler.com/maps/'+name+'/style.json?key='+encodeURIComponent(key);
+ }
  const cfg=mapSources48[mapStyle48]||mapSources48.navigator;
- // MapLibre does not support Leaflet's {s} subdomain placeholder or retina {r}.
  const url=cfg.url.replace('{s}','a').replace('{r}','');
- return {version:8,sources:{base:{type:'raster',tiles:[url],tileSize:256,attribution:cfg.attribution,maxzoom:Math.min(19,cfg.maxZoom)}},layers:[{id:'base',type:'raster',source:'base',paint:{'raster-saturation':mapStyle48==='smart'?-0.3:0,'raster-brightness-max':mapStyle48==='night'?0.7:1}}]};
+ return {version:8,sources:{base:{type:'raster',tiles:[url],tileSize:256,attribution:cfg.attribution,maxzoom:Math.min(19,cfg.maxZoom)}},layers:[{id:'base',type:'raster',source:'base'}]};
 }
 function jg60Refresh3DStyle(){
  if(!jg3d)return;
  jg3d.setStyle(jg60MapLibreStyle());
- jg3d.once('style.load',()=>jgSync3DRoute());
+ jg3d.once('style.load',()=>{jgSync3DRoute();jgPremiumAddBuildings();});
 }
 
 async function jgToggle3D(){
@@ -1002,9 +1041,9 @@ async function jgToggle3D(){
    const style=jg60MapLibreStyle();
    jg3d=new maplibregl.Map({container:'jg3dMap',style,center:[center.lng,center.lat],zoom:16,pitch:60,bearing:0,maxPitch:75,attributionControl:true});
    jg3d.addControl(new maplibregl.NavigationControl(),'bottom-right');
-   jg3d.on('load',()=>{jgSync3DRoute();jg3d.resize();});jg3d.on('error',e=>{if(e.error)jgStatus('3D tiles error: '+e.error.message);});
+   jg3d.on('load',()=>{jgSync3DRoute();jgPremiumAddBuildings();jg3d.resize();});jg3d.on('error',e=>{if(e.error)jgStatus('3D tiles error: '+e.error.message);});
   }else{jg3d.resize();jgSync3DRoute();}
-  jg3dActive=true;document.getElementById('jg3dBadge').style.display='block';
+  jg3dActive=true;document.getElementById('jg3dBadge').style.display='none';
   jg3d.easeTo({center:[center.lng,center.lat],zoom:16,pitch:60,duration:600});
  }catch(e){document.getElementById('jg3dMap').classList.remove('jgshown');jgStatus('3D unavailable: '+e.message);}finally{jg52Loading3D=false;}
 }
@@ -1016,13 +1055,14 @@ function jgGPSAdvanced(pos){
   if(Date.now()-jgLastGpsLog>5000&&pos.coords.accuracy<100){jgTripPoints.push([+pos.coords.longitude.toFixed(5),+pos.coords.latitude.toFixed(5)]);jgLastGpsLog=Date.now();}
  }
  if(jg3dActive&&jg3d){
+  try{jg3d.getSource('jg-premium-gps')?.setData({type:'FeatureCollection',features:[{type:'Feature',properties:{},geometry:{type:'Point',coordinates:[pos.coords.longitude,pos.coords.latitude]}}]});}catch{}
   const bearing=Number.isFinite(pos.coords.heading)&&pos.coords.speed>1.5?pos.coords.heading:jg3d.getBearing();
   if(followGps){
    const prev=jg52LastHeading;
    const delta=prev===null?0:((bearing-prev+540)%360)-180;
    const smooth=prev===null?bearing:(prev+Math.max(-30,Math.min(30,delta))*0.45+360)%360;
    jg52LastHeading=smooth;
-   jg3d.easeTo({center:[pos.coords.longitude,pos.coords.latitude],bearing:smooth,pitch:65,zoom:17,padding:{top:Math.round(window.innerHeight*0.30),bottom:0,left:0,right:0},duration:1100});
+   jg3d.easeTo({center:[pos.coords.longitude,pos.coords.latitude],bearing:smooth,pitch:58,zoom:17.2,padding:{top:Math.round(window.innerHeight*0.16),bottom:Math.round(window.innerHeight*0.20),left:0,right:0},duration:1000});
   }
  }
 }
@@ -2463,5 +2503,5 @@ function jg52TrackOffRoute(pos,progress){
   <button id="jg65View" type="button" onclick="jg65ToggleView()">◩ 3D</button>
  </div>
 </div>
-<script src="./v65.js" defer></script><script src="./v652.js" defer></script><script src="./v653.js" defer></script><script src="./v654.js" defer></script><script src="./v63.js" defer></script><script src="./v64.js" defer></script></body>
+<script src="./v656.js" defer></script><script src="./v65.js" defer></script><script src="./v652.js" defer></script><script src="./v653.js" defer></script><script src="./v654.js" defer></script><script src="./v63.js" defer></script><script src="./v64.js" defer></script><script src="./v655.js" defer></script></body>
 </html>
