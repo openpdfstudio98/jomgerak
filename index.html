@@ -308,6 +308,12 @@ body.dark #jgPremiumModes,.dark #jgPremiumModes{background:#172b46;color:#edf4ff
 body.dark #jgPremiumModes button,.dark #jgPremiumModes button{background:#223954;color:#fff;border-color:#45617d}
 #jg3dMap .maplibregl-control-container{pointer-events:auto}
 body.jg65-driving #jg3dMap .maplibregl-ctrl-top-right{display:none}
+
+/* V6.6.4: consistent selection for Journey and Settings, same as Map */
+#jgProBody button.jg664-choice.jg664-on,#jgProBody button.jg664-choice.jg664-on:hover{background:#2563eb!important;color:#fff!important;border-color:#60a5fa!important;box-shadow:0 0 0 3px #93c5fd88!important;position:relative!important}
+#jgProBody button.jg664-choice.jg664-on i{color:#fff!important}
+#jgProBody button.jg664-choice.jg664-on::after{content:'✓';position:absolute;right:7px;top:3px;font-size:12px;font-weight:900;color:#fff}
+#jgProBody button.jg664-choice{position:relative;transition:background .15s ease,box-shadow .15s ease,transform .15s ease}
 </style>
 <style>
 .jg652voice{display:flex;flex-wrap:wrap;align-items:center;gap:8px;padding:10px 0;font:13px system-ui}
@@ -2535,5 +2541,5 @@ function jg52TrackOffRoute(pos,progress){
   <button id="jg65View" type="button" onclick="jg65ToggleView()">◩ 3D</button>
  </div>
 </div>
-<script src="./v656.js" defer></script><script src="./v661.js" defer></script><script src="./v662.js" defer></script><script src="./v65.js" defer></script><script src="./v652.js" defer></script><script src="./v653.js" defer></script><script src="./v654.js" defer></script><script src="./v63.js" defer></script><script src="./v64.js" defer></script><script src="./v655.js" defer></script></body>
+<script src="./v656.js" defer></script><script src="./v661.js" defer></script><script src="./v662.js" defer></script><script src="./v65.js" defer></script><script src="./v652.js" defer></script><script src="./v653.js" defer></script><script src="./v654.js" defer></script><script src="./v63.js" defer></script><script src="./v64.js" defer></script><script src="./v655.js" defer></script><script src="./v663.js" defer></script><script src="./v664.js" defer></script></body>
 </html>
