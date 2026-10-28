@@ -332,7 +332,7 @@ body.driving-mode #jg55DriveHUD button{pointer-events:auto;background:#2563eb;bo
   <button type="button" id="jg55tab-trip" onclick="jg55Tab('trip')" aria-selected="false">🚘 <span data-jg55="trip">Perjalanan</span></button>
   <button type="button" id="jg55tab-settings" onclick="jg55Tab('settings')" aria-selected="false">⚙️ <span data-jg55="settings">Tetapan</span></button>
  </div>
- <div id="jg55MapTab">
+ <div id="jg55MapTab"><div id="jg60Map"></div>
  <div class="jg52-section-title">🗺️ Peta</div>
  <div class="jg52-grid">
   <button onclick="setMapStyle48('standard')">🗺️ Standard</button>
@@ -341,7 +341,7 @@ body.driving-mode #jg55DriveHUD button{pointer-events:auto;background:#2563eb;bo
   <button onclick="setMapStyle48('night')">🌙 Malam</button>
  </div>
  <div class="jg52-grid"><button onclick="setMapView48('north')">⬆️ Utara Atas</button><button onclick="setMapView48('follow')">📍 Ikut GPS</button></div>
- </div><div id="jg55TripTab" hidden>
+ </div><div id="jg55TripTab" hidden><div id="jg60Trip"></div>
  <div class="jg52-section-title">🚘 Perjalanan</div>
  <button onclick="document.getElementById('smartRoute48').classList.toggle('hidden')" class="jgtoolsToggle">🛣️ Tetapan Laluan ▾</button>
 <div id="smartRoute48" class="hidden rounded-xl p-3 bg-blue-50 dark:bg-slate-800 text-xs space-y-2 border border-blue-200 dark:border-blue-900">
@@ -364,7 +364,7 @@ body.driving-mode #jg55DriveHUD button{pointer-events:auto;background:#2563eb;bo
  <button onclick="jg55Show('offline')">📥 <span data-jg55="offline">Simpan Offline</span></button>
  <button onclick="jg55Show('reports')">🛡️ <span data-jg55="reports">Sahkan Laporan</span></button>
  </div>
- </div><div id="jg55SettingsTab" hidden>
+ </div><div id="jg55SettingsTab" hidden><div id="jg60Settings"></div>
  <div class="jg52-section-title">⚙️ <span data-jg55="settings">Tetapan</span></div>
  <div class="jg55actions"><button onclick="jg55Show('vehicle')">🚗 <span data-jg55="vehicle">Profil Kenderaan</span></button><button onclick="jg55VoiceStart()">🎙️ <span data-jg55="voice">Arahan Suara</span></button><button onclick="jg55ToggleDriving()">🛣️ <span data-jg55="drive">Paparan Pemanduan</span></button></div>
  <div class="jgrow"><label>Kelajuan Suara <select id="jgVoiceRate" onchange="jgStoreVoice()"><option value="0.85">Perlahan</option><option value="1" selected>Normal</option><option value="1.15">Laju</option></select></label></div>
@@ -2324,5 +2324,6 @@ function jg52TrackOffRoute(pos,progress){
         }
     </script>
 <script src="./v55.js" defer></script>
-<script src="./v56.js" defer></script></body>
+<script src="./v56.js" defer></script>
+<script src="./v60.js" defer></script></body>
 </html>

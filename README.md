@@ -59,3 +59,14 @@ This build upgrades the existing V5.4 app without replacing its GPS, routing, la
 3. Confirm police/checkpoint reports never generate route proximity warnings.
 4. Confirm old routing, saved places, 3D map and PWA still load.
 5. Verify that reports and weather aren't presented as official or verified.
+
+## V6.0 – Malaysia Super Navigation (initial beta)
+- **Transport selector** Car (existing OSRM driving), Motorcycle (existing driving route is only a rough approximation, not motorcycle-safe), Walking (Valhalla public pedestrian routing with distinct green route and approximate ETA, if available), Rail (official KTM website; no in-app rail routing).
+- **3D driving perspective** invokes existing MapLibre 3D perspective mode; no true 3D building layer.
+- **Voice destination/start search** uses Web SpeechRecognition when available and opens Nominatim suggestions; microphone permission and browser support required.
+- **Navigation voice selector** lists device TTS voices and attempts to apply the selected voice to existing speechSynthesis calls. Browser implementation may prevent overriding native `speak`.
+- **Prayer times**: optional Aladhan API estimates based on representative Malaysian city coordinates, NOT official JAKIM zone timings. Official e-Solat JAKIM link is provided. No push prayer alerts in this release.
+- Existing V5.6 road alerts, V5.5 tools, GPS, BM/EN, PWA and map features remain.
+- Not included: reliable real-time traffic-light countdown, native Android Auto/CarPlay, smartwatch integrations, state-accent TTS, running tracker. These need separate data sources, native SDKs or additional implementation. No dummy buttons for these.
+- Production caution: public OSRM, Valhalla, Nominatim and map tile services can rate-limit or reject traffic; obtain a production routing provider. Browser speech may not work on every Android device.
+- Test on stationary Android with Chrome and HTTPS, and verify BM/EN, all transport options, voice search, device voices, prayer results, 3D view, V5.6 road alerts and install/update of PWA.
