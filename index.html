@@ -288,7 +288,14 @@ body.jg65-driving #jg3dMap{height:100dvh}
 @media(max-width:450px){#jg65Dock button{font-size:12px}body.jg65-driving #liveNavHUD img{width:30px;height:30px}}
 
 </style>
-</head>
+<style>
+.jg652voice{display:flex;flex-wrap:wrap;align-items:center;gap:8px;padding:10px 0;font:13px system-ui}
+.jg652voice label{width:100%;font-weight:700}.jg652voice select{max-width:100%;flex:1 1 170px;border:1px solid #cbd5e1;border-radius:9px;padding:10px;color:#17233d;background:#f8fafc}
+.jg652voice button{padding:10px;border-radius:9px;background:#2563eb;color:white;font-weight:700}
+.jg652voice p{font-size:11px;color:#64748b;width:100%;line-height:1.5}
+#jg63Host,#jg64Mount{display:none!important}
+.jg52-grid button i,.jg55tabs button i{margin-right:5px}
+</style></head>
 <body class="bg-slate-900 select-none relative">
 
     <!-- Peta Utama -->
@@ -342,10 +349,10 @@ body.jg65-driving #jg3dMap{height:100dvh}
     <div class="font-bold text-sm mb-2">🗺️ Map Style</div>
     <div class="grid grid-cols-2 gap-2">
       <button data-map-style="navigator" onclick="setMapStyle48('navigator')" class="mapstyle-btn bg-slate-100 dark:bg-slate-700 rounded-xl p-2 text-xs font-bold">🧭 Navigator (OSM)</button>
-      <button data-map-style="standard" onclick="setMapStyle48('standard')" class="mapstyle-btn bg-slate-100 dark:bg-slate-700 rounded-xl p-2 text-xs font-bold">🗺️ Standard</button>
-      <button data-map-style="smart" onclick="setMapStyle48('smart')" class="mapstyle-btn bg-slate-100 dark:bg-slate-700 rounded-xl p-2 text-xs font-bold">🚙 Pintar</button>
-      <button data-map-style="satellite" onclick="setMapStyle48('satellite')" class="mapstyle-btn bg-slate-100 dark:bg-slate-700 rounded-xl p-2 text-xs font-bold">🛰️ Satelit</button>
-      <button data-map-style="night" onclick="setMapStyle48('night')" class="mapstyle-btn bg-slate-100 dark:bg-slate-700 rounded-xl p-2 text-xs font-bold">🌙 Malam</button>
+      <button data-map-style="standard" onclick="setMapStyle48('standard')" class="mapstyle-btn bg-slate-100 dark:bg-slate-700 rounded-xl p-2 text-xs font-bold"><i class="fa-solid fa-map"></i> Standard</button>
+      <button data-map-style="smart" onclick="setMapStyle48('smart')" class="mapstyle-btn bg-slate-100 dark:bg-slate-700 rounded-xl p-2 text-xs font-bold"><i class="fa-solid fa-car-side"></i> Pintar</button>
+      <button data-map-style="satellite" onclick="setMapStyle48('satellite')" class="mapstyle-btn bg-slate-100 dark:bg-slate-700 rounded-xl p-2 text-xs font-bold"><i class="fa-solid fa-earth-asia"></i> Satelit</button>
+      <button data-map-style="night" onclick="setMapStyle48('night')" class="mapstyle-btn bg-slate-100 dark:bg-slate-700 rounded-xl p-2 text-xs font-bold"><i class="fa-solid fa-moon"></i> Malam</button>
     </div>
     <div class="border-t border-slate-200 dark:border-slate-700 mt-3 pt-2">
       <label class="block text-xs font-bold mb-1" for="mapView48">Map View</label>
@@ -363,22 +370,21 @@ body.jg65-driving #jg3dMap{height:100dvh}
  <button onclick="jgTogglePro()" style="width:100%;text-align:left;background:#dbeafe"><i class="fa-solid fa-sliders"></i> <span id="jgUnifiedLabel">Kawalan</span> <span style="float:right">▾</span></button>
  <div id="jgProBody">
  <div class="jg55tabs" role="tablist" aria-label="Navigation tools">
-  <button type="button" id="jg55tab-map" onclick="jg55Tab('map')" aria-selected="true">🗺️ <span data-jg55="map">Peta</span></button>
-  <button type="button" id="jg55tab-trip" onclick="jg55Tab('trip')" aria-selected="false">🚘 <span data-jg55="trip">Perjalanan</span></button>
-  <button type="button" id="jg55tab-settings" onclick="jg55Tab('settings')" aria-selected="false">⚙️ <span data-jg55="settings">Tetapan</span></button>
+  <button type="button" id="jg55tab-map" onclick="jg55Tab('map')" aria-selected="true"><i class="fa-solid fa-map"></i> <span data-jg55="map">Peta</span></button>
+  <button type="button" id="jg55tab-trip" onclick="jg55Tab('trip')" aria-selected="false"><i class="fa-solid fa-route"></i> <span data-jg55="trip">Perjalanan</span></button>
+  <button type="button" id="jg55tab-settings" onclick="jg55Tab('settings')" aria-selected="false"><i class="fa-solid fa-gear"></i> <span data-jg55="settings">Tetapan</span></button>
  </div>
  <div id="jg55MapTab"><div id="jg60Map"></div><div id="jg64Mount"></div>
  <div class="jg52-section-title">🗺️ Peta</div>
  <div class="jg52-grid">
-  <button onclick="setMapStyle48('navigator')">🧭 Navigator (OSM)</button>
-  <button onclick="jg63Mapbox('streets')">🗺️ Mapbox Streets*</button>
-  <button onclick="jg63Mapbox('satellite')">🛰️ Mapbox Satellite*</button>
-  <button onclick="setMapStyle48('standard')">🗺️ Standard</button>
-  <button onclick="setMapStyle48('smart')">🚙 Pintar</button>
-  <button onclick="setMapStyle48('satellite')">🛰️ Satelit</button>
-  <button onclick="setMapStyle48('night')">🌙 Malam</button>
+  <button onclick="setMapStyle48('navigator')"><i class="fa-solid fa-map"></i> Navigator (OSM)</button>
+  <button onclick="jg64MapTiler()"><i class="fa-solid fa-layer-group"></i> MapTiler Streets</button>
+  <button onclick="setMapStyle48('standard')"><i class="fa-solid fa-map"></i> Standard</button>
+  <button onclick="setMapStyle48('smart')"><i class="fa-solid fa-car-side"></i> Pintar</button>
+  <button onclick="setMapStyle48('satellite')"><i class="fa-solid fa-earth-asia"></i> Satelit</button>
+  <button onclick="setMapStyle48('night')"><i class="fa-solid fa-moon"></i> Malam</button>
  </div>
- <div class="jg52-grid"><button onclick="setMapView48('north')">⬆️ Utara Atas</button><button onclick="setMapView48('follow')">📍 Ikut GPS</button></div>
+ <div class="jg52-grid"><button onclick="setMapView48('north')"><i class="fa-solid fa-arrow-up"></i> Utara Atas</button><button onclick="setMapView48('follow')"><i class="fa-solid fa-location-crosshairs"></i> Ikut GPS</button></div>
  </div><div id="jg55TripTab" hidden><div id="jg60Trip"></div>
  <div class="jg52-section-title">🚘 Perjalanan</div>
  <button onclick="document.getElementById('smartRoute48').classList.toggle('hidden')" class="jgtoolsToggle">🛣️ Tetapan Laluan ▾</button>
@@ -403,9 +409,13 @@ body.jg65-driving #jg3dMap{height:100dvh}
  <button onclick="jg55Show('reports')">🛡️ <span data-jg55="reports">Sahkan Laporan</span></button>
  </div>
  </div><div id="jg55SettingsTab" hidden><div id="jg60Settings"></div>
- <div class="jg52-section-title">⚙️ <span data-jg55="settings">Tetapan</span></div>
+ <div class="jg52-section-title"><i class="fa-solid fa-gear"></i> <span data-jg55="settings">Tetapan</span></div>
  <div class="jg55actions"><button onclick="jg55Show('vehicle')">🚗 <span data-jg55="vehicle">Profil Kenderaan</span></button><button onclick="jg55VoiceStart()">🎙️ <span data-jg55="voice">Arahan Suara</span></button><button onclick="jg55ToggleDriving()">🛣️ <span data-jg55="drive">Paparan Pemanduan</span></button></div>
  <div class="jgrow"><label>Kelajuan Suara <select id="jgVoiceRate" onchange="jgStoreVoice()"><option value="0.85">Perlahan</option><option value="1" selected>Normal</option><option value="1.15">Laju</option></select></label></div>
+ <div class="jg652voice"><label for="jg652VoiceSelect"><i class="fa-solid fa-volume-high"></i> <span id="jg652VoiceLabel">Suara navigasi / Navigation voice</span></label>
+ <select id="jg652VoiceSelect" onchange="jg652SaveVoice()" aria-label="Navigation voice"><option value="">Automatic (device)</option></select>
+ <button type="button" onclick="jg652TestVoice()"><i class="fa-solid fa-play"></i> Test Voice</button>
+ <p id="jg652VoiceHint">Suara lelaki/perempuan bergantung pada suara yang dipasang dalam telefon. Pilih suara yang tersedia.</p></div>
  <div class="jgmuted" id="jgProStatus">Route toll rates, speed limits, flood alerts and true offline routing need verified external datasets. Community sync needs backend setup.</div>
  <div id="jgTripHistory" style="max-height:140px;overflow:auto"></div>
  </div></div>
@@ -1327,11 +1337,12 @@ function jg52TrackOffRoute(pos,progress){
 
             // Cuba cari suara Bahasa Melayu (ms-MY) atau Indonesia (id-ID), jika tiada guna lalai
             const voices = window.speechSynthesis.getVoices();
-            const msVoice = voices.find(v => v.lang.toLowerCase().startsWith(appLanguage === 'en' ? 'en' : 'ms')) || (appLanguage === 'ms' ? voices.find(v=>v.lang.toLowerCase().startsWith('id')) : null);
+            const chosen = window.jg652SelectedVoice?.();
+            const msVoice = chosen || voices.find(v => v.lang.toLowerCase().startsWith(appLanguage === 'en' ? 'en' : 'ms')) || (appLanguage === 'ms' ? voices.find(v=>v.lang.toLowerCase().startsWith('id')) : null);
             if (msVoice) {
                 utterance.voice = msVoice;
             }
-            utterance.lang = appLanguage === 'en' ? 'en-US' : 'ms-MY';
+            utterance.lang = msVoice?.lang || (appLanguage === 'en' ? 'en-US' : 'ms-MY');
             utterance.rate = Number(document.getElementById("jgVoiceRate")?.value)||1;
 
             if (onEndCallback) {
@@ -2435,5 +2446,5 @@ function jg52TrackOffRoute(pos,progress){
   <button id="jg65View" type="button" onclick="jg65ToggleView()">◩ 3D</button>
  </div>
 </div>
-<script src="./v65.js" defer></script><script src="./v63.js" defer></script><script src="./v64.js" defer></script></body>
+<script src="./v65.js" defer></script><script src="./v652.js" defer></script><script src="./v63.js" defer></script><script src="./v64.js" defer></script></body>
 </html>

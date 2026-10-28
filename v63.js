@@ -11,16 +11,7 @@
  function distance(a,b){const R=6371000,rad=x=>x*Math.PI/180,dlat=rad(b.lat-a.lat),dlon=rad(b.lon-a.lon),v=Math.sin(dlat/2)**2+Math.cos(rad(a.lat))*Math.cos(rad(b.lat))*Math.sin(dlon/2)**2;return 2*R*Math.asin(Math.min(1,Math.sqrt(v)));}
  function storage(key,def){try{return JSON.parse(localStorage.getItem('jg63_'+key))??def;}catch{return def;}}
  function put(key,v){try{localStorage.setItem('jg63_'+key,JSON.stringify(v));return true;}catch{return false;}}
- function ui(){
-  const tab=$('jg60Trip');if(!tab)return;
-  let host=$('jg63Host');if(!host){host=document.createElement('section');host.id='jg63Host';tab.prepend(host);}
-  host.innerHTML=`<div class="jg63head"><strong>🧭 ${T('Semua Mod V6.3','All Modes V6.3')}</strong><button type="button" onclick="jg63Toggle()" aria-expanded="${state.open}">${state.open?'▴':'▾'}</button></div><div id="jg63Body" ${state.open?'':'hidden'}>
-    <div class="jg63modes"><button onclick="jg60Mode('car')">🚗 ${T('Kereta','Drive')}</button><button onclick="jg60Mode('motor')">🏍️ ${T('Motor','Motor')}</button><button onclick="jg60Mode('walk')">🚶 ${T('Jalan','Walk')}</button><button onclick="jg60Mode('rail')">🚆 ${T('Tren','Train')}</button><button onclick="jg63RunOpen()">🏃 ${T('Larian','Run')}</button><button onclick="jg60Prayer()">🕌 ${T('Solat','Prayer')}</button></div>
-    <div class="jg63modes"><button onclick="jg63Signals()">🚦 ${T('Lokasi Lampu Isyarat','Traffic Signals')}</button><button onclick="jg60VoiceSearch('dest')">🎤 ${T('Cari Dengan Suara','Voice Search')}</button><button onclick="jg63Install()">📲 ${T('Pasang Aplikasi','Install App')}</button><button onclick="jg63DeviceInfo()">⌚ ${T('Sambungan Peranti','Device Integration')}</button></div>
-    <p class="jg63small">${T('Lampu isyarat dipaparkan daripada OpenStreetMap jika tersedia; tiada countdown masa sebenar. Integrasi Android Auto, CarPlay dan jam pintar memerlukan aplikasi native.','Traffic signals come from OpenStreetMap where available; no live countdown. Android Auto, CarPlay and watch integrations require native apps.')}</p>
-  </div>`;
-  let panel=$('jg63RunPanel');if(panel)refreshRun();
- }
+ function ui(){const host=$('jg63Host');if(host)host.remove();const panel=$('jg63RunPanel');if(panel)refreshRun();}
  window.jg63Toggle=function(){state.open=!state.open;ui();};
  function dialog(){let e=$('jg63RunPanel');if(!e){e=document.createElement('div');e.id='jg63RunPanel';e.className='jg63dialog';e.setAttribute('role','dialog');e.setAttribute('aria-label','JomGerak Run');document.body.append(e);}return e;}
  function elapsed(){return state.elapsed+(state.watch!==null&&!state.paused?Date.now()-state.started:0);}
