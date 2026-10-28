@@ -8,11 +8,14 @@
  function setUI(){
   const nav=typeof navigationActive!=='undefined'&&navigationActive;
   hasNav=nav;
+  if(nav&&typeof map!=='undefined'&&map&&typeof map.closePopup==='function')map.closePopup();
   document.body.classList.toggle('jg65-driving',nav);
   const start=el('jg65Start');if(start)start.textContent=nav?tr('■ Henti','■ Stop'):tr('▶ Mula Pandu','▶ Start Driving');
-  const badge=el('jg65Badge');if(badge)badge.style.display=nav?'block':'none';
+  const dock=el('jg65Dock');if(dock&&!nav)dock.classList.remove('jg65expanded');
+  const more=el('jg65More');if(more){more.textContent=tr('☰ Pandu','☰ Driving');more.setAttribute('aria-expanded',String(Boolean(dock?.classList.contains('jg65expanded'))));}
   const view=el('jg65View');if(view)view.textContent=mode==='3d'?'▣ 2D':'◩ 3D';
  }
+ window.jg65ToggleMenu=function(){const dock=el('jg65Dock'),more=el('jg65More');if(!dock||!navigationActive)return;const expanded=dock.classList.toggle('jg65expanded');if(more)more.setAttribute('aria-expanded',String(expanded));};
  window.jg65Start=function(){
   if(typeof startVoiceNavigation!=='function')return;
   if(navigationActive){stopLiveNavigation();setUI();return;}
