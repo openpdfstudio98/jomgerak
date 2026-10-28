@@ -10,10 +10,10 @@
   e.textContent=`MapTiler: ${state.maptiler?'✓':'—'}  •  Supabase: ${state.community?'✓':'—'}  •  TomTom: ${state.traffic?'✓':'—'}`;
  }
  async function boot(){
-  const host=el('jg60Map')||el('jgProPanel');
+  const host=el('jg64Mount')||el('jg55MapTab')||el('jgProPanel');
   if(host){
    const box=document.createElement('section');box.className='jg64box';box.innerHTML=`<strong>🔌 ${tr('Sambungan API','API Connections')}</strong><p id="jg64Status">${tr('Menyemak…','Checking…')}</p><div class="jg64actions"><button type="button" onclick="jg64MapTiler()">🗺️ MapTiler</button><button type="button" onclick="jg64Traffic()">🚦 ${tr('Trafik Berdekatan','Nearby Traffic')}</button><button type="button" onclick="jg64Refresh()">↻ ${tr('Semak API','Check APIs')}</button></div><p class="jg64hint">${tr('Trafik TomTom: kelajuan satu segmen jalan berdekatan sahaja, bukan ETA laluan penuh.','TomTom: speed for one nearby road segment, not route-wide ETA.')}</p>`;
-   host.prepend(box);
+   host.replaceChildren(box);
   }
   const css=document.createElement('style');css.textContent='.jg64box{background:#eef5ff;color:#0f172a;padding:12px;border-radius:13px;margin:9px 0;font:12px system-ui}.jg64box strong{font-size:13px}.jg64box p{margin:6px 0}.jg64actions{display:flex;gap:6px;flex-wrap:wrap}.jg64actions button{background:#2563eb;color:white;border:0;border-radius:9px;padding:9px;font-size:12px}.jg64hint{font-size:11px;line-height:1.5;color:#475569}';document.head.appendChild(css);
   await window.jg64Refresh();

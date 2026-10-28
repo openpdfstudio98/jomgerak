@@ -259,6 +259,13 @@ body.driving-mode #jg55DriveHUD button{pointer-events:auto;background:#2563eb;bo
 #jgProBody .jg52-grid button{white-space:normal;line-height:1.35}
 #jg3dBadge{font-size:10px;max-width:calc(100vw - 24px);pointer-events:none}
 @media(max-width:520px){#jgProPanel:not(.jgfolded){left:8px!important;max-width:calc(100vw - 16px)!important;width:min(355px,calc(100vw - 16px))!important}#jgProPanel.jgfolded{bottom:98px!important}}
+
+/* V6.4.2: keep journey tool responses visible and compact on mobile */
+#jg55TripTab,#jg55SettingsTab{min-width:0}
+#jg55Panel{max-height:none!important;overflow:visible!important;scroll-margin-top:65px}
+#jgProPanel:not(.jgfolded){max-height:min(75dvh,650px)!important;overflow-y:auto!important;overscroll-behavior:contain}
+#jgProPanel .jg55actions button,#jgProPanel .jgrow button{touch-action:manipulation}
+@media(max-width:767px){#jgProPanel:not(.jgfolded){max-height:72dvh!important;width:min(350px,calc(100vw - 24px))!important}}
 </style>
 </head>
 <body class="bg-slate-900 select-none relative">
@@ -339,7 +346,7 @@ body.driving-mode #jg55DriveHUD button{pointer-events:auto;background:#2563eb;bo
   <button type="button" id="jg55tab-trip" onclick="jg55Tab('trip')" aria-selected="false">🚘 <span data-jg55="trip">Perjalanan</span></button>
   <button type="button" id="jg55tab-settings" onclick="jg55Tab('settings')" aria-selected="false">⚙️ <span data-jg55="settings">Tetapan</span></button>
  </div>
- <div id="jg55MapTab"><div id="jg60Map"></div>
+ <div id="jg55MapTab"><div id="jg60Map"></div><div id="jg64Mount"></div>
  <div class="jg52-section-title">🗺️ Peta</div>
  <div class="jg52-grid">
   <button onclick="setMapStyle48('navigator')">🧭 Navigator (OSM)</button>

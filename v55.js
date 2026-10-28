@@ -37,13 +37,16 @@ function jg55Show(which){
  const panel=document.getElementById('jg55Panel');
  if(J55.panel===which&&!panel.hidden){panel.hidden=true;J55.panel='';return;}
  J55.panel=which;panel.hidden=false;
+ // Place results inside the visible tab instead of after all hidden tabs.
+ const activeTab=document.getElementById(J55.tab==='settings'?'jg55SettingsTab':'jg55TripTab');
+ if(activeTab&&panel.parentElement!==activeTab)activeTab.appendChild(panel);
  const title={
  compare:['Banding laluan','Route comparison'],stops:['Multi-hentian','Multi-stop route'],
  pit:['Pit Stop','Pit stops'],cost:['Kos perjalanan','Trip cost'],weather:['Cuaca sepanjang laluan','Weather along route'],
  offline:['Persediaan offline','Offline trip preparation'],reports:['Pengesahan komuniti','Community verification'],
  vehicle:['Profil kenderaan','Vehicle profile']
  }[which];
- if(!title)return;
+ if(!title){panel.hidden=true;return;}
  const h='<strong>'+jg55Esc(jg55T(...title))+'</strong>';
  if(which==='vehicle'){
   const v=jg55Read('vehicle',{name:'Kereta',fuel:'ron95',liters:7.2,price:2.05});
@@ -84,6 +87,8 @@ function jg55Show(which){
   panel.innerHTML=h+`<p class="jg55note">${jg55T('Hanya laporan komuniti yang mempunyai ID boleh disahkan. Pengesahan merentas pengguna memerlukan backend yang menyimpan undian dan menghalang penyalahgunaan.','Only reports with IDs can be verified. Cross-user voting needs a backend with abuse protection.')}</p>
   <button onclick="jg55ReportInfo()">${jg55T('Semak status laporan','Check report status')}</button><div id="j55reportResults"></div>`;
  }
+ // Ensure newly opened tool is visible inside the scrolling controls panel.
+ requestAnimationFrame(()=>panel.scrollIntoView({block:'nearest',behavior:'smooth'}));
 }
 function jg55SaveVehicle(){
  const v={name:document.getElementById('j55car').value.trim().slice(0,40)||'Car',fuel:document.getElementById('j55fuel').value,
