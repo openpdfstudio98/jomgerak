@@ -326,6 +326,30 @@ body.jg65-driving #jg3dMap .maplibregl-ctrl-top-right{display:none}
 #jg653TollEditor small{display:block;color:#cbd5e1;margin-top:5px;line-height:1.4}
 #jg653TripTotal{color:#86efac}
 .jg653-icon{display:inline-block;margin-right:5px;min-width:1em;text-align:center}
+</style><style>
+/* V6.6.2 – ONE visual language for all interactive controls */
+#jgPremiumModes{background:#f8fafc!important;color:#172033!important;border:1px solid #d7e1ed!important;box-shadow:none!important}
+#jgPremiumModes .jg-premium-title{color:#172033!important}
+#jgPremiumModes button,#jgProBody .jg52-grid button,#jgProBody .jgrow button,#jgProBody .jg55actions button,#jgProBody .jgtoolsToggle,#jgProBody .jg55tabs button,#jgProBody button.jg-ui-choice{
+ background:#f1f5f9!important;color:#172033!important;border:1px solid #cbd5e1!important;
+ border-radius:12px!important;box-shadow:none!important;transition:background-color .16s,border-color .16s,box-shadow .16s,transform .12s!important;
+ position:relative;touch-action:manipulation;cursor:pointer;
+}
+#jgProBody button.jg-ui-selected,#jgProBody button.jg-ui-selected:hover,#jgProBody .jg55tabs button[aria-selected="true"],#jgPremiumModes button.jg-selected{
+ background:#2563eb!important;color:#fff!important;border-color:#1d4ed8!important;box-shadow:0 0 0 2px rgba(59,130,246,.20)!important;transform:none!important;
+}
+#jgProBody button.jg-ui-selected i,#jgProBody .jg55tabs button[aria-selected="true"] i,#jgPremiumModes button.jg-selected i{color:#fff!important}
+#jgProBody button.jg-ui-selected::after,#jgPremiumModes button.jg-selected::after{content:'✓';position:absolute;top:3px;right:6px;font-size:11px;font-weight:900;color:#fff}
+#jgProBody button.jg-ui-tap{animation:jg662tap .25s ease-out!important}
+#jgProBody button:focus-visible{outline:3px solid #93c5fd!important;outline-offset:2px}
+#jgProBody button:active{transform:scale(.97)!important}
+@keyframes jg662tap{0%{filter:brightness(1)}40%{filter:brightness(.86);transform:scale(.97)}100%{filter:brightness(1)}}
+/* Dark mode follows same blue active state and slate inactive state, including premium modes */
+body.dark #jgPremiumModes{background:#f8fafc!important;border-color:#cbd5e1!important}
+body.dark #jgPremiumModes button{background:#f1f5f9!important;color:#172033!important;border-color:#cbd5e1!important}
+body.dark #jgPremiumModes button.jg-selected{background:#2563eb!important;color:#fff!important}
+body.dark #jgPremiumModes button:not(.jg-selected) i{color:#2563eb!important}
+@media(prefers-reduced-motion:reduce){#jgProBody button{animation:none!important;transition:none!important}}
 </style></head>
 <body class="bg-slate-900 select-none relative">
 
@@ -2511,5 +2535,5 @@ function jg52TrackOffRoute(pos,progress){
   <button id="jg65View" type="button" onclick="jg65ToggleView()">◩ 3D</button>
  </div>
 </div>
-<script src="./v656.js" defer></script><script src="./v661.js" defer></script><script src="./v65.js" defer></script><script src="./v652.js" defer></script><script src="./v653.js" defer></script><script src="./v654.js" defer></script><script src="./v63.js" defer></script><script src="./v64.js" defer></script><script src="./v655.js" defer></script></body>
+<script src="./v656.js" defer></script><script src="./v661.js" defer></script><script src="./v662.js" defer></script><script src="./v65.js" defer></script><script src="./v652.js" defer></script><script src="./v653.js" defer></script><script src="./v654.js" defer></script><script src="./v63.js" defer></script><script src="./v64.js" defer></script><script src="./v655.js" defer></script></body>
 </html>

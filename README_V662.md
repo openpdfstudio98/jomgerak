@@ -1,0 +1,1 @@
+JomGerak V6.6.2 – Unified button styles. All buttons in Controls panel now share light slate inactive and blue active states; map style, view, tabs and premium navigation choices reflect selection. Action buttons have short tap feedback only (not permanently selected). Preserves prior functions.
