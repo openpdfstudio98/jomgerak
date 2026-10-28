@@ -294,7 +294,15 @@ body.jg65-driving #jg3dMap{height:100dvh}
 #jgPremiumModes .jg-premium-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}
 #jgPremiumModes button{background:white;border:1px solid #cbd9e9;border-radius:11px;padding:11px 3px;font-size:11px;font-weight:750;line-height:1.35;color:#10213b}
 #jgPremiumModes button i{display:block;margin-bottom:5px;color:#2563eb;font-size:16px}
-#jgPremiumModes button:focus-visible{outline:3px solid #2563eb}
+#jgPremiumModes button{position:relative;cursor:pointer;transition:background .2s ease,color .2s ease,border-color .2s ease,box-shadow .2s ease,transform .15s ease;min-height:66px;touch-action:manipulation}
+#jgPremiumModes button:active{transform:scale(.95)}
+#jgPremiumModes button:focus-visible{outline:3px solid #60a5fa;outline-offset:2px}
+#jgPremiumModes button.jg-selected{background:linear-gradient(145deg,#2563eb,#1744c6)!important;color:#fff!important;border-color:#60a5fa!important;box-shadow:0 0 0 2px rgba(59,130,246,.24),0 5px 15px rgba(37,99,235,.3);transform:translateY(-1px)}
+#jgPremiumModes button.jg-selected i{color:#fff!important}
+#jgPremiumModes button.jg-selected::after{content:'✓';position:absolute;top:3px;right:6px;font-size:11px;font-weight:900;color:#fff}
+#jgPremiumModes button.jg-loading{opacity:.72;pointer-events:none}
+#jgPremiumModes button.jg-loading::after{content:'…';position:absolute;top:3px;right:6px;font-size:13px}
+@media(prefers-reduced-motion:reduce){#jgPremiumModes button{transition:none!important}}
 #jgPremiumHint{font-size:11px;line-height:1.4;color:#526782;margin:9px 0 0}
 body.dark #jgPremiumModes,.dark #jgPremiumModes{background:#172b46;color:#edf4ff;border-color:#345172}
 body.dark #jgPremiumModes button,.dark #jgPremiumModes button{background:#223954;color:#fff;border-color:#45617d}
@@ -2503,5 +2511,5 @@ function jg52TrackOffRoute(pos,progress){
   <button id="jg65View" type="button" onclick="jg65ToggleView()">◩ 3D</button>
  </div>
 </div>
-<script src="./v656.js" defer></script><script src="./v65.js" defer></script><script src="./v652.js" defer></script><script src="./v653.js" defer></script><script src="./v654.js" defer></script><script src="./v63.js" defer></script><script src="./v64.js" defer></script><script src="./v655.js" defer></script></body>
+<script src="./v656.js" defer></script><script src="./v661.js" defer></script><script src="./v65.js" defer></script><script src="./v652.js" defer></script><script src="./v653.js" defer></script><script src="./v654.js" defer></script><script src="./v63.js" defer></script><script src="./v64.js" defer></script><script src="./v655.js" defer></script></body>
 </html>

@@ -1,0 +1,1 @@
+JomGerak V6.6.1: Premium navigation 2D/3D/Follow GPS buttons now highlight the currently active mode with blue background, white icon, checkmark, press animation and aria-pressed state. Failed 3D activation leaves 2D selected. Existing features retained.
