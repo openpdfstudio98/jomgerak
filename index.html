@@ -266,6 +266,22 @@ body.driving-mode #jg55DriveHUD button{pointer-events:auto;background:#2563eb;bo
 #jgProPanel:not(.jgfolded){max-height:min(75dvh,650px)!important;overflow-y:auto!important;overscroll-behavior:contain}
 #jgProPanel .jg55actions button,#jgProPanel .jgrow button{touch-action:manipulation}
 @media(max-width:767px){#jgProPanel:not(.jgfolded){max-height:72dvh!important;width:min(350px,calc(100vw - 24px))!important}}
+
+/* V6.5 driving-first interface */
+#jg65Dock{position:fixed;z-index:525;right:12px;top:calc(env(safe-area-inset-top) + 12px);display:flex;gap:7px;flex-wrap:wrap;max-width:calc(100vw - 24px);justify-content:flex-end;pointer-events:none}
+#jg65Dock button{pointer-events:auto;border:1px solid #dbeafe;border-radius:14px;background:#10213b;color:#fff;padding:10px 12px;font:700 12px system-ui;box-shadow:0 5px 18px #0004}
+#jg65Dock button.jg65primary{background:#2563eb}
+#jg65Dock button:disabled{opacity:.55}
+#jg65Badge{position:fixed;z-index:525;left:12px;top:calc(env(safe-area-inset-top) + 14px);background:#10213be8;color:#fff;border-radius:12px;padding:9px 12px;font:700 12px system-ui;pointer-events:none;max-width:45vw}
+body.jg65-driving #searchPanelWrap,body.jg65-driving #routeSummaryPanel,body.jg65-driving #jgProPanel,body.jg65-driving #jg52Install,body.jg65-driving #floatingMapTools{display:none!important}
+body.jg65-driving #jg65Dock{top:calc(env(safe-area-inset-top) + 10px)}
+body.jg65-driving #liveNavHUD{display:block!important;bottom:max(8px,env(safe-area-inset-bottom))!important;left:8px!important;right:8px!important}
+body.jg65-driving #liveNavHUD>div{padding:10px!important;border-radius:15px!important}
+body.jg65-driving #jg3dBadge{display:none!important}
+body.jg65-driving #jg65Badge{display:block}
+body.jg65-driving #speed47{bottom:110px!important;right:10px!important}
+body.jg65-driving #jg3dMap{height:100dvh}
+@media(max-width:450px){#jg65Dock button{padding:9px 10px;font-size:11px}#jg65Badge{font-size:10px;max-width:37vw}body.jg65-driving #liveNavHUD img{width:30px;height:30px}}
 </style>
 </head>
 <body class="bg-slate-900 select-none relative">
@@ -963,6 +979,7 @@ async function jgToggle3D(){
  }catch(e){document.getElementById('jg3dMap').classList.remove('jgshown');jgStatus('3D unavailable: '+e.message);}finally{jg52Loading3D=false;}
 }
 function jgGPSAdvanced(pos){
+ if(typeof window.jg65OnGps==='function')window.jg65OnGps(pos);
  if(window.jg56GpsUpdate)window.jg56GpsUpdate(pos);
  if(navigationActive){
   if(!jgTripStarted)jgTripStarted=Date.now();
@@ -1325,6 +1342,7 @@ function jg52TrackOffRoute(pos,progress){
             if(!currentRouteData||!destCoords){showToast(tr('Cari laluan dahulu.'),'warning');return;}
             if(!navigator.geolocation||!window.isSecureContext){showToast(tr('GPS memerlukan HTTPS dan kebenaran lokasi.'),'error');return;}
             navigationActive=true;lastSpokenStep=-1;
+            if(typeof window.jg65NavChanged==='function')window.jg65NavChanged();
             jgTripStarted=Date.now();jgTripPoints=[];
             document.getElementById('speed47').classList.remove('hidden');
             previousMapZoom=map.getZoom();
@@ -1346,6 +1364,7 @@ function jg52TrackOffRoute(pos,progress){
             jgFinishTrip();
             if(gpsWatchId!==null&&navigator.geolocation)navigator.geolocation.clearWatch(gpsWatchId);
             gpsWatchId=null;navigationActive=false;
+            if(typeof window.jg65NavChanged==='function')window.jg65NavChanged();
             document.getElementById('speed47').classList.add('hidden');
             document.body.classList.remove('driving-mode');
             document.getElementById('searchPanelWrap').style.removeProperty('display');
@@ -2402,5 +2421,12 @@ function jg52TrackOffRoute(pos,progress){
 <script src="./v55.js" defer></script>
 <script src="./v56.js" defer></script>
 <script src="./v60.js" defer></script>
-<script src="./v63.js" defer></script><script src="./v64.js" defer></script></body>
+<div id="jg65Badge" style="display:none">🚗 Driving Mode</div>
+<div id="jg65Dock" role="group" aria-label="Driving controls">
+ <button id="jg65Start" class="jg65primary" type="button" onclick="jg65Start()">▶ Start Driving</button>
+ <button id="jg65Overview" type="button" onclick="jg65Overview()">🗺 Overview</button>
+ <button id="jg65Recenter" type="button" onclick="jg65Recenter()">◎ Recenter</button>
+ <button id="jg65View" type="button" onclick="jg65ToggleView()">◩ 3D</button>
+</div>
+<script src="./v65.js" defer></script><script src="./v63.js" defer></script><script src="./v64.js" defer></script></body>
 </html>
