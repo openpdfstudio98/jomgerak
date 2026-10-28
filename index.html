@@ -199,6 +199,31 @@ body.driving-mode #jgProPanel{bottom:117px!important}
 body.driving-mode #speed47{bottom:172px!important;right:12px!important}
 body.driving-mode #jgProPanel:not(.jgfolded){bottom:116px!important;max-height:50dvh!important}
 @media(min-width:768px){#jgProPanel{bottom:20px!important;left:20px!important}#speed47{bottom:115px!important}}
+
+/* V5.3 polished map-first controls */
+#jgProPanel{border-radius:20px!important;box-shadow:0 12px 36px rgba(15,23,42,.25)!important;background:rgba(255,255,255,.97)!important;backdrop-filter:blur(18px);border:1px solid rgba(148,163,184,.22)}
+#jgProPanel>button{display:flex;align-items:center;gap:8px;justify-content:space-between;background:linear-gradient(135deg,#e0f2fe,#dbeafe)!important;border:1px solid #bfdbfe;color:#1e3a8a!important;border-radius:15px!important;min-height:42px;font-weight:800!important}
+#jgProPanel>button #jgUnifiedLabel{flex:1}
+#jgProBody{padding:10px!important}
+#jgProBody .jg52-section-title{font-size:11px;letter-spacing:.045em;text-transform:uppercase;color:#64748b;margin:13px 0 7px}
+#jgProBody .jg52-grid{gap:8px;margin-bottom:8px}
+#jgProBody .jg52-grid button,#jgProBody .jgrow button,#jgProBody .jgtoolsToggle{border:1px solid #e2e8f0!important;border-radius:12px!important;min-height:38px;background:#f1f5f9!important;color:#0f172a!important;font-size:11px!important;font-weight:700!important;transition:background .15s ease,transform .15s ease}
+#jgProBody button:active{transform:scale(.98)}
+#jgProBody .jgrow{display:flex;flex-wrap:wrap;gap:7px;margin:8px 0}
+#jgProBody .jgrow button{flex:1 1 95px;padding:9px 7px!important}
+#jgProBody .jgmuted{font-size:10px;line-height:1.5;color:#64748b}
+#jgProPanel:not(.jgfolded){max-height:min(60dvh,500px)!important;overflow-y:auto!important;scrollbar-width:thin}
+#jgProPanel.jgfolded{max-width:160px!important}
+#jg52Safety{max-width:calc(100vw - 24px)}
+@media(max-width:767px){
+ #jgProPanel{bottom:95px!important;left:12px!important}
+ #jgProPanel:not(.jgfolded){width:min(350px,calc(100vw - 24px))!important}
+ body.driving-mode #jgProPanel{bottom:122px!important}
+ #searchPanelWrap{max-height:78dvh!important;overflow-y:auto;scrollbar-width:none}
+}
+body.dark #jgProPanel{background:rgba(15,23,42,.96)!important;border-color:#334155}
+body.dark #jgProPanel>button{background:linear-gradient(135deg,#1e3a8a,#1e40af)!important;color:#fff!important}
+body.dark #jgProBody .jg52-grid button,body.dark #jgProBody .jgrow button,body.dark #jgProBody .jgtoolsToggle{background:#1e293b!important;color:#f8fafc!important;border-color:#334155!important}
 </style>
 </head>
 <body class="bg-slate-900 select-none relative">
@@ -254,9 +279,9 @@ body.driving-mode #jgProPanel:not(.jgfolded){bottom:116px!important;max-height:5
     <div class="font-bold text-sm mb-2">🗺️ Map Style</div>
     <div class="grid grid-cols-2 gap-2">
       <button data-map-style="standard" onclick="setMapStyle48('standard')" class="mapstyle-btn bg-slate-100 dark:bg-slate-700 rounded-xl p-2 text-xs font-bold">🗺️ Standard</button>
-      <button data-map-style="smart" onclick="setMapStyle48('smart')" class="mapstyle-btn bg-slate-100 dark:bg-slate-700 rounded-xl p-2 text-xs font-bold">🚙 Smart</button>
-      <button data-map-style="satellite" onclick="setMapStyle48('satellite')" class="mapstyle-btn bg-slate-100 dark:bg-slate-700 rounded-xl p-2 text-xs font-bold">🛰️ Satellite</button>
-      <button data-map-style="night" onclick="setMapStyle48('night')" class="mapstyle-btn bg-slate-100 dark:bg-slate-700 rounded-xl p-2 text-xs font-bold">🌙 Night</button>
+      <button data-map-style="smart" onclick="setMapStyle48('smart')" class="mapstyle-btn bg-slate-100 dark:bg-slate-700 rounded-xl p-2 text-xs font-bold">🚙 Pintar</button>
+      <button data-map-style="satellite" onclick="setMapStyle48('satellite')" class="mapstyle-btn bg-slate-100 dark:bg-slate-700 rounded-xl p-2 text-xs font-bold">🛰️ Satelit</button>
+      <button data-map-style="night" onclick="setMapStyle48('night')" class="mapstyle-btn bg-slate-100 dark:bg-slate-700 rounded-xl p-2 text-xs font-bold">🌙 Malam</button>
     </div>
     <div class="border-t border-slate-200 dark:border-slate-700 mt-3 pt-2">
       <label class="block text-xs font-bold mb-1" for="mapView48">Map View</label>
@@ -273,28 +298,28 @@ body.driving-mode #jgProPanel:not(.jgfolded){bottom:116px!important;max-height:5
 <div id="jgProPanel" class="jgfolded">
  <button onclick="jgTogglePro()" style="width:100%;text-align:left;background:#dbeafe"><i class="fa-solid fa-sliders"></i> <span id="jgUnifiedLabel">Kawalan</span> <span style="float:right">▾</span></button>
  <div id="jgProBody">
- <div class="jg52-section-title">🗺️ Peta / Map</div>
+ <div class="jg52-section-title">🗺️ Peta</div>
  <div class="jg52-grid">
   <button onclick="setMapStyle48('standard')">🗺️ Standard</button>
-  <button onclick="setMapStyle48('smart')">🚙 Smart</button>
-  <button onclick="setMapStyle48('satellite')">🛰️ Satellite</button>
-  <button onclick="setMapStyle48('night')">🌙 Night</button>
+  <button onclick="setMapStyle48('smart')">🚙 Pintar</button>
+  <button onclick="setMapStyle48('satellite')">🛰️ Satelit</button>
+  <button onclick="setMapStyle48('night')">🌙 Malam</button>
  </div>
- <div class="jg52-grid"><button onclick="setMapView48('north')">⬆️ North Up</button><button onclick="setMapView48('follow')">📍 Follow GPS</button></div>
- <div class="jg52-section-title">🚘 Perjalanan / Journey</div>
- <button onclick="document.getElementById('smartRoute48').classList.toggle('hidden')" class="jgtoolsToggle">🛣️ Route Tools / Tetapan Laluan ▾</button>
+ <div class="jg52-grid"><button onclick="setMapView48('north')">⬆️ Utara Atas</button><button onclick="setMapView48('follow')">📍 Ikut GPS</button></div>
+ <div class="jg52-section-title">🚘 Perjalanan</div>
+ <button onclick="document.getElementById('smartRoute48').classList.toggle('hidden')" class="jgtoolsToggle">🛣️ Tetapan Laluan ▾</button>
 <div id="smartRoute48" class="hidden rounded-xl p-3 bg-blue-50 dark:bg-slate-800 text-xs space-y-2 border border-blue-200 dark:border-blue-900">
-<b class="text-blue-800 dark:text-blue-200">🛣️ Route Tools / Tetapan Laluan</b>
+<b class="text-blue-800 dark:text-blue-200">🛣️ Tetapan Laluan</b>
 <div class="flex gap-3 flex-wrap text-slate-700 dark:text-white">
 <label><input id="avoidToll47" type="checkbox" onchange="settings47()"> Elak tol*</label>
 <label><input id="avoidHighway47" type="checkbox" onchange="settings47()"> Elak highway*</label>
 </div><p class="text-[10px] text-amber-700 dark:text-amber-300">* Belum disokong OSRM awam; tidak mengubah laluan. Tol sebenar belum dapat disahkan.</p>
 </div>
 
- <div class="jgrow"><button onclick="jgToggle3D()" id="jg3dBtn">🧭 3D View</button><button onclick="jgTollCheck()">🛣️ Toll status</button><button onclick="jgWeatherAlerts()">🌦 Weather & flood</button></div>
- <div class="jgrow"><button onclick="jgShowHistory()">🕘 Trip history</button><button onclick="showSavedDestinations()">⭐ Saved places</button><button onclick="alongRoute47()">⛽ Route facilities</button></div>
- <div class="jgrow"><button onclick="jgRefreshReports()">🔄 Community reports</button><button onclick="jgDownloadTrip()">📄 Export trip</button></div>
- <div class="jgrow"><label>Voice rate <select id="jgVoiceRate" onchange="jgStoreVoice()"><option value="0.85">Slow</option><option value="1" selected>Normal</option><option value="1.15">Fast</option></select></label></div>
+ <div class="jgrow"><button onclick="jgToggle3D()" id="jg3dBtn">🧭 3D View</button><button onclick="jgTollCheck()">🛣️ Maklumat Tol</button><button onclick="jgWeatherAlerts()">🌦 Cuaca & Banjir</button></div>
+ <div class="jgrow"><button onclick="jgShowHistory()">🕘 Sejarah Perjalanan</button><button onclick="showSavedDestinations()">⭐ Tempat Tersimpan</button><button onclick="alongRoute47()">⛽ Kemudahan Laluan</button></div>
+ <div class="jgrow"><button onclick="jgRefreshReports()">🔄 Laporan Komuniti</button><button onclick="jgDownloadTrip()">📄 Eksport Perjalanan</button></div>
+ <div class="jgrow"><label>Kelajuan Suara <select id="jgVoiceRate" onchange="jgStoreVoice()"><option value="0.85">Perlahan</option><option value="1" selected>Normal</option><option value="1.15">Laju</option></select></label></div>
  <div class="jgmuted" id="jgProStatus">Route toll rates, speed limits, flood alerts and true offline routing need verified external datasets. Community sync needs backend setup.</div>
  <div id="jgTripHistory" style="max-height:140px;overflow:auto"></div>
  </div>
@@ -594,6 +619,55 @@ body.driving-mode #jgProPanel:not(.jgfolded){bottom:116px!important;max-height:5
 
     <script>
         const TRANSLATIONS = {
+          "Sila klik mana-mana lokasi di atas peta...":"Tap anywhere on the map...",
+          "Had laju: N/A":"Speed limit: N/A",
+          "★ Simpan Destinasi":"★ Save Destination",
+          "⌚ Tersimpan":"⌚ Saved",
+          "↗ Kongsi":"↗ Share",
+          "Pantas:":"Quick:",
+          "🧭 Laluan Alternatif":"🧭 Alternative Routes",
+          "Caj tol dan status tol belum disahkan.":"Toll charges and toll status are unverified.",
+          "Peta / Map":"Map",
+          "Kelajuan Suara":"Voice Speed",
+          "Pilih destinasi dahulu.":"Choose a destination first.",
+          "Tiada lokasi untuk ditukar.":"No locations to swap.",
+          "Jalan sesak / perlahan":"Slow or congested traffic",
+          "Maklumat laluan tidak tersedia.":"Route information is unavailable.",
+          "Paparan peta tidak tersedia.":"Map view is unavailable.",
+          "Navigasi GPS & Komuniti":"GPS Navigation & Community",
+          "GPS menunggu…":"Waiting for GPS…",
+          "Kawalan":"Controls",
+          "Kawalan":"Controls",
+          "🗺️ Peta":"🗺️ Map",
+          "🚘 Perjalanan":"🚘 Journey",
+          "🛣️ Tetapan Laluan ▾":"🛣️ Route Settings ▾",
+          "🛣️ Tetapan Laluan":"🛣️ Route Settings",
+          "Elak tol*":"Avoid tolls*",
+          "Elak highway*":"Avoid highways*",
+          "* Belum disokong OSRM awam; tidak mengubah laluan. Tol sebenar belum dapat disahkan.":"* Public OSRM does not support these options. Routes are unchanged; toll charges are unverified.",
+          "🧭 3D View":"🧭 3D View",
+          "🛣️ Maklumat Tol":"🛣️ Toll Information",
+          "🌦 Cuaca & Banjir":"🌦 Weather & Flood",
+          "🕘 Sejarah Perjalanan":"🕘 Trip History",
+          "⭐ Tempat Tersimpan":"⭐ Saved Places",
+          "⛽ Kemudahan Laluan":"⛽ Route Facilities",
+          "🔄 Laporan Komuniti":"🔄 Community Reports",
+          "📄 Eksport Perjalanan":"📄 Export Trip",
+          "Kelajuan Suara":"Voice Speed",
+          "Perlahan":"Slow",
+          "Normal":"Normal",
+          "Laju":"Fast",
+          "🗺️ Standard":"🗺️ Standard",
+          "🚙 Pintar":"🚙 Smart",
+          "🛰️ Satelit":"🛰️ Satellite",
+          "🌙 Malam":"🌙 Night",
+          "⬆️ Utara Atas":"⬆️ North Up",
+          "📍 Ikut GPS":"📍 Follow GPS",
+          "🗺️ Map Style":"🗺️ Map Style",
+          "True 3D / heading rotation needs a vector map engine. GPS follow works during navigation.":"Real 3D and heading rotation require a vector map engine. GPS follow works during navigation.",
+          "Route toll rates, speed limits, flood alerts and true offline routing need verified external datasets. Community sync needs backend setup.":"Toll rates, speed limits, flood alerts and offline routing require verified data. Community sync needs backend setup.",
+          "Perspective map · 3D buildings require compatible vector data":"Perspective map · 3D buildings require compatible vector data",
+          "⬇ Install App":"⬇ Install App",
           'Navigasi GPS & Komuniti':'GPS Navigation & Community',
           'Stesen Minyak':'Petrol Stations','Masjid / Surau':'Mosques / Prayer Rooms',
           'R&R / Makan':'Rest Stops / Food','EV Charger':'EV Chargers','Padam POI':'Clear POIs',
@@ -605,7 +679,7 @@ body.driving-mode #jgProPanel:not(.jgfolded){bottom:116px!important;max-height:5
           'Lihat Butiran':'View Details','Papar Peta':'Show Map',
           'Henti':'Stop','Lapor Trafik':'Report Traffic',
           'Laporan Komuniti':'Community Reports','Disimpan secara automatik di peranti anda':'Saved locally on your device',
-          'Kesesakan Trafik':'Traffic Jam','Jalan sesak / perlahan':'Slow or congested traffic',
+          'Kesesakan Trafik':'Traffic Jam','Jalan sesak / perlahan':'Perlahan or congested traffic',
           'Polis / Roadblock':'Police / Roadblock','Rondaan atau SJR':'Patrol or checkpoint',
           'Kemalangan':'Accident','Kenderaan berlanggar':'Vehicle collision',
           'Bahaya di Jalan':'Road Hazard','Lubang / banjir / objek':'Pothole / flood / obstruction',
@@ -655,6 +729,8 @@ body.driving-mode #jgProPanel:not(.jgfolded){bottom:116px!important;max-height:5
             const original=el.getAttribute('data-jg-title');el.title=tr(original);
           });
           updateNavButtonUI();
+          const speedLabel=document.querySelector('#speed47 .text-\\[9px\\]');
+          if(speedLabel)speedLabel.textContent=appLanguage==='en'?'Speed limit: N/A':'Had laju: N/A';
           if(navigationActive){
             document.getElementById('drivingPanelsBtn').innerHTML=drivingPanelsOpen?'<i class="fa-solid fa-map"></i>':'<i class="fa-solid fa-list"></i>';
           }
@@ -1431,6 +1507,7 @@ function jg52TrackOffRoute(pos,progress){
             return String(v ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
         }
         function showToast(message, type = 'info') {
+            message=tr(message);
             const container = document.getElementById('toastContainer');
             const toast = document.createElement('div');
             
