@@ -42,3 +42,20 @@ This build upgrades the existing V5.4 app without replacing its GPS, routing, la
 3. Search and add one stop, calculate route through that stop.
 4. Check Pit Stop markers, weather, and offline save/view while online; switch offline and view saved directions.
 5. Enable navigation with GPS, try Driving Display, check return to normal panels; test voice command when parked.
+
+## V5.6 Smart Road Safety (beta)
+- Adds an **Road Alerts** button to the Journey tab, with bilingual on/off controls for map warnings and voice announcements (voice off by default).
+- Alerts are based on **unverified user reports** (existing local reports or reports loaded through configured community API), for accident, closure, flooding, road damage, obstruction, hazards and congestion. Reports about police/checkpoints are **not used** for proximity alerts.
+- When GPS navigation is active and accurate to 75m or better, computes nearest point along OSRM route for GPS and reports. Warns if report is within approximately 110m of route and up to 1.6km ahead. This is geometric proximity only; it does not verify lane, road direction, report validity or actual closure.
+- Dismiss a particular warning for this session; voice prompts are rate limited to avoid repetitive distractions.
+- Existing traffic report creation, map markers, route UI and backend schema remain unchanged.
+- This does **not** detect roadblocks/checkpoints, automatically detect accidents, provide verified official road closures, or automatically reroute around hazards. Verified official closure integration requires a licensed, maintained data feed and backend.
+- For cross-user report sync, set `communityApi:'/api/reports'` in `config.js`, configure Supabase environment secrets on Vercel and deploy the SQL schema. The existing backend has no user verification or abuse controls and is **not production-ready**.
+- Test with a stationary phone and sample community reports before relying on it; always follow actual signs and official directions.
+
+### V5.6 test checklist
+1. Open Journey > Road Alerts; toggle warnings and voice in BM and EN.
+2. Create a road-hazard report on the map, calculate a route through it and start GPS navigation while stationary to see the warning if the report is ahead.
+3. Confirm police/checkpoint reports never generate route proximity warnings.
+4. Confirm old routing, saved places, 3D map and PWA still load.
+5. Verify that reports and weather aren't presented as official or verified.

@@ -933,6 +933,7 @@ async function jgToggle3D(){
  }catch(e){document.getElementById('jg3dMap').classList.remove('jgshown');jgStatus('3D unavailable: '+e.message);}finally{jg52Loading3D=false;}
 }
 function jgGPSAdvanced(pos){
+ if(window.jg56GpsUpdate)window.jg56GpsUpdate(pos);
  if(navigationActive){
   if(!jgTripStarted)jgTripStarted=Date.now();
   if(Date.now()-jgLastGpsLog>5000&&pos.coords.accuracy<100){jgTripPoints.push([+pos.coords.longitude.toFixed(5),+pos.coords.latitude.toFixed(5)]);jgLastGpsLog=Date.now();}
@@ -2306,6 +2307,7 @@ function jg52TrackOffRoute(pos,progress){
             });
 
             const marker = L.marker([lat, lng], { icon: reportIcon }).addTo(communityMarkersGroup);
+            if (window.jg56CollectReport) window.jg56CollectReport({lat,lng,type,note:noteText,time:timeStr});
             
             marker.bindPopup(`
                 <div class="min-w-[190px]">
@@ -2321,5 +2323,6 @@ function jg52TrackOffRoute(pos,progress){
             `);
         }
     </script>
-<script src="./v55.js" defer></script></body>
+<script src="./v55.js" defer></script>
+<script src="./v56.js" defer></script></body>
 </html>
