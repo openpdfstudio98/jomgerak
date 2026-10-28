@@ -107,3 +107,9 @@ This build upgrades the existing V5.4 app without replacing its GPS, routing, la
 - Mapbox remains optional and requires a public domain-restricted token in config.js; MapTiler vector 3D likewise needs a key.
 - OSM public tile servers have usage restrictions and are not a free unlimited production CDN. For a commercial app use a paid/hosted tile provider with appropriate license.
 - Clear old PWA cache / reload after deployment if stale CARTO tiles persist.
+
+## V6.3.2 Saved Places Fix
+- Saved Destinations now opens in a separate modal rather than a dropdown that gets immediately hidden by outside-click logic.
+- Choose saved location, delete saved location, empty state, backdrop close.
+- Uses existing localStorage key `jg_saved_v42` so existing saved places are retained.
+- Bumped service worker cache version.
