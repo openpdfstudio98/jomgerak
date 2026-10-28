@@ -295,6 +295,16 @@ body.jg65-driving #jg3dMap{height:100dvh}
 .jg652voice p{font-size:11px;color:#64748b;width:100%;line-height:1.5}
 #jg63Host,#jg64Mount{display:none!important}
 .jg52-grid button i,.jg55tabs button i{margin-right:5px}
+</style><style>
+.jg653-toll{margin-top:10px;border-top:1px solid #475569;padding:10px 0 2px;color:#e2e8f0;font-size:12px}
+.jg653-toll-row{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:7px}
+.jg653-toll-row button{background:#1e40af;color:white;border-radius:9px;padding:7px 11px;font-weight:700}
+#jg653TollEditor{padding:9px;background:#0f172a;border-radius:9px;margin-bottom:8px}
+#jg653TollEditor[hidden]{display:none}#jg653TollEditor label{display:block;margin-bottom:5px}
+#jg653TollInput{background:white;color:#0f172a;border-radius:8px;padding:9px;width:100%;max-width:200px}
+#jg653TollEditor small{display:block;color:#cbd5e1;margin-top:5px;line-height:1.4}
+#jg653TripTotal{color:#86efac}
+.jg653-icon{display:inline-block;margin-right:5px;min-width:1em;text-align:center}
 </style></head>
 <body class="bg-slate-900 select-none relative">
 
@@ -585,6 +595,11 @@ body.jg65-driving #jg3dMap{height:100dvh}
                         <button onclick="setFuelType('EV')" id="fuelBtn-EV" class="fuel-type-btn px-2 py-1 rounded-md text-slate-300 hover:text-white transition">⚡ EV</button>
                     </div>
                 </div>
+                <div id="jg653Toll" class="jg653-toll" aria-live="polite">
+                  <div class="jg653-toll-row"><span><i class="fa-solid fa-road"></i> <b id="jg653TollTitle">Semakan Tol Automatik</b></span><button type="button" id="jg654Retry" onclick="jg654CheckToll()"><i class="fa-solid fa-rotate"></i> Semak</button></div>
+                  <div class="jg653-toll-row"><span id="jg653TollAmount">Tol: menunggu laluan</span></div>
+                  <small id="jg654TollNote">Kos petrol dan tol dipaparkan berasingan. Harga tol memerlukan data kadar plaza yang disahkan.</small>
+                </div>
             </div>
 
 <div id="routeChoices47" class="hidden px-3 py-2 bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-white text-xs"><b>🧭 Laluan Alternatif</b><div id="routeButtons47" class="flex flex-wrap gap-2 mt-2"></div><p class="text-amber-700 dark:text-amber-300 mt-1">Caj tol dan status tol belum disahkan.</p></div>
@@ -870,7 +885,7 @@ body.jg65-driving #jg3dMap{height:100dvh}
           if(routePolyline)map.removeLayer(routePolyline);
           routePolyline=L.geoJSON(route.geometry,{style:{color:'#2563eb',weight:6,opacity:.9,lineCap:'round',lineJoin:'round',className:'glowing-route'}}).addTo(map);
           map.fitBounds(routePolyline.getBounds(),{padding:[60,60]});
-          renderRouteSummary(route);updateFuelCalculation();renderChoices47();
+          renderRouteSummary(route);updateFuelCalculation();renderChoices47();window.jg654CheckToll?.();
         }
         async function weather47(){
           const p=destCoords||lastGps||originCoords;
@@ -1085,7 +1100,7 @@ async function jg52Reroute(pos){
    routes47=data.routes.slice(0,3);selected47=0;currentRouteData=routes47[0];lastSpokenStep=-1;
    if(routePolyline)map.removeLayer(routePolyline);
    routePolyline=L.geoJSON(currentRouteData.geometry,{style:{color:'#2563eb',weight:6,opacity:.9}}).addTo(map);
-   jgSync3DRoute();renderRouteSummary(currentRouteData);updateFuelCalculation();renderChoices47();
+   jgSync3DRoute();renderRouteSummary(currentRouteData);updateFuelCalculation();renderChoices47();window.jg654CheckToll?.();
    jg52Safety(appLanguage==='en'?'Route recalculated.':'Laluan dikira semula.');
  }catch(e){originCoords=oldOrigin;jg52Safety(appLanguage==='en'?'Rerouting unavailable. Follow road signs.':'Gagal kira semula. Ikut papan tanda jalan.',true);}
  finally{jg52Rerouting=false;}
@@ -2038,6 +2053,7 @@ function jg52TrackOffRoute(pos,progress){
                 map.fitBounds(routePolyline.getBounds(), { padding: [60, 60] });
 
                 renderRouteSummary(route);
+                window.jg654CheckToll?.();
                 updateFuelCalculation();
                 renderChoices47();
                 jgSync3DRoute();
@@ -2240,6 +2256,7 @@ function jg52TrackOffRoute(pos,progress){
             isSpeakingNavigation = false;
             updateNavButtonUI();
             currentRouteData = null;
+            window.jg654ResetToll?.();
             routes47=[];
             document.getElementById('routeChoices47').classList.add('hidden');
 
@@ -2446,5 +2463,5 @@ function jg52TrackOffRoute(pos,progress){
   <button id="jg65View" type="button" onclick="jg65ToggleView()">◩ 3D</button>
  </div>
 </div>
-<script src="./v65.js" defer></script><script src="./v652.js" defer></script><script src="./v63.js" defer></script><script src="./v64.js" defer></script></body>
+<script src="./v65.js" defer></script><script src="./v652.js" defer></script><script src="./v653.js" defer></script><script src="./v654.js" defer></script><script src="./v63.js" defer></script><script src="./v64.js" defer></script></body>
 </html>
