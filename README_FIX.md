@@ -1,1 +1,0 @@
-JomGerak V6.4.1: API Connections is now mounted in a dedicated #jg64Mount sibling outside #jg60Map. The V6.0 redraw overwrites #jg60Map.innerHTML; this change preserves the API menu. Verify Controls > Map, API endpoint, and deployed API flags. No keys included.
