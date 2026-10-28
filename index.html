@@ -15,15 +15,14 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="./config.js"></script>
     <script>
-        if(window.tailwind){tailwind.config = {
+        tailwind.config = {
             darkMode: 'class',
-        }}
+        }
     </script>
     
     <!-- Leaflet CSS & JS -->
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css" />
-    <script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js"></script>
-    <script>if(!window.L){document.write('<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"><\/script>');}</script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.css" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.js" onerror="document.write('\x3Cscript src=https://unpkg.com/leaflet@1.9.4/dist/leaflet.js\x3E\x3C/script\x3E')"></script>
     
     <!-- Font Awesome Icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
@@ -1275,13 +1274,19 @@ function jg52TrackOffRoute(pos,progress){
         window.onload = function () {
             initTheme();
             initLanguage();
-            initMap();
+            try {
+                if (typeof window.L === 'undefined') throw new Error('Leaflet library unavailable (CDN/network)');
+                initMap();
+            } catch (error) {
+                console.error('[JomGerak] Map startup failed:', error);
+                window.dispatchEvent(new CustomEvent('jg:startup-error', {detail:{name:'map',message:String(error?.message||error)}}));
+            }
             jgLoadVoice();
             jgOfflineStatus();
             if(JG_CFG.communityApi){jgRefreshReports();jgReportTimer=setInterval(()=>{if(!document.hidden)jgRefreshReports();},60000);}
             setupSearchListeners();
             loadCommunityReports();
-            if('serviceWorker' in navigator && location.protocol==='https:')navigator.serviceWorker.register('./sw.js').catch(()=>{});
+            if('serviceWorker' in navigator && location.protocol==='https:')navigator.serviceWorker.register('./sw.js', {updateViaCache:'none'}).then(r=>r.update().catch(()=>{})).catch(e=>console.warn('Service worker:',e));
         };
 
         // V4.8: Tile providers with required attribution. Smart is a visual style,
