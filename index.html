@@ -1271,23 +1271,62 @@ function jg52TrackOffRoute(pos,progress){
         // ==========================================
         // 2. INISIALISASI PETA & TEMA
         // ==========================================
-        window.onload = function () {
-            initTheme();
-            initLanguage();
-            try {
-                if (typeof window.L === 'undefined') throw new Error('Leaflet library unavailable (CDN/network)');
-                initMap();
-            } catch (error) {
-                console.error('[JomGerak] Map startup failed:', error);
-                window.dispatchEvent(new CustomEvent('jg:startup-error', {detail:{name:'map',message:String(error?.message||error)}}));
+        // V6.6.8: start controls independently of map/CDN readiness.
+        // A slow or unavailable map must not freeze the entire interface.
+        (function(){
+            let started=false;
+            function safe(name, fn){
+                try { fn(); }
+                catch(err){
+                    console.error('[JomGerak] '+name+' failed:',err);
+                    window.dispatchEvent(new CustomEvent('jg:startup-error',
+                      {detail:{name:name,message:String(err && err.message || err)}}));
+                }
             }
-            jgLoadVoice();
-            jgOfflineStatus();
-            if(JG_CFG.communityApi){jgRefreshReports();jgReportTimer=setInterval(()=>{if(!document.hidden)jgRefreshReports();},60000);}
-            setupSearchListeners();
-            loadCommunityReports();
-            if('serviceWorker' in navigator && location.protocol==='https:')navigator.serviceWorker.register('./sw.js', {updateViaCache:'none'}).then(r=>r.update().catch(()=>{})).catch(e=>console.warn('Service worker:',e));
-        };
+            function loadLeafletFallback(){
+                return new Promise(resolve=>{
+                    if(window.L){resolve(true);return;}
+                    const script=document.createElement('script');
+                    script.src='https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';
+                    script.onload=()=>resolve(!!window.L);
+                    script.onerror=()=>resolve(false);
+                    document.head.appendChild(script);
+                    setTimeout(()=>resolve(!!window.L),6500);
+                });
+            }
+            async function startMap(){
+                if(!window.L) await loadLeafletFallback();
+                if(!window.L){
+                    safe('map',()=>{throw new Error('Leaflet unavailable: check network or CDN');});
+                    return;
+                }
+                safe('map',()=>initMap());
+            }
+            function boot(){
+                if(started)return;started=true;
+                safe('theme',()=>initTheme());
+                safe('language',()=>initLanguage());
+                safe('voice',()=>jgLoadVoice());
+                safe('offline',()=>jgOfflineStatus());
+                safe('search',()=>setupSearchListeners());
+                safe('community',()=>{
+                    if(JG_CFG.communityApi){
+                        jgRefreshReports();
+                        jgReportTimer=setInterval(()=>{if(!document.hidden)jgRefreshReports();},60000);
+                    }
+                    loadCommunityReports();
+                });
+                safe('serviceWorker',()=>{
+                    if('serviceWorker' in navigator && location.protocol==='https:')
+                        navigator.serviceWorker.register('./sw.js',{updateViaCache:'none'})
+                        .then(r=>r.update().catch(()=>{})).catch(e=>console.warn('Service worker:',e));
+                });
+                // Do not await network resources before enabling the interface.
+                startMap().catch(err=>console.error('[JomGerak] map:',err));
+            }
+            if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',boot,{once:true});
+            else boot();
+        })();
 
         // V4.8: Tile providers with required attribution. Smart is a visual style,
         // not Waze data or a copy of Google's map.
