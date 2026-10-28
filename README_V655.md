@@ -1,1 +1,0 @@
-JomGerak V6.5.5: Fix BM/EN language switching for the automatic toll panel and alternative routes. This update does not add toll prices. Upload the full extracted folder to the GitHub project root, then redeploy on Vercel and clear cached PWA files. Static syntax checks only.
