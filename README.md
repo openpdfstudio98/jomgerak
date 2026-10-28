@@ -70,3 +70,30 @@ This build upgrades the existing V5.4 app without replacing its GPS, routing, la
 - Not included: reliable real-time traffic-light countdown, native Android Auto/CarPlay, smartwatch integrations, state-accent TTS, running tracker. These need separate data sources, native SDKs or additional implementation. No dummy buttons for these.
 - Production caution: public OSRM, Valhalla, Nominatim and map tile services can rate-limit or reject traffic; obtain a production routing provider. Browser speech may not work on every Android device.
 - Test on stationary Android with Chrome and HTTPS, and verify BM/EN, all transport options, voice search, device voices, prayer results, 3D view, V5.6 road alerts and install/update of PWA.
+
+## V6.0.1 – Map Refresh and layout improvements
+- New **Navigator** default style uses CARTO Voyager raster tiles, with attribution. This is NOT Mapbox and does not use proprietary Google/Waze/Mapbox tiles. Existing Standard, Smart, Night and Satellite styles remain.
+- 3D perspective map now follows the selected raster basemap. With an optional **domain-restricted MapTiler public browser key** in `config.js`, Navigator 3D uses MapTiler Streets vector style; other styles use raster perspective. True 3D buildings are not guaranteed.
+- Fixed dark theme double-inversion of tiles, improved compact map controls and capped menu height on mobile.
+- Public tile servers have usage policies and rate limits; use a commercial or self-hosted provider for production-scale navigation.
+- To obtain Mapbox visual styling specifically, a Mapbox token and a separate licensed Mapbox integration would be required; not included in this package.
+- Tested: JavaScript syntax, required files, ZIP CRC. Not tested: actual mobile/browser rendering or third-party tile availability.
+
+## V6.3 All Modes / Mapbox optional (2026-10-28)
+- Preserves all V6.0.1 Map Refresh files and existing controls.
+- **Unified six-mode shortcuts:** car, motorcycle, walking, rail, running, prayer. Car uses OSRM; motorcycle route remains an unverified car-route approximation; walking uses public Valhalla; rail opens official KTM resources; prayer uses coordinate-based Aladhan estimates plus official JAKIM link.
+- **JomGerak Run:** opt-in live GPS distance, elapsed time, pace, local activity history (15 sessions) and GPX export. Filters inaccurate GPS points and implausible jumps. Requires foreground browser, HTTPS, GPS permission. This is not a native background tracker or Strava sync.
+- **Traffic signal map layer:** opt-in Overpass query for `highway=traffic_signals` nodes within 2.5 km of current map center; shows locations only, never invents phase or countdown. Overpass is public, rate limited and may be unavailable.
+- **Mapbox Streets/Satellite (optional):** enter a public domain-restricted `mapboxPublicToken` in `config.js`. Buttons in Map tab; default Navigator/CARTO, Smart/CARTO, Standard/OSM, Satellite/Esri, Night/CARTO remain usable without token. Mapbox usage may incur provider charges; honor attribution and terms.
+- **Device integrations:** PWA installation help. No claim of Android Auto, CarPlay or smartwatch connectivity. Native SDKs and platform approvals needed.
+- **Voice and dialects:** device TTS voices and browser speech recognition from V6.0; regional dialect synthesis is NOT implemented. Male/female voice choice is device-dependent.
+- **3D:** existing MapLibre tilted perspective; real vector buildings require suitable MapTiler key/data. Live traffic-light countdown, live traffic and official JAKIM zone timings are NOT provided.
+- App shell service-worker cache updated to V6.3. The package is GitHub/Vercel-ready **web/PWA source**, not a compiled Android APK.
+
+### V6.3 testing checklist
+1. Commit all files including `v63.js`, `sw.js`, `config.js`; reload online and confirm latest PWA.
+2. Open Controls > Journey > All Modes; test BM/EN, car/motor/walk/train/prayer.
+3. In Run, start with GPS permission while stationary or walking safely; stop, review local history, export GPX; verify GPS denied case.
+4. In Map, test Navigator, Smart, Satellite, Night. Mapbox buttons require your own public token.
+5. Enable traffic signal overlay and disable again; confirm no made-up timer appears.
+6. Test microphone, TTS and 3D on your actual Android device; these are not covered by syntax checks.

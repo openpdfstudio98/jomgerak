@@ -46,9 +46,7 @@
         }
 
         /* Sleek Night Driving Dark Filter for Leaflet Map Tiles */
-        html.dark #map .leaflet-tile-pane {
-            filter: invert(100%) hue-rotate(180deg) brightness(92%) contrast(90%) saturate(110%);
-        }
+        html.dark #map .leaflet-tile-pane { filter: none; }
 
         /* Custom Scrollbar for Steps & Dropdowns */
         ::-webkit-scrollbar {
@@ -253,6 +251,14 @@ body.dark #jg55Panel input,body.dark #jg55Panel select{background:#1e293b;color:
 body.driving-mode #jg55DriveHUD{display:block}
 body.driving-mode #jg55DriveHUD button{pointer-events:auto;background:#2563eb;border-radius:10px;padding:9px;color:white}
 @media(max-width:767px){#jgProPanel:not(.jgfolded){max-height:65dvh!important}body.driving-mode #jg55DriveHUD{bottom:108px}body.driving-mode #liveNavHUD{bottom:10px!important}}
+
+/* V6.0.1 Map Refresh: map-first mobile UI */
+#jgProPanel.jgfolded{max-width:135px!important;box-shadow:0 5px 18px #0f172a28!important}
+#jgProPanel:not(.jgfolded){max-height:min(55dvh,460px)!important}
+#jgProBody .jg52-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+#jgProBody .jg52-grid button{white-space:normal;line-height:1.35}
+#jg3dBadge{font-size:10px;max-width:calc(100vw - 24px);pointer-events:none}
+@media(max-width:520px){#jgProPanel:not(.jgfolded){left:8px!important;max-width:calc(100vw - 16px)!important;width:min(355px,calc(100vw - 16px))!important}#jgProPanel.jgfolded{bottom:98px!important}}
 </style>
 </head>
 <body class="bg-slate-900 select-none relative">
@@ -307,6 +313,7 @@ body.driving-mode #jg55DriveHUD button{pointer-events:auto;background:#2563eb;bo
   <div id="mapStyles48" class="hidden mt-2 bg-white/95 dark:bg-slate-900/95 text-slate-900 dark:text-white shadow-2xl rounded-2xl p-3 w-56 border border-slate-200 dark:border-slate-700">
     <div class="font-bold text-sm mb-2">🗺️ Map Style</div>
     <div class="grid grid-cols-2 gap-2">
+      <button data-map-style="navigator" onclick="setMapStyle48('navigator')" class="mapstyle-btn bg-slate-100 dark:bg-slate-700 rounded-xl p-2 text-xs font-bold">🧭 Navigator</button>
       <button data-map-style="standard" onclick="setMapStyle48('standard')" class="mapstyle-btn bg-slate-100 dark:bg-slate-700 rounded-xl p-2 text-xs font-bold">🗺️ Standard</button>
       <button data-map-style="smart" onclick="setMapStyle48('smart')" class="mapstyle-btn bg-slate-100 dark:bg-slate-700 rounded-xl p-2 text-xs font-bold">🚙 Pintar</button>
       <button data-map-style="satellite" onclick="setMapStyle48('satellite')" class="mapstyle-btn bg-slate-100 dark:bg-slate-700 rounded-xl p-2 text-xs font-bold">🛰️ Satelit</button>
@@ -335,6 +342,9 @@ body.driving-mode #jg55DriveHUD button{pointer-events:auto;background:#2563eb;bo
  <div id="jg55MapTab"><div id="jg60Map"></div>
  <div class="jg52-section-title">🗺️ Peta</div>
  <div class="jg52-grid">
+  <button onclick="setMapStyle48('navigator')">🧭 Navigator</button>
+  <button onclick="jg63Mapbox('streets')">🗺️ Mapbox Streets*</button>
+  <button onclick="jg63Mapbox('satellite')">🛰️ Mapbox Satellite*</button>
   <button onclick="setMapStyle48('standard')">🗺️ Standard</button>
   <button onclick="setMapStyle48('smart')">🚙 Pintar</button>
   <button onclick="setMapStyle48('satellite')">🛰️ Satelit</button>
@@ -910,6 +920,21 @@ function jgSync3DRoute(){
  if(route){jg3d.addSource('jg-route',{type:'geojson',data:{type:'Feature',geometry:route,properties:{}}});jg3d.addLayer({id:'jg-route',type:'line',source:'jg-route',paint:{'line-color':'#2563eb','line-width':7,'line-opacity':0.9}});}
 }
 let jg52Loading3D=false;
+/* 6.0.1 map style adapter. Raster perspective is not real 3D buildings. */
+function jg60MapLibreStyle(){
+ const key=window.JOMGERAK_CONFIG?.maptilerKey;
+ if(key&&mapStyle48==='navigator')return 'https://api.maptiler.com/maps/streets-v2/style.json?key='+encodeURIComponent(key);
+ const cfg=mapSources48[mapStyle48]||mapSources48.navigator;
+ // MapLibre does not support Leaflet's {s} subdomain placeholder or retina {r}.
+ const url=cfg.url.replace('{s}','a').replace('{r}','');
+ return {version:8,sources:{base:{type:'raster',tiles:[url],tileSize:256,attribution:cfg.attribution,maxzoom:Math.min(19,cfg.maxZoom)}},layers:[{id:'base',type:'raster',source:'base'}]};
+}
+function jg60Refresh3DStyle(){
+ if(!jg3d)return;
+ jg3d.setStyle(jg60MapLibreStyle());
+ jg3d.once('style.load',()=>jgSync3DRoute());
+}
+
 async function jgToggle3D(){
  if(jg52Loading3D)return;
  if(jg3dActive){jg3dActive=false;document.getElementById('jg3dMap').classList.remove('jgshown');document.getElementById('jg3dBadge').style.display='none';map.invalidateSize();return;}
@@ -921,9 +946,7 @@ async function jgToggle3D(){
   const center=lastGps||map.getCenter();
   document.getElementById('jg3dMap').classList.add('jgshown');
   if(!jg3d){
-   const style=hasVector3D
-    ?'https://api.maptiler.com/maps/streets-v2/style.json?key='+encodeURIComponent(JG_CFG.maptilerKey)
-    :{version:8,sources:{osm:{type:'raster',tiles:['https://tile.openstreetmap.org/{z}/{x}/{y}.png'],tileSize:256,attribution:'© OpenStreetMap contributors',maxzoom:19}},layers:[{id:'osm',type:'raster',source:'osm'}]};
+   const style=jg60MapLibreStyle();
    jg3d=new maplibregl.Map({container:'jg3dMap',style,center:[center.lng,center.lat],zoom:16,pitch:60,bearing:0,maxPitch:75,attributionControl:true});
    jg3d.addControl(new maplibregl.NavigationControl(),'bottom-right');
    jg3d.on('load',()=>{jgSync3DRoute();jg3d.resize();});jg3d.on('error',e=>{if(e.error)jgStatus('3D tiles error: '+e.error.message);});
@@ -1131,18 +1154,19 @@ function jg52TrackOffRoute(pos,progress){
         // V4.8: Tile providers with required attribution. Smart is a visual style,
         // not Waze data or a copy of Google's map.
         let mapTiles48=null;
-        let mapStyle48='standard';
+        let mapStyle48='navigator';
         let mapView48='north';
         const mapSources48={
+          navigator:{url:'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',maxZoom:20,attribution:'&copy; OpenStreetMap contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'},
           standard:{url:'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',maxZoom:19,attribution:'&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap contributors</a>'},
           smart:{url:'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',maxZoom:20,attribution:'&copy; OpenStreetMap contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'},
           night:{url:'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',maxZoom:20,attribution:'&copy; OpenStreetMap contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'},
           satellite:{url:'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',maxZoom:19,attribution:'Tiles &copy; Esri and imagery contributors'}
         };
         function initMapStyle48(){
-          let saved='standard';
-          try{saved=localStorage.getItem('jomgerak_mapstyle48')||'standard';}catch{}
-          setMapStyle48(mapSources48[saved]?saved:'standard',true);
+          let saved='navigator';
+          try{saved=localStorage.getItem('jomgerak_mapstyle48')||'navigator';}catch{}
+          setMapStyle48(mapSources48[saved]?saved:'navigator',true);
           try{mapView48=localStorage.getItem('jomgerak_mapview48')||'north';}catch{}
           if(!['north','follow'].includes(mapView48))mapView48='north';
           document.getElementById('mapView48').value=mapView48;
@@ -1163,6 +1187,7 @@ function jg52TrackOffRoute(pos,progress){
           next.addTo(map);
           if(mapTiles48)map.removeLayer(mapTiles48);
           next.bringToBack();mapTiles48=next;mapStyle48=style;
+          if(jg3dActive&&jg3d&&typeof jg60Refresh3DStyle==='function')jg60Refresh3DStyle();
           document.querySelectorAll('[data-map-style]').forEach(b=>b.classList.toggle('active48',b.dataset.mapStyle===style));
           try{localStorage.setItem('jomgerak_mapstyle48',style);}catch{}
           if(!quiet){document.getElementById('mapStyles48').classList.add('hidden');document.getElementById('jgProPanel').style.visibility='';}
@@ -2325,5 +2350,6 @@ function jg52TrackOffRoute(pos,progress){
     </script>
 <script src="./v55.js" defer></script>
 <script src="./v56.js" defer></script>
-<script src="./v60.js" defer></script></body>
+<script src="./v60.js" defer></script>
+<script src="./v63.js" defer></script></body>
 </html>
