@@ -15,7 +15,7 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="./config.js"></script>
     <script>
-        tailwind.config = {
+        if (window.tailwind) tailwind.config = {
             darkMode: 'class',
         }
     </script>
@@ -1271,17 +1271,27 @@ function jg52TrackOffRoute(pos,progress){
         // ==========================================
         // 2. INISIALISASI PETA & TEMA
         // ==========================================
-        window.onload = function () {
-            initTheme();
-            initLanguage();
-            initMap();
-            jgLoadVoice();
-            jgOfflineStatus();
-            if(JG_CFG.communityApi){jgRefreshReports();jgReportTimer=setInterval(()=>{if(!document.hidden)jgRefreshReports();},60000);}
-            setupSearchListeners();
-            loadCommunityReports();
-            if('serviceWorker' in navigator && location.protocol==='https:')navigator.serviceWorker.register('./sw.js').catch(()=>{});
-        };
+        // V6.6.6: Map startup is independent of translations, storage and community APIs.
+        // A non-map feature must never prevent the map from initializing.
+        function jg666SafeInit(name, fn) {
+            try { fn(); } catch (error) {
+                console.error('[JomGerak startup] '+name+':', error);
+                window.dispatchEvent(new CustomEvent('jg:startup-error',{detail:{name,message:String(error?.message||error)}}));
+            }
+        }
+        window.addEventListener('load', function () {
+            jg666SafeInit('map', initMap);
+            jg666SafeInit('theme', initTheme);
+            jg666SafeInit('language', initLanguage);
+            jg666SafeInit('voice', jgLoadVoice);
+            jg666SafeInit('offline', jgOfflineStatus);
+            jg666SafeInit('community refresh', function(){
+                if(JG_CFG.communityApi){jgRefreshReports();jgReportTimer=setInterval(()=>{if(!document.hidden)jgRefreshReports();},60000);}
+            });
+            jg666SafeInit('search', setupSearchListeners);
+            jg666SafeInit('reports', loadCommunityReports);
+            if('serviceWorker' in navigator && location.protocol==='https:')navigator.serviceWorker.register('./sw.js').catch(error=>console.warn('SW:',error));
+        });
 
         // V4.8: Tile providers with required attribution. Smart is a visual style,
         // not Waze data or a copy of Google's map.
@@ -1309,7 +1319,7 @@ function jg52TrackOffRoute(pos,progress){
           setMapStyle48(mapSources48[saved]?saved:'standard',true);
           try{mapView48=localStorage.getItem('jomgerak_mapview48')||'north';}catch{}
           if(!['north','follow'].includes(mapView48))mapView48='north';
-          document.getElementById('mapView48').value=mapView48;
+          const viewSelector=document.getElementById('mapView48');if(viewSelector)viewSelector.value=mapView48;
         }
         function toggleMapStyles48(){
  const menu=document.getElementById('mapStyles48');
@@ -1358,12 +1368,14 @@ function jg52TrackOffRoute(pos,progress){
           }
         }
         function initMap() {
+            if(!window.L || typeof L.map!=='function')throw new Error('Leaflet library unavailable. Check CDN/network.');
             map = L.map('map', {
                 zoomControl: false,
                 attributionControl: true
             }).setView(KL_CENTER, 12);
 
-            initMapStyle48();
+            try{initMapStyle48();}catch(error){console.error('Map tile startup:',error);setMapStyle48('standard',true);}
+            setTimeout(()=>{try{map.invalidateSize({pan:false})}catch{}},250);
 
             stepMarkersGroup = L.layerGroup().addTo(map);
             communityMarkersGroup = L.layerGroup().addTo(map);
@@ -2541,5 +2553,5 @@ function jg52TrackOffRoute(pos,progress){
   <button id="jg65View" type="button" onclick="jg65ToggleView()">◩ 3D</button>
  </div>
 </div>
-<script src="./v656.js" defer></script><script src="./v661.js" defer></script><script src="./v662.js" defer></script><script src="./v65.js" defer></script><script src="./v652.js" defer></script><script src="./v653.js" defer></script><script src="./v654.js" defer></script><script src="./v63.js" defer></script><script src="./v64.js" defer></script><script src="./v655.js" defer></script><script src="./v663.js" defer></script><script src="./v664.js" defer></script><script src="./v665.js" defer></script></body>
+<script src="./v656.js" defer></script><script src="./v661.js" defer></script><script src="./v662.js" defer></script><script src="./v65.js" defer></script><script src="./v652.js" defer></script><script src="./v653.js" defer></script><script src="./v654.js" defer></script><script src="./v63.js" defer></script><script src="./v64.js" defer></script><script src="./v655.js" defer></script><script src="./v663.js" defer></script><script src="./v664.js" defer></script><script src="./v665.js" defer></script><script src="./v666.js" defer></script></body>
 </html>
