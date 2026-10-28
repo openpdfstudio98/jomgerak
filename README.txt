@@ -1,1 +1,0 @@
-JomGerak V4.7 BETA. Deploy all files to Vercel HTTPS. Toll avoidance and toll prices, flood warnings, traffic, backend reports, offline routing and native APK are NOT implemented. OSRM public routing alternatives, GPS speed, Open-Meteo weather and Overpass POI are beta features. Do not use as sole navigation while driving.
