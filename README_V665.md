@@ -1,1 +1,0 @@
-V6.6.5: map tile failure diagnostics and manual Retry; online/visibility recovery; fallback from stuck 3D view to 2D. Does not guarantee external tile server availability. Existing functionality retained.
