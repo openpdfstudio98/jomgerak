@@ -308,12 +308,12 @@ body.driving-mode #jg55DriveHUD button{pointer-events:auto;background:#2563eb;bo
       <button onclick="toggleDrivingPanels()" id="drivingPanelsBtn" class="bg-white/95 text-slate-800 shadow-xl rounded-xl p-3 text-sm font-bold" title="Lihat Butiran / View Details" aria-label="Lihat Butiran / View Details"><i class="fa-solid fa-list"></i></button>
     </div>
 <div id="speed47" class="hidden fixed bottom-[176px] right-3 z-[520] bg-slate-950/90 text-white px-2 py-2 rounded-xl shadow-xl text-center"><div class="text-[10px]">GPS SPEED</div><div class="text-xl font-extrabold"><span id="speedNum47">--</span> <span class="text-xs">km/j</span></div><div class="text-[9px] text-amber-300">Had laju: N/A</div></div>
-<div id="mapStyleControls" class="hidden" aria-hidden="true"><div id="mapStyleControls" class="fixed bottom-24 left-3 z-[480] pointer-events-auto">
+<div id="mapStyleControls" class="hidden fixed bottom-24 left-3 z-[480] pointer-events-auto">
   <button onclick="toggleMapStyles48()" class="bg-white/95 dark:bg-slate-900/95 dark:text-white text-slate-800 shadow-xl rounded-2xl px-4 py-3 text-xs font-extrabold border border-slate-200 dark:border-slate-700"><i class="fa-solid fa-layer-group mr-1"></i> <span id="mapStyleLabel48">Map Style</span></button>
   <div id="mapStyles48" class="hidden mt-2 bg-white/95 dark:bg-slate-900/95 text-slate-900 dark:text-white shadow-2xl rounded-2xl p-3 w-56 border border-slate-200 dark:border-slate-700">
     <div class="font-bold text-sm mb-2">🗺️ Map Style</div>
     <div class="grid grid-cols-2 gap-2">
-      <button data-map-style="navigator" onclick="setMapStyle48('navigator')" class="mapstyle-btn bg-slate-100 dark:bg-slate-700 rounded-xl p-2 text-xs font-bold">🧭 Navigator</button>
+      <button data-map-style="navigator" onclick="setMapStyle48('navigator')" class="mapstyle-btn bg-slate-100 dark:bg-slate-700 rounded-xl p-2 text-xs font-bold">🧭 Navigator (OSM)</button>
       <button data-map-style="standard" onclick="setMapStyle48('standard')" class="mapstyle-btn bg-slate-100 dark:bg-slate-700 rounded-xl p-2 text-xs font-bold">🗺️ Standard</button>
       <button data-map-style="smart" onclick="setMapStyle48('smart')" class="mapstyle-btn bg-slate-100 dark:bg-slate-700 rounded-xl p-2 text-xs font-bold">🚙 Pintar</button>
       <button data-map-style="satellite" onclick="setMapStyle48('satellite')" class="mapstyle-btn bg-slate-100 dark:bg-slate-700 rounded-xl p-2 text-xs font-bold">🛰️ Satelit</button>
@@ -342,7 +342,7 @@ body.driving-mode #jg55DriveHUD button{pointer-events:auto;background:#2563eb;bo
  <div id="jg55MapTab"><div id="jg60Map"></div>
  <div class="jg52-section-title">🗺️ Peta</div>
  <div class="jg52-grid">
-  <button onclick="setMapStyle48('navigator')">🧭 Navigator</button>
+  <button onclick="setMapStyle48('navigator')">🧭 Navigator (OSM)</button>
   <button onclick="jg63Mapbox('streets')">🗺️ Mapbox Streets*</button>
   <button onclick="jg63Mapbox('satellite')">🛰️ Mapbox Satellite*</button>
   <button onclick="setMapStyle48('standard')">🗺️ Standard</button>
@@ -927,7 +927,7 @@ function jg60MapLibreStyle(){
  const cfg=mapSources48[mapStyle48]||mapSources48.navigator;
  // MapLibre does not support Leaflet's {s} subdomain placeholder or retina {r}.
  const url=cfg.url.replace('{s}','a').replace('{r}','');
- return {version:8,sources:{base:{type:'raster',tiles:[url],tileSize:256,attribution:cfg.attribution,maxzoom:Math.min(19,cfg.maxZoom)}},layers:[{id:'base',type:'raster',source:'base'}]};
+ return {version:8,sources:{base:{type:'raster',tiles:[url],tileSize:256,attribution:cfg.attribution,maxzoom:Math.min(19,cfg.maxZoom)}},layers:[{id:'base',type:'raster',source:'base',paint:{'raster-saturation':mapStyle48==='smart'?-0.3:0,'raster-brightness-max':mapStyle48==='night'?0.7:1}}]};
 }
 function jg60Refresh3DStyle(){
  if(!jg3d)return;
@@ -1154,19 +1154,27 @@ function jg52TrackOffRoute(pos,progress){
         // V4.8: Tile providers with required attribution. Smart is a visual style,
         // not Waze data or a copy of Google's map.
         let mapTiles48=null;
-        let mapStyle48='navigator';
+        let mapStyle48='standard';
         let mapView48='north';
+        // V6.3.1: No CARTO raster endpoints: they now return API KEY REQUIRED tiles.
+        // OSM raster tiles are a low-volume fallback, subject to OSM tile usage policy.
+        const jgOSM='https://tile.openstreetmap.org/{z}/{x}/{y}.png';
+        const jgOSMAttr='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap contributors</a>';
         const mapSources48={
-          navigator:{url:'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',maxZoom:20,attribution:'&copy; OpenStreetMap contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'},
-          standard:{url:'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',maxZoom:19,attribution:'&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap contributors</a>'},
-          smart:{url:'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',maxZoom:20,attribution:'&copy; OpenStreetMap contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'},
-          night:{url:'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',maxZoom:20,attribution:'&copy; OpenStreetMap contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'},
-          satellite:{url:'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',maxZoom:19,attribution:'Tiles &copy; Esri and imagery contributors'}
+          navigator:{url:jgOSM,maxZoom:19,attribution:jgOSMAttr,filter:'none'},
+          standard:{url:jgOSM,maxZoom:19,attribution:jgOSMAttr,filter:'none'},
+          smart:{url:jgOSM,maxZoom:19,attribution:jgOSMAttr,filter:'saturate(.75) contrast(1.07)'},
+          night:{url:jgOSM,maxZoom:19,attribution:jgOSMAttr,filter:'invert(.88) hue-rotate(180deg) brightness(.78) contrast(1.1)'},
+          satellite:{url:'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',maxZoom:19,attribution:'Tiles &copy; Esri and imagery contributors',filter:'none'}
         };
+        let jgTileFallbackActive=false;
+        function jgApplyTileFilter48(){
+          if(mapTiles48?.getContainer)mapTiles48.getContainer().style.filter=mapSources48[mapStyle48]?.filter||'none';
+        }
         function initMapStyle48(){
-          let saved='navigator';
-          try{saved=localStorage.getItem('jomgerak_mapstyle48')||'navigator';}catch{}
-          setMapStyle48(mapSources48[saved]?saved:'navigator',true);
+          let saved='standard';
+          try{saved=localStorage.getItem('jomgerak_mapstyle48')||'standard';}catch{}
+          setMapStyle48(mapSources48[saved]?saved:'standard',true);
           try{mapView48=localStorage.getItem('jomgerak_mapview48')||'north';}catch{}
           if(!['north','follow'].includes(mapView48))mapView48='north';
           document.getElementById('mapView48').value=mapView48;
@@ -1183,10 +1191,22 @@ function jg52TrackOffRoute(pos,progress){
           if(!mapSources48[style]||!map)return;
           const config=mapSources48[style];
           const next=L.tileLayer(config.url,{maxZoom:config.maxZoom,attribution:config.attribution});
-          next.on('tileerror',()=>{if(!next._jgWarned){next._jgWarned=true;showToast('Some map tiles failed to load. Check internet or change map style.','warning');}});
+          let failures=0;
+          next.on('tileerror',()=>{
+            failures++;
+            // Prevent persistent white/API-key tile screen when a provider rejects tiles.
+            if(failures>=2 && mapTiles48===next && style!=='standard' && !jgTileFallbackActive){
+              jgTileFallbackActive=true;
+              setMapStyle48('standard',true);
+              jgTileFallbackActive=false;
+              showToast('Map service unavailable. Switched to OpenStreetMap.','warning');
+            } else if(failures===2 && style==='standard'){
+              showToast('Map tiles unavailable. Check your internet connection.','warning');
+            }
+          });
           next.addTo(map);
           if(mapTiles48)map.removeLayer(mapTiles48);
-          next.bringToBack();mapTiles48=next;mapStyle48=style;
+          next.bringToBack();mapTiles48=next;mapStyle48=style; jgApplyTileFilter48();
           if(jg3dActive&&jg3d&&typeof jg60Refresh3DStyle==='function')jg60Refresh3DStyle();
           document.querySelectorAll('[data-map-style]').forEach(b=>b.classList.toggle('active48',b.dataset.mapStyle===style));
           try{localStorage.setItem('jomgerak_mapstyle48',style);}catch{}

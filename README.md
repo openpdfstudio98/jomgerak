@@ -97,3 +97,13 @@ This build upgrades the existing V5.4 app without replacing its GPS, routing, la
 4. In Map, test Navigator, Smart, Satellite, Night. Mapbox buttons require your own public token.
 5. Enable traffic signal overlay and disable again; confirm no made-up timer appears.
 6. Test microphone, TTS and 3D on your actual Android device; these are not covered by syntax checks.
+
+
+## V6.3.1 Map Fix
+- Removed CARTO raster endpoints that displayed **API KEY REQUIRED** watermarks.
+- Default map is now OpenStreetMap Standard, no key needed for low-volume testing. Navigator is a label for the same OSM map until a licensed vector style is configured. Smart/Night use CSS visual filters on OSM tiles, not different map datasets.
+- Automatic fallback to OSM if satellite or Mapbox tile loading repeatedly fails.
+- Fixed duplicate mapStyleControls element ID and bumped PWA service worker cache.
+- Mapbox remains optional and requires a public domain-restricted token in config.js; MapTiler vector 3D likewise needs a key.
+- OSM public tile servers have usage restrictions and are not a free unlimited production CDN. For a commercial app use a paid/hosted tile provider with appropriate license.
+- Clear old PWA cache / reload after deployment if stale CARTO tiles persist.
