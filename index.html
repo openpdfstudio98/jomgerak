@@ -885,6 +885,30 @@ if ('serviceWorker' in navigator) {
           'Laporan tempatan dipadam.':'Local reports cleared.',
           'Tiada lokasi untuk ditukar.':'No locations to swap.'
         };
+        // V7.0.6: translations for controls and newly added features.
+        Object.assign(TRANSLATIONS, {
+          'Kawalan':'Controls','Peta':'Map','Perjalanan':'Trip','Tetapan':'Settings',
+          'Paparan Navigasi Premium':'Premium Navigation Views',
+          'Peta 2D':'2D Map','Peta 3D':'3D Map','Ikut GPS':'Follow GPS',
+          'Peta vektor MapTiler dengan kamera perspektif. Bangunan 3D dipaparkan jika data tersedia.':'MapTiler vector map with perspective camera. 3D buildings appear when data is available.',
+          'Pintar':'Smart','Satelit':'Satellite','Malam':'Night','Utara Atas':'North Up',
+          'Tetapan Laluan':'Route Settings','🛣️ Tetapan Laluan':'🛣️ Route Settings',
+          'Elak tol*':'Avoid tolls*','Elak highway*':'Avoid highways*',
+          '* Belum disokong OSRM awam; tidak mengubah laluan. Tol sebenar belum dapat disahkan.':'* Not supported by public OSRM; route is unchanged. Actual toll charges are unverified.',
+          '🛣️ Maklumat Tol':'🛣️ Toll Information','🌦 Cuaca & Banjir':'🌦 Weather & Floods',
+          '🕘 Sejarah Perjalanan':'🕘 Trip History','⭐ Tempat Tersimpan':'⭐ Saved Places',
+          '🧭 Banding Laluan':'🧭 Compare Routes','Banding Laluan':'Compare Routes',
+          'Multi-Hentian':'Multi-Stop','Pit Stop':'Pit Stop','Kos Perjalanan':'Trip Cost',
+          'Cuaca Laluan':'Route Weather','Simpan Offline':'Save Offline',
+          'Sahkan Laporan':'Verify Reports','Profil Kenderaan':'Vehicle Profile',
+          'Arahan Suara':'Voice Guidance','Paparan Pemanduan':'Driving View',
+          'Suara navigasi / Navigation voice':'Navigation Voice',
+          'Suara lelaki/perempuan bergantung pada suara yang dipasang dalam telefon. Pilih suara yang tersedia.':'Available voices depend on those installed on your device. Choose an available voice.',
+          'Navigator (OSM)':'Navigator (OSM)','3D View':'3D View',
+          'Test Voice':'Test Voice','Automatic (device)':'Automatic (device)',
+          'GPS menunggu…':'Waiting for GPS…','Laporan Komuniti':'Community Reports',
+          'Lapor Trafik':'Report Traffic'
+        });
         const PLACEHOLDERS = {
           'Lokasi Permulaan (cth: KLCC)':'Starting point (e.g. KLCC)',
           'Destinasi (cth: Putrajaya / Shah Alam)':'Destination (e.g. Putrajaya / Shah Alam)',
@@ -916,6 +940,7 @@ if ('serviceWorker' in navigator) {
           if('speechSynthesis' in window)window.speechSynthesis.cancel();
           lastSpokenStep=-1;
           window.jg655Translate?.();window.jgPremiumUpdateLabels?.();
+          window.jg706TranslateAll?.();
         }
         function initLanguage(){
           const walker=document.createTreeWalker(document.body,NodeFilter.SHOW_TEXT);
@@ -2928,6 +2953,50 @@ const tab=document.getElementById('jg55tab-map');
 if(tab)activate(tab,'tab');
 const trigger=panel.querySelector(':scope > button');
 if(trigger)trigger.setAttribute('aria-expanded',String(!panel.classList.contains('jgfolded')));
+})();
+</script>
+
+<!-- V7.0.6: dynamic bilingual text synchronization. -->
+<script id="jg706-i18n">
+(function(){
+ 'use strict';
+ const original=new WeakMap();
+ const reverse=new Map();
+ function dictionary(){
+   if(typeof TRANSLATIONS==='undefined')return {};
+   const d=TRANSLATIONS;
+   Object.entries(d).forEach(([ms,en])=>{if(en&&ms!==en)reverse.set(en,ms)});
+   return d;
+ }
+ function translate(){
+   if(typeof appLanguage==='undefined')return;
+   const d=dictionary(),en=appLanguage==='en';
+   const walker=document.createTreeWalker(document.body,NodeFilter.SHOW_TEXT);
+   const nodes=[];while(walker.nextNode())nodes.push(walker.currentNode);
+   for(const n of nodes){
+     if(!n.parentElement||n.parentElement.closest('script,style,textarea,[contenteditable="true"]'))continue;
+     const value=n.nodeValue, trimmed=value.trim();if(!trimmed)continue;
+     let ms=original.get(n);
+     if(ms===undefined){
+       if(Object.prototype.hasOwnProperty.call(d,trimmed))ms=trimmed;
+       else if(reverse.has(trimmed))ms=reverse.get(trimmed);
+       else continue;
+       original.set(n,ms);
+     }
+     const translated=en?(d[ms]||ms):ms;
+     const left=value.match(/^\s*/)?.[0]||'',right=value.match(/\s*$/)?.[0]||'';
+     if(trimmed!==translated)n.nodeValue=left+translated+right;
+   }
+   const label=document.getElementById('jgUnifiedLabel');
+   if(label)label.textContent=en?'Controls':'Kawalan';
+ }
+ window.jg706TranslateAll=translate;
+ // Run after the base language system initializes; update only after user interactions.
+ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',translate,{once:true});
+ else translate();
+ document.addEventListener('click',e=>{
+   if(e.target.closest('#jgProPanel,#languageSelect'))setTimeout(translate,50);
+ },false);
 })();
 </script>
 </body>
