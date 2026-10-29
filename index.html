@@ -3183,5 +3183,33 @@ const lang=document.getElementById('languageSelect');
 if(lang)lang.addEventListener('change',()=>{const label=document.getElementById('jg71TollLabel');if(label)label.textContent=en()?'Toll Plazas':'Plaza Tol'});
 })();
 </script>
+
+<style id="jg712-mobile-nearby">
+@media(max-width:767px){
+ #poiPillsContainer{display:flex!important;visibility:visible!important;opacity:1!important;max-width:100%;overflow-x:auto!important;overscroll-behavior-x:contain;scrollbar-width:none;padding:5px 3px!important}
+ #poiPillsContainer::-webkit-scrollbar{display:none}
+ #poiPillsContainer .poi-pill{flex-shrink:0!important;min-height:42px!important}
+ #jg712MobilePoiWrap{position:fixed!important;top:calc(env(safe-area-inset-top, 0px) + 115px)!important;left:8px!important;right:8px!important;z-index:1100!important;display:flex!important;pointer-events:none!important}
+ #jg712MobilePoiWrap #poiPillsContainer{pointer-events:auto!important}
+ body.driving-mode #jg712MobilePoiWrap{display:none!important}
+ #jg71NearbyStatus{top:calc(env(safe-area-inset-top, 0px) + 176px)!important;right:8px!important;z-index:1101!important}
+}
+</style>
+<script id="jg712-mobile-nearby-script">
+(function(){
+ function place(){
+  const bar=document.getElementById('poiPillsContainer');if(!bar)return;
+  const parent=bar.parentElement;if(!parent)return;
+  parent.id='jg712MobilePoiWrap';
+  const labels={fuel:['Stesen Minyak','Petrol Stations'],mosque:['Masjid / Surau','Mosques / Prayer Rooms'],food:['R&R / Makan','Food / Rest Stops'],ev:['Pengecas EV','EV Chargers']};
+  function update(){const english=typeof appLanguage!=='undefined'&&appLanguage==='en';
+   Object.entries(labels).forEach(([key,pair])=>{const span=document.querySelector('#poiBtn-'+key+' span:last-child');if(span)span.textContent=pair[english?1:0]});
+   const toll=document.getElementById('jg71TollLabel');if(toll)toll.textContent=english?'Toll Plazas':'Plaza Tol';
+  }
+  update();document.getElementById('languageSelect')?.addEventListener('change',()=>setTimeout(update,0));
+ }
+ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',place,{once:true});else place();
+})();
+</script>
 </body>
 </html>
