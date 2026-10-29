@@ -13,7 +13,15 @@
     
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <script src="./config.js"></script>
+    <script data-bundled-source="config.js">
+// JomGerak optional integrations. No secret keys in browser files.
+window.JOMGERAK_CONFIG = {
+  maptilerKey: '',
+  mapboxPublicToken: '', // Optional domain-restricted public Mapbox token (not a secret). Needed for Mapbox tiles. // Public, domain-restricted MapTiler browser key for MapLibre 3D
+  communityApi: '' // '/api/reports' after configuring Vercel Supabase env vars
+};
+
+</script>
     <script>
         tailwind.config = {
             darkMode: 'class',
@@ -22,7 +30,7 @@
     
     <!-- Leaflet CSS & JS -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.css" />
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.js" onerror="document.write('\x3Cscript src=https://unpkg.com/leaflet@1.9.4/dist/leaflet.js\x3E\x3C/script\x3E')"></script>
     
     <!-- Font Awesome Icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
@@ -356,7 +364,8 @@ body.dark #jgPremiumModes button{background:#f1f5f9!important;color:#172033!impo
 body.dark #jgPremiumModes button.jg-selected{background:#2563eb!important;color:#fff!important}
 body.dark #jgPremiumModes button:not(.jg-selected) i{color:#2563eb!important}
 @media(prefers-reduced-motion:reduce){#jgProBody button{animation:none!important;transition:none!important}}
-</style></head>
+</style><meta name="jg-release" content="7.0-all-in-one-preview">
+</head>
 <body class="bg-slate-900 select-none relative">
 
     <!-- Peta Utama -->
@@ -2578,9 +2587,625 @@ function jg52TrackOffRoute(pos,progress){
             `);
         }
     </script>
-<script src="./v55.js" defer></script>
-<script src="./v56.js" defer></script>
-<script src="./v60.js" defer></script>
+<script data-bundled-source="v55.js">
+
+/* JomGerak V5.5 – real browser-side features; external APIs remain best-effort. */
+'use strict';
+const J55 = {
+  tab:'map', panel:'', stops:[], voice:null, drive:false, lastWeather:0,
+  i18n:{
+    map:['Peta','Map'],trip:['Perjalanan','Journey'],settings:['Tetapan','Settings'],
+    compare:['Banding Laluan','Compare Routes'],stops:['Multi-Hentian','Multi-Stop'],
+    pit:['Pit Stop','Pit Stop'],cost:['Kos Perjalanan','Trip Costs'],
+    weather:['Cuaca Laluan','Route Weather'],offline:['Simpan Offline','Save Offline'],
+    reports:['Sahkan Laporan','Verify Reports'],vehicle:['Profil Kenderaan','Vehicle Profile'],
+    voice:['Arahan Suara','Voice Command'],drive:['Paparan Pemanduan','Driving Display']
+  }
+};
+function jg55T(ms,en){return appLanguage==='en'?en:ms;}
+function jg55Esc(t){return String(t??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+function jg55Read(key,fallback){try{return JSON.parse(localStorage.getItem('jg55_'+key))??fallback;}catch{return fallback;}}
+function jg55Save(key,v){try{localStorage.setItem('jg55_'+key,JSON.stringify(v));return true;}catch{return false;}}
+function jg55Msg(ms,en){showToast(jg55T(ms,en),'info');}
+function jg55Tab(tab){
+ if(!['map','trip','settings'].includes(tab))return;
+ J55.tab=tab;
+ for(const name of ['map','trip','settings']){
+  document.getElementById('jg55'+({map:'Map',trip:'Trip',settings:'Settings'}[name])+'Tab').hidden=name!==tab;
+  document.getElementById('jg55tab-'+name).setAttribute('aria-selected',String(name===tab));
+ }
+ document.getElementById('jg55Panel').hidden=true;J55.panel='';
+ jg55Lang();
+}
+function jg55Lang(){
+ document.querySelectorAll('[data-jg55]').forEach(el=>{
+  const k=el.dataset.jg55;if(J55.i18n[k])el.textContent=J55.i18n[k][appLanguage==='en'?1:0];
+ });
+ document.getElementById('jg55DriveModeLabel')?.replaceChildren(document.createTextNode(jg55T('Pemanduan','Driving')));
+}
+function jg55Show(which){
+ const panel=document.getElementById('jg55Panel');
+ if(J55.panel===which&&!panel.hidden){panel.hidden=true;J55.panel='';return;}
+ J55.panel=which;panel.hidden=false;
+ // Place results inside the visible tab instead of after all hidden tabs.
+ const activeTab=document.getElementById(J55.tab==='settings'?'jg55SettingsTab':'jg55TripTab');
+ if(activeTab&&panel.parentElement!==activeTab)activeTab.appendChild(panel);
+ const title={
+ compare:['Banding laluan','Route comparison'],stops:['Multi-hentian','Multi-stop route'],
+ pit:['Pit Stop','Pit stops'],cost:['Kos perjalanan','Trip cost'],weather:['Cuaca sepanjang laluan','Weather along route'],
+ offline:['Persediaan offline','Offline trip preparation'],reports:['Pengesahan komuniti','Community verification'],
+ vehicle:['Profil kenderaan','Vehicle profile']
+ }[which];
+ if(!title){panel.hidden=true;return;}
+ const h='<strong>'+jg55Esc(jg55T(...title))+'</strong>';
+ if(which==='vehicle'){
+  const v=jg55Read('vehicle',{name:'Kereta',fuel:'ron95',liters:7.2,price:2.05});
+  panel.innerHTML=h+`
+  <label>${jg55T('Nama kenderaan','Vehicle name')}</label><input id="j55car" maxlength="40" value="${jg55Esc(v.name)}">
+  <label>${jg55T('Jenis bahan api','Fuel type')}</label><select id="j55fuel"><option value="ron95">RON95</option><option value="ron97">RON97</option><option value="diesel">Diesel</option><option value="ev">EV</option></select>
+  <label>${jg55T('Penggunaan (L/100km atau kWh/100km)','Consumption (L/100km or kWh/100km)')}</label><input id="j55liters" type="number" min="1" max="80" step=".1" value="${v.liters}">
+  <label>${jg55T('Harga RM seunit (masukkan sendiri)','RM per unit (manual entry)')}</label><input id="j55price" type="number" min="0" max="20" step=".01" value="${v.price}">
+  <button onclick="jg55SaveVehicle()">${jg55T('Simpan','Save')}</button>
+  <p class="jg55note">${jg55T('Harga tidak disambung kepada data petrol langsung.','Prices are not connected to live fuel pricing.')}</p>`;
+  panel.querySelector('#j55fuel').value=v.fuel;
+ } else if(which==='stops'){
+  panel.innerHTML=h+`<p class="jg55note">${jg55T('Cari nama tempat dan pilih hasil untuk tambah hentian. Laluan dikira melalui OSRM.','Search for a place and choose a result to add a waypoint. Routing uses OSRM.')}</p>
+  <input id="j55search" placeholder="${jg55T('Cari hentian di Malaysia','Search stop in Malaysia')}" maxlength="120">
+  <button onclick="jg55SearchStop()">${jg55T('Cari','Search')}</button><div id="j55searchResults"></div>
+  <div id="j55stopsList"></div><button onclick="jg55RouteStops()">${jg55T('Kira Laluan Multi-Hentian','Calculate Multi-Stop Route')}</button>`;
+  jg55ListStops();
+ }else if(which==='cost'){
+  panel.innerHTML=h+`<div class="jg55result" id="j55costResult"></div><label><input id="j55return" type="checkbox" style="width:auto;min-height:auto" onchange="jg55Cost()"> ${jg55T('Pergi balik (anggaran 2×)','Round trip (approx. 2×)')}</label>
+  <button onclick="jg55Show('vehicle')">${jg55T('Ubah profil kenderaan','Edit vehicle profile')}</button>`;
+  jg55Cost();
+ }else if(which==='compare'){
+  panel.innerHTML=h+`<div id="j55compareResult"></div>`;
+  jg55Compare();
+ }else if(which==='pit'){
+  panel.innerHTML=h+`<p class="jg55note">${jg55T('Cari kemudahan OSM sekitar laluan; bukan semestinya boleh diakses terus.','Find OSM facilities near the route; direct road access is not guaranteed.')}</p>
+  <select id="j55pitType"><option value="fuel">${jg55T('Stesen minyak','Petrol stations')}</option><option value="restaurant">${jg55T('Restoran','Restaurants')}</option><option value="charging_station">EV Charging</option><option value="place_of_worship">${jg55T('Surau / tempat ibadat','Prayer facilities')}</option><option value="toilets">${jg55T('Tandas','Toilets')}</option></select>
+  <button onclick="jg55PitSearch()">${jg55T('Cari sepanjang laluan','Search along route')}</button><div id="j55pitResults"></div>`;
+ }else if(which==='weather'){
+  panel.innerHTML=h+`<p class="jg55note">${jg55T('Ramalan cuaca Open-Meteo di tiga titik sepanjang laluan. Bukan amaran banjir rasmi.','Open-Meteo forecasts at three points along the route. Not official flood alerts.')}</p>
+  <button onclick="jg55Weather()">${jg55T('Semak cuaca','Check weather')}</button><div id="j55weatherResults"></div>`;
+ }else if(which==='offline'){
+  panel.innerHTML=h+`<p class="jg55note">${jg55T('Simpan koordinat dan arahan laluan pada peranti. Peta dan pengiraan laluan masih memerlukan internet.','Save route coordinates and directions on your device. Maps and route calculation still require internet.')}</p>
+  <button onclick="jg55SaveOffline()">${jg55T('Simpan perjalanan ini','Save current trip')}</button>
+  <button onclick="jg55OpenOffline()">${jg55T('Lihat perjalanan tersimpan','View saved trip')}</button>
+  <div id="j55offlineResults"></div>`;
+ }else if(which==='reports'){
+  panel.innerHTML=h+`<p class="jg55note">${jg55T('Hanya laporan komuniti yang mempunyai ID boleh disahkan. Pengesahan merentas pengguna memerlukan backend yang menyimpan undian dan menghalang penyalahgunaan.','Only reports with IDs can be verified. Cross-user voting needs a backend with abuse protection.')}</p>
+  <button onclick="jg55ReportInfo()">${jg55T('Semak status laporan','Check report status')}</button><div id="j55reportResults"></div>`;
+ }
+ // Ensure newly opened tool is visible inside the scrolling controls panel.
+ requestAnimationFrame(()=>panel.scrollIntoView({block:'nearest',behavior:'smooth'}));
+}
+function jg55SaveVehicle(){
+ const v={name:document.getElementById('j55car').value.trim().slice(0,40)||'Car',fuel:document.getElementById('j55fuel').value,
+ liters:Number(document.getElementById('j55liters').value),price:Number(document.getElementById('j55price').value)};
+ if(!(v.liters>=1&&v.liters<=80&&v.price>=0&&v.price<=20))return jg55Msg('Sila masukkan nilai yang sah.','Enter valid values.');
+ jg55Save('vehicle',v);jg55Msg('Profil kenderaan disimpan.','Vehicle profile saved.');
+}
+function jg55Cost(){
+ const el=document.getElementById('j55costResult');if(!el)return;
+ if(!currentRouteData){el.textContent=jg55T('Kira laluan dahulu.','Calculate a route first.');return;}
+ const v=jg55Read('vehicle',{name:'Kereta',fuel:'ron95',liters:7.2,price:2.05});
+ const km=currentRouteData.distance/1000*(document.getElementById('j55return')?.checked?2:1);
+ const units=km*v.liters/100, cost=units*v.price;
+ el.textContent=`${v.name} · ${km.toFixed(1)} km\n${units.toFixed(2)} ${v.fuel==='ev'?'kWh':'L'} × RM${v.price.toFixed(2)} = RM${cost.toFixed(2)}\n${jg55T('Tol tidak termasuk (data belum disahkan).','Tolls excluded (unverified data).')}`;
+}
+function jg55Compare(){
+ const el=document.getElementById('j55compareResult');if(!el)return;
+ if(!routes47?.length){el.textContent=jg55T('Kira laluan dahulu.','Calculate a route first.');return;}
+ const v=jg55Read('vehicle',{liters:7.2,price:2.05});
+ const shortest=Math.min(...routes47.map(r=>r.distance)),fastest=Math.min(...routes47.map(r=>r.duration));
+ el.replaceChildren();
+ routes47.forEach((r,i)=>{
+  const div=document.createElement('div');div.className='jg55item';
+  const label=(i+1)+' · '+(r.distance/1000).toFixed(1)+' km · '+Math.round(r.duration/60)+' min · RM'+(r.distance/1000*v.liters/100*v.price).toFixed(2)
+  +(r.duration===fastest?' ⚡':'')+(r.distance===shortest?' 📏':'');
+  const b=document.createElement('button');b.textContent=jg55T('Pilih','Select');b.onclick=()=>{selectRoute47(i);jg55Compare();};
+  div.append(document.createTextNode(label+' '),b);el.appendChild(div);
+ });
+ const note=document.createElement('p');note.className='jg55note';note.textContent=jg55T('OSRM tidak menyediakan trafik langsung atau kadar tol.','OSRM provides neither live traffic nor toll prices.');el.appendChild(note);
+}
+async function jg55SearchStop(){
+ const input=document.getElementById('j55search'),el=document.getElementById('j55searchResults');const q=input.value.trim();
+ if(q.length<3)return;
+ el.textContent=jg55T('Mencari…','Searching…');
+ try{
+  const r=await fetch('https://nominatim.openstreetmap.org/search?format=json&countrycodes=my&limit=5&q='+encodeURIComponent(q),{signal:AbortSignal.timeout(12000)});
+  if(!r.ok)throw Error('Search failed');const data=await r.json();el.replaceChildren();
+  for(const place of data){
+   const b=document.createElement('button');b.textContent=(place.display_name||'').slice(0,100);
+   b.onclick=()=>{if(J55.stops.length>=5)return jg55Msg('Maksimum 5 hentian.','Maximum 5 stops.');
+    J55.stops.push({lat:Number(place.lat),lng:Number(place.lon),name:place.display_name.slice(0,100)});
+    jg55Save('stops',J55.stops);jg55ListStops();el.replaceChildren();};el.appendChild(b);
+  }
+ }catch{el.textContent=jg55T('Carian gagal. Cuba lagi.','Search failed. Try again.');}
+}
+function jg55ListStops(){
+ const el=document.getElementById('j55stopsList');if(!el)return;el.replaceChildren();
+ J55.stops.forEach((p,i)=>{const row=document.createElement('div');row.className='jg55item';
+  const b=document.createElement('button');b.textContent='×';b.setAttribute('aria-label','Remove stop');b.onclick=()=>{J55.stops.splice(i,1);jg55Save('stops',J55.stops);jg55ListStops();};
+  row.append(document.createTextNode((i+1)+'. '+p.name+' '),b);el.appendChild(row);
+ });
+}
+async function jg55RouteStops(){
+ if(!originCoords||!destCoords)return jg55Msg('Tetapkan mula dan destinasi dahulu.','Set start and destination first.');
+ if(!J55.stops.length)return jg55Msg('Tambah sekurang-kurangnya satu hentian.','Add at least one stop.');
+ if(navigationActive)return jg55Msg('Hentikan navigasi dahulu.','Stop navigation first.');
+ const btn=document.querySelector('#jg55Panel button[onclick="jg55RouteStops()"]');if(btn)btn.disabled=true;
+ try{
+  const all=[originCoords,...J55.stops,destCoords];
+  const coords=all.map(p=>p.lng+','+p.lat).join(';');
+  const r=await fetch('https://router.project-osrm.org/route/v1/driving/'+coords+'?overview=full&geometries=geojson&steps=true',{signal:AbortSignal.timeout(18000)});
+  if(!r.ok)throw Error('routing');const data=await r.json();if(!data.routes?.length)throw Error('no route');
+  routes47=[data.routes[0]];selected47=0;currentRouteData=data.routes[0];lastSpokenStep=-1;
+  if(routePolyline)map.removeLayer(routePolyline);
+  routePolyline=L.geoJSON(currentRouteData.geometry,{style:{color:'#2563eb',weight:6,opacity:.95}}).addTo(map);
+  map.fitBounds(routePolyline.getBounds(),{padding:[60,60]});
+  renderRouteSummary(currentRouteData);updateFuelCalculation();renderChoices47();jgSync3DRoute();
+  jg55Msg('Laluan multi-hentian berjaya dikira.','Multi-stop route calculated.');
+ }catch{jg55Msg('Gagal mengira laluan multi-hentian.','Multi-stop routing failed.');}
+ finally{if(btn)btn.disabled=false;}
+}
+function jg55Samples(){
+ const pts=currentRouteData?.geometry?.coordinates;if(!pts?.length)return null;
+ return [.15,.5,.85].map(f=>pts[Math.floor(f*(pts.length-1))]);
+}
+async function jg55PitSearch(){
+ const el=document.getElementById('j55pitResults'),samples=jg55Samples();
+ if(!samples){el.textContent=jg55T('Kira laluan dahulu.','Calculate a route first.');return;}
+ const amenity=document.getElementById('j55pitType').value;
+ const query='[out:json][timeout:20];('+samples.map(c=>`node(around:1200,${c[1]},${c[0]})["amenity"="${amenity}"];`).join('')+');out body 35;';
+ el.textContent=jg55T('Mencari…','Searching…');
+ try{
+  const r=await fetch('https://overpass-api.de/api/interpreter?data='+encodeURIComponent(query),{signal:AbortSignal.timeout(25000)});
+  if(!r.ok)throw Error('Overpass');const data=await r.json();el.replaceChildren();poiMarkersGroup.clearLayers();
+  const seen=new Set();
+  for(const x of data.elements||[]){
+   if(!Number.isFinite(x.lat)||!Number.isFinite(x.lon)||seen.has(x.id))continue;seen.add(x.id);
+   const name=x.tags?.name||amenity;
+   const row=document.createElement('div');row.className='jg55item';
+   const btn=document.createElement('button');btn.textContent=jg55T('Destinasi','Destination');
+   btn.onclick=()=>{selectLocation('dest',x.lat,x.lon,name);jg55Msg('Destinasi ditukar. Kira laluan baharu.','Destination changed. Recalculate route.');};
+   row.append(document.createTextNode(name+' '),btn);el.appendChild(row);
+   L.marker([x.lat,x.lon]).addTo(poiMarkersGroup).bindPopup(name);
+  }
+  if(!seen.size)el.textContent=jg55T('Tiada hasil ditemui.','No results found.');
+ }catch{el.textContent=jg55T('Carian kemudahan gagal.','Facility search failed.');}
+}
+async function jg55Weather(){
+ const el=document.getElementById('j55weatherResults'),samples=jg55Samples();
+ if(!samples){el.textContent=jg55T('Kira laluan dahulu.','Calculate a route first.');return;}
+ el.textContent=jg55T('Memuatkan cuaca…','Loading weather…');
+ try{
+  const results=await Promise.all(samples.map(async(c,i)=>{
+   const url=`https://api.open-meteo.com/v1/forecast?latitude=${c[1]}&longitude=${c[0]}&current=temperature_2m,precipitation,weather_code&timezone=Asia%2FKuala_Lumpur`;
+   const r=await fetch(url,{signal:AbortSignal.timeout(12000)});if(!r.ok)throw Error('weather');
+   const d=await r.json();return `${Math.round((i+1)*25)}%: ${d.current.temperature_2m}°C · ${d.current.precipitation} mm`;
+  }));
+  el.textContent=results.join('\n')+'\n'+jg55T('Ramalan titik lokasi, bukan amaran banjir rasmi.','Point forecasts, not official flood alerts.');
+ }catch{el.textContent=jg55T('Ramalan cuaca tidak tersedia.','Weather forecast unavailable.');}
+}
+function jg55SaveOffline(){
+ if(!currentRouteData)return jg55Msg('Kira laluan dahulu.','Calculate a route first.');
+ const snapshot={date:new Date().toISOString(),from:originCoords?.name||'Start',to:destCoords?.name||'Destination',
+  distance:currentRouteData.distance,duration:currentRouteData.duration,
+  steps:(currentRouteData.legs||[]).flatMap(l=>l.steps||[]).map(x=>({name:x.name,distance:x.distance,type:x.maneuver?.type,modifier:x.maneuver?.modifier})).slice(0,300),
+  geometry:currentRouteData.geometry?.coordinates?.filter((_,i)=>i%Math.max(1,Math.floor(currentRouteData.geometry.coordinates.length/500))===0)};
+ if(jg55Save('offlineTrip',snapshot))jg55Msg('Arahan dan laluan disimpan pada peranti.','Route and directions saved on device.');
+ else jg55Msg('Ruang simpanan tidak mencukupi.','Storage unavailable.');
+}
+function jg55OpenOffline(){
+ const el=document.getElementById('j55offlineResults'),v=jg55Read('offlineTrip',null);
+ if(!v){el.textContent=jg55T('Tiada perjalanan tersimpan.','No saved trip.');return;}
+ el.replaceChildren();const head=document.createElement('p');head.textContent=v.from+' → '+v.to+' · '+(v.distance/1000).toFixed(1)+' km';el.appendChild(head);
+ for(const step of v.steps.slice(0,80)){const row=document.createElement('div');row.className='jg55item';row.textContent=(step.type||'')+' '+(step.modifier||'')+' · '+(step.name||'')+' · '+Math.round(step.distance)+' m';el.appendChild(row);}
+}
+function jg55ReportInfo(){
+ const el=document.getElementById('j55reportResults');el.textContent=jg55T(
+ 'Pengesahan bersama belum tersedia tanpa pangkalan data undian, pengesahan identiti dan moderasi. Laporan pada peta tidak patut dianggap disahkan.',
+ 'Shared verification is unavailable without a vote database, identity controls and moderation. Map reports should not be considered verified.');
+}
+function jg55VoiceStart(){
+ const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+ if(!SR)return jg55Msg('Pengecaman suara tidak disokong browser ini.','Speech recognition is not supported by this browser.');
+ if(J55.voice){J55.voice.stop();J55.voice=null;return;}
+ const rec=new SR();rec.lang=appLanguage==='en'?'en-MY':'ms-MY';rec.interimResults=false;rec.maxAlternatives=1;J55.voice=rec;
+ rec.onresult=e=>{
+  const t=e.results[0][0].transcript.toLowerCase();
+  if(/(petrol|fuel|minyak|station)/.test(t)){jg55Tab('trip');jg55Show('pit');document.getElementById('j55pitType').value='fuel';jg55PitSearch();}
+  else if(/(stop navigation|henti navigasi|berhenti navigasi)/.test(t)){if(navigationActive)stopLiveNavigation();}
+  else if(/(follow gps|ikut gps|lokasi saya|my location)/.test(t))recenterNavigation();
+  else if(/(weather|cuaca)/.test(t)){jg55Tab('trip');jg55Show('weather');jg55Weather();}
+  else jg55Msg('Arahan tidak dikenal pasti.','Command not recognized.');
+ };
+ rec.onerror=()=>jg55Msg('Mikrofon tidak tersedia atau akses ditolak.','Microphone unavailable or permission denied.');
+ rec.onend=()=>{J55.voice=null;};rec.start();jg55Msg('Mendengar arahan suara…','Listening for voice command…');
+}
+function jg55ToggleDriving(){
+ if(!navigationActive)return jg55Msg('Mulakan navigasi dahulu.','Start navigation first.');
+ J55.drive=!J55.drive;
+ if(J55.drive){drivingPanelsOpen=false;document.body.classList.add('driving-mode');document.getElementById('searchPanelWrap').style.display='none';document.getElementById('routeSummaryPanel').style.display='none';document.getElementById('jgProPanel').classList.add('jgfolded');}
+ else{drivingPanelsOpen=true;document.body.classList.remove('driving-mode');document.getElementById('searchPanelWrap').style.display='flex';document.getElementById('routeSummaryPanel').style.display='';}
+ setTimeout(()=>map.invalidateSize(),120);
+}
+function jg55UpdateDrive(){
+ const e=document.getElementById('jg55DriveHUD');if(!e)return;
+ if(!navigationActive){e.style.display='none';J55.drive=false;return;}
+ e.style.display=J55.drive?'block':'none';
+ if(!J55.drive)return;
+ const text=document.getElementById('liveInstruction')?.textContent||jg55T('Ikut laluan','Follow route');
+ const metrics=document.getElementById('jg52TripMetrics')?.textContent||'';
+ e.querySelector('.jg55direction').textContent=text;e.querySelector('small').textContent=metrics;
+}
+function jg55Init(){
+ J55.stops=jg55Read('stops',[]);if(!Array.isArray(J55.stops))J55.stops=[];
+ const hud=document.createElement('div');hud.id='jg55DriveHUD';
+ hud.innerHTML='<div class="jg55hud"><div><div class="jg55direction"></div><small></small></div><button type="button" onclick="jg55ToggleDriving()">☰</button></div>';
+ document.body.appendChild(hud);
+ jg55Tab('map');jg55Lang();
+ // Preserve existing BM/EN behavior; update newly added controls after language switch.
+ const orig=window.setLanguage;
+ window.setLanguage=function(lang){orig(lang);jg55Lang();if(J55.panel){const p=J55.panel;J55.panel='';jg55Show(p);}};
+ setInterval(jg55UpdateDrive,1200);
+}
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',jg55Init);else jg55Init();
+
+</script>
+<script data-bundled-source="v56.js">
+/* JomGerak V5.6 Smart Road Safety – user reports are unverified, no police checkpoints. */
+'use strict';
+(function(){
+ const allowed=new Set(['Kemalangan','Jalan Rosak','Jalan Ditutup','Banjir','Halangan','Bahaya di Jalan','Kesesakan Trafik']);
+ const reports=new Map(), dismissed=new Set();
+ let lastGps=null,lastAlert='',lastAlertAt=0,enabled=true,voice=false,refreshAt=0;
+ const t=(ms,en)=>appLanguage==='en'?en:ms;
+ const safe=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;','\'':'&#39;'}[c]));
+ const labels={
+ 'Kemalangan':['Kemalangan dilaporkan','Reported crash'],
+ 'Jalan Rosak':['Jalan rosak dilaporkan','Reported damaged road'],
+ 'Jalan Ditutup':['Jalan ditutup (belum disahkan)','Road closure (unverified)'],
+ 'Banjir':['Air naik dilaporkan','Reported flooding'],
+ 'Halangan':['Halangan dilaporkan','Reported obstruction'],
+ 'Bahaya di Jalan':['Bahaya jalan dilaporkan','Reported road hazard'],
+ 'Kesesakan Trafik':['Kesesakan dilaporkan','Reported congestion']
+ };
+ const store=(key,value)=>{try{localStorage.setItem(key,JSON.stringify(value));}catch{}};
+ const load=(key,fallback)=>{try{return JSON.parse(localStorage.getItem(key))??fallback;}catch{return fallback;}};
+ enabled=load('jg56_alerts',true);voice=load('jg56_voice',false);
+ function collect(r){
+  if(!allowed.has(r.type)||!Number.isFinite(r.lat)||!Number.isFinite(r.lng))return;
+  const id=[r.type,r.lat.toFixed(4),r.lng.toFixed(4)].join(':');
+  const old=reports.get(id);
+  reports.set(id,{...r,id,receivedAt:old?.receivedAt||Date.now()});
+ }
+ window.jg56CollectReport=collect;
+ function routeGeometry(){
+  return currentRouteData?.geometry?.coordinates||[];
+ }
+ function metric(a,b){
+  const lat=(a[1]+b[1])*Math.PI/360, dx=(a[0]-b[0])*111320*Math.cos(lat),dy=(a[1]-b[1])*111320;
+  return Math.hypot(dx,dy);
+ }
+ function along(coords,p){
+  if(coords.length<2)return null;
+  let best={lateral:Infinity,progress:0},acc=0;
+  for(let i=1;i<coords.length;i++){
+   const a=coords[i-1],b=coords[i],len=metric(a,b);
+   if(len<.01)continue;
+   const cos=Math.cos((a[1]+b[1])*Math.PI/360);
+   const x=(p[0]-a[0])*111320*cos,y=(p[1]-a[1])*111320;
+   const vx=(b[0]-a[0])*111320*cos,vy=(b[1]-a[1])*111320;
+   const f=Math.max(0,Math.min(1,(x*vx+y*vy)/(vx*vx+vy*vy)));
+   const lateral=Math.hypot(x-vx*f,y-vy*f);
+   if(lateral<best.lateral)best={lateral,progress:acc+len*f};
+   acc+=len;
+  }
+  return best;
+ }
+ function candidate(){
+  if(!navigationActive||!lastGps||lastGps.coords.accuracy>75)return null;
+  const coords=routeGeometry();if(coords.length<2)return null;
+  const gps=along(coords,[lastGps.coords.longitude,lastGps.coords.latitude]);
+  if(!gps||gps.lateral>130)return null;
+  let best=null;
+  for(const r of reports.values()){
+   if(dismissed.has(r.id)||Date.now()-r.receivedAt>86400000)continue;
+   const q=along(coords,[r.lng,r.lat]);if(!q||q.lateral>110)continue;
+   const ahead=q.progress-gps.progress;
+   if(ahead<0||ahead>1600)continue;
+   if(!best||ahead<best.ahead)best={...r,ahead};
+  }
+  return best;
+ }
+ function update(){
+  const bar=document.getElementById('jg56Alert');if(!bar)return;
+  if(!enabled||!navigationActive){bar.hidden=true;return;}
+  const c=candidate();
+  if(!c){bar.hidden=true;return;}
+  const km=c.ahead>=1000?(c.ahead/1000).toFixed(1)+' km':Math.round(c.ahead/10)*10+' m';
+  const label=t(...labels[c.type]);
+  bar.hidden=false;
+  document.getElementById('jg56AlertTitle').textContent='⚠️ '+label+' · '+km;
+  document.getElementById('jg56AlertMeta').textContent=t('Laporan pengguna • Belum disahkan • Ikut papan tanda','User report • Unverified • Follow road signs');
+  if(voice&&c.id!==lastAlert&&Date.now()-lastAlertAt>45000){
+   lastAlert=c.id;lastAlertAt=Date.now();
+   if(typeof window.speakText==='function')window.speakText(label+'. '+t('Anggaran','Approximately')+' '+km+'. '+t('Belum disahkan.','Unverified.'));
+  }
+ }
+ window.jg56GpsUpdate=function(pos){lastGps=pos;if(Date.now()-refreshAt>2500){refreshAt=Date.now();update();}};
+ window.jg56Dismiss=function(){const c=candidate();if(c)dismissed.add(c.id);document.getElementById('jg56Alert').hidden=true;};
+ window.jg56Toggle=function(name){
+  if(name==='voice'){voice=!voice;store('jg56_voice',voice);}
+  else{enabled=!enabled;store('jg56_alerts',enabled);}
+  renderSettings();update();
+ };
+ function renderSettings(){
+  const p=document.getElementById('jg56Settings');if(!p)return;
+  p.innerHTML=`<div style="font-weight:800;margin-bottom:6px">🛡️ ${t('Amaran Keselamatan Jalan','Road Safety Alerts')}</div>
+  <p style="font-size:11px;line-height:1.5;margin-bottom:8px">${t('Amaran berdasarkan laporan pengguna berhampiran laluan, bukan pengesanan automatik atau data rasmi. Tidak termasuk lokasi sekatan polis.','Alerts use user-submitted reports near your route, not automatic detection or official data. Police checkpoint locations are excluded.')}</p>
+  <button type="button" onclick="jg56Toggle('alerts')">${enabled?'🟢':'⚪'} ${t('Amaran peta','Map alerts')}: ${enabled?'ON':'OFF'}</button>
+  <button type="button" onclick="jg56Toggle('voice')">${voice?'🟢':'⚪'} ${t('Amaran suara','Voice alerts')}: ${voice?'ON':'OFF'}</button>
+  <p style="font-size:10px;opacity:.75;margin-top:6px">${t('Amaran suara dimatikan secara lalai. Maklumat komuniti mungkin tidak tepat atau lapuk.','Voice alerts are off by default. Community information may be inaccurate or stale.')}</p>`;
+ }
+ function addButton(){
+  const trip=document.querySelector('#jg55TripTab .jg55actions');
+  if(!trip)return;
+  const b=document.createElement('button');b.type='button';b.id='jg56SafetyButton';b.textContent='🛡️ '+t('Amaran Jalan','Road Alerts');
+  b.onclick=()=>{const p=document.getElementById('jg56Settings');p.hidden=!p.hidden;renderSettings();};
+  trip.appendChild(b);
+  const p=document.createElement('div');p.id='jg56Settings';p.hidden=true;p.style.cssText='padding:9px;border:1px solid #cbd5e1;border-radius:12px;background:#f8fafc;color:#0f172a;margin:8px 0';
+  trip.after(p);
+ }
+ function init(){
+  const css=document.createElement('style');css.textContent=`
+  #jg56Alert{position:fixed;z-index:720;left:12px;right:12px;bottom:116px;max-width:540px;margin:auto;border-radius:14px;background:#713f12;color:#fff;padding:10px 12px;box-shadow:0 8px 28px #0005;font:600 12px Inter,system-ui,sans-serif}
+  #jg56Alert[hidden],#jg56Settings[hidden]{display:none!important}
+  #jg56AlertTitle{font-size:14px;font-weight:800}
+  #jg56AlertMeta{font-size:10px;opacity:.88;margin-top:3px}
+  #jg56Alert button{position:absolute;right:8px;top:7px;border-radius:8px;padding:6px 9px;background:#ffffff25;color:white;font-weight:800}
+  #jg56Alert>div{padding-right:32px}
+  body.driving-mode #jg56Alert{bottom:196px}
+  #jg56Settings button{padding:8px 10px;margin:3px;border-radius:9px;background:#dbeafe;color:#1e40af;font-weight:700;font-size:11px}
+  `;document.head.appendChild(css);
+  const bar=document.createElement('div');bar.id='jg56Alert';bar.hidden=true;bar.setAttribute('role','status');
+  bar.innerHTML='<div id="jg56AlertTitle"></div><div id="jg56AlertMeta"></div><button type="button" aria-label="Dismiss alert" onclick="jg56Dismiss()">×</button>';
+  document.body.appendChild(bar);
+  addButton();renderSettings();
+  const old=window.setLanguage;
+  if(typeof old==='function')window.setLanguage=function(lang){old(lang);const b=document.getElementById('jg56SafetyButton');if(b)b.textContent='🛡️ '+t('Amaran Jalan','Road Alerts');renderSettings();update();};
+  // Local reports are already loaded in the map; collect existing local storage for route alerts too.
+  try{
+   const raw=JSON.parse(localStorage.getItem('jomgerak_community_reports_v2')||'[]');
+   for(const r of raw)if(r.createdAt&&Date.now()-r.createdAt<86400000)collect(r);
+  }catch{}
+  setInterval(update,5000);
+ }
+ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init);else init();
+})();
+
+</script>
+<script data-bundled-source="v60.js">
+
+/* JomGerak V6.0 – Progressive enhancements. Requires existing JomGerak app. */
+'use strict';
+(function(){
+ const state={mode:'car',voices:[],selectedVoice:'',search:null,voiceListening:false,prayerCache:null};
+ const tr=(ms,en)=>appLanguage==='en'?en:ms;
+ const el=id=>document.getElementById(id);
+ const saved=(k,d)=>{try{return JSON.parse(localStorage.getItem('jg60_'+k))??d;}catch{return d;}};
+ const save=(k,v)=>{try{localStorage.setItem('jg60_'+k,JSON.stringify(v));}catch{}};
+ const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;','\'':'&#39;'}[c]));
+ function notice(ms,en){showToast(tr(ms,en),'info');}
+ const places=[
+  {id:'SGR01',name:'Gombak / Petaling / Sepang',lat:3.107,lon:101.607},
+  {id:'SGR02',name:'Klang / Kuala Langat',lat:2.92,lon:101.47},
+  {id:'WLY01',name:'Kuala Lumpur / Putrajaya',lat:3.14,lon:101.69},
+  {id:'JHR02',name:'Johor Bahru',lat:1.49,lon:103.74},
+  {id:'PNG01',name:'Pulau Pinang',lat:5.41,lon:100.33},
+  {id:'KDH01',name:'Alor Setar',lat:6.12,lon:100.37},
+  {id:'KTN01',name:'Kota Bharu',lat:6.12,lon:102.24},
+  {id:'TRG01',name:'Kuala Terengganu',lat:5.33,lon:103.14},
+  {id:'PRK01',name:'Ipoh',lat:4.6,lon:101.09},
+  {id:'NSN01',name:'Seremban',lat:2.72,lon:101.94},
+  {id:'MLK01',name:'Melaka',lat:2.19,lon:102.25},
+  {id:'PHG01',name:'Kuantan',lat:3.81,lon:103.33},
+  {id:'SBH01',name:'Kota Kinabalu',lat:5.98,lon:116.07},
+  {id:'SWK01',name:'Kuching',lat:1.55,lon:110.35},
+  {id:'PLS01',name:'Kangar',lat:6.44,lon:100.2}
+ ];
+ function modeButton(mode,label,icon){
+  return `<button type="button" class="jg60mode ${state.mode===mode?'jg60active':''}" data-mode="${mode}" onclick="jg60Mode('${mode}')">${icon} ${label}</button>`;
+ }
+ function draw(){
+  const m=el('jg60Trip'),settings=el('jg60Settings'),mapTab=el('jg60Map');if(!m||!settings||!mapTab)return;
+  m.innerHTML=`<section class="jg60module"><b>🚘 ${tr('Mod Pengangkutan','Transport Mode')}</b>
+   <div class="jg60grid">${modeButton('car',tr('Kereta','Car'),'🚗')}${modeButton('motor',tr('Motosikal','Motorcycle'),'🏍️')}${modeButton('walk',tr('Berjalan','Walking'),'🚶')}${modeButton('rail',tr('Keretapi','Rail'),'🚆')}</div>
+   <p id="jg60modeNote" class="jg60note"></p><div id="jg60ModeAction"></div></section>
+   <section class="jg60module"><b>🎙️ ${tr('Carian Suara','Voice Search')}</b>
+   <div class="jg60grid"><button onclick="jg60VoiceSearch('dest')">🎤 ${tr('Cari Destinasi','Search Destination')}</button><button onclick="jg60VoiceSearch('origin')">🎤 ${tr('Cari Permulaan','Search Starting Point')}</button></div>
+   <p class="jg60note">${tr('Sebut nama tempat, kemudian pilih hasil carian.','Say a place name, then select a search result.')}</p></section>
+   <section class="jg60module"><b>🕌 ${tr('Waktu Solat','Prayer Times')}</b>
+   <div class="jg60grid"><button onclick="jg60Prayer()">${tr('Semak Waktu Solat','Check Prayer Times')}</button><button onclick="jg60OpenOfficial()">${tr('Jadual Rasmi JAKIM','Official JAKIM Schedule')}</button></div></section>`;
+  settings.innerHTML=`<section class="jg60module"><b>🔊 ${tr('Suara Navigasi','Navigation Voice')}</b>
+   <label class="jg60note" for="jg60Voice">${tr('Pilih suara tersedia pada peranti','Select available device voice')}</label>
+   <select id="jg60Voice" onchange="jg60SetVoice(this.value)"></select>
+   <button onclick="jg60TestVoice()">${tr('Uji Suara','Test Voice')}</button>
+   <p class="jg60note">${tr('Suara lelaki/perempuan bergantung pada suara yang dipasang. Loghat negeri memerlukan model suara khas.','Male/female voice availability depends on installed voices. Regional accents require dedicated voice models.')}</p></section>`;
+  mapTab.innerHTML=`<section class="jg60module"><b>🧭 ${tr('Kamera Pemanduan','Driving Camera')}</b>
+   <div class="jg60grid"><button onclick="jg60Enable3D()">🚘 ${tr('Paparan 3D','3D View')}</button><button onclick="jg60EnableFollow()">📍 ${tr('Ikut GPS','Follow GPS')}</button></div>
+   <p class="jg60note">${tr('Kamera perspektif menggunakan MapLibre sedia ada. Bangunan 3D sebenar memerlukan data vektor yang sesuai.','Perspective camera uses existing MapLibre. True 3D buildings require suitable vector data.')}</p></section>`;
+  updateModeNote();populateVoices();
+ }
+ function updateModeNote(){
+  const n=el('jg60modeNote');if(!n)return;
+  const notes={
+   car:['Laluan kereta menggunakan OSRM.','Car routes use OSRM.'],
+   motor:['Laluan OSRM kereta hanya rujukan kasar; sekatan motosikal tidak diperiksa. Jangan guna sebagai laluan motosikal yang disahkan.','OSRM car routing is only an approximation; motorcycle restrictions are not checked. Not a verified motorcycle route.'],
+   walk:['Laluan berjalan menggunakan API Valhalla awam jika tersedia; mungkin tidak lengkap.','Walking route uses a public Valhalla API when available; coverage may be incomplete.'],
+   rail:['Pilih stesen dan jadual melalui laman operator rasmi. Tiada pengiraan laluan tren dalam aplikasi buat masa ini.','Use official operator sites for stations and timetables. In-app rail routing is not available yet.']
+  };
+  n.textContent=tr(...notes[state.mode]);
+  const action=el('jg60ModeAction');if(!action)return;
+  if(state.mode==='walk')action.innerHTML=`<button onclick="jg60WalkingRoute()">🚶 ${tr('Kira laluan berjalan','Calculate walking route')}</button><p class="jg60note">${tr('Memerlukan sambungan ke pelayan Valhalla awam; laluan mungkin tidak tersedia.','Requires public Valhalla server access; routing may be unavailable.')}</p>`;
+  else if(state.mode==='rail')action.innerHTML=`<button onclick="jg60RailPlanner()">🚆 ${tr('Buka Perancang KTM','Open KTM Planner')}</button>`;
+  else action.replaceChildren();
+ }
+ window.jg60Mode=function(mode){
+  if(!['car','motor','walk','rail'].includes(mode))return;
+  state.mode=mode;save('mode',mode);draw();
+  if(mode==='rail')notice('Gunakan laman operator rasmi untuk perjalanan tren.','Use official operator sites for train journeys.');
+  if(mode==='motor')notice('OSRM tidak mengesahkan jalan khusus motosikal.','OSRM does not verify motorcycle-specific restrictions.');
+ };
+
+ function decodePolyline6(str){
+  let i=0,lat=0,lon=0,coords=[];
+  while(i<str.length){
+   const nums=[];
+   for(let n=0;n<2;n++){
+    let shift=0,result=0,b;
+    do{if(i>=str.length)throw Error('invalid shape');b=str.charCodeAt(i++)-63;result|=(b&31)<<shift;shift+=5;}while(b>=32);
+    nums.push((result&1)?~(result>>1):(result>>1));
+   }
+   lat+=nums[0];lon+=nums[1];coords.push([lat/1e6,lon/1e6]);
+  }
+  return coords;
+ }
+ window.jg60RailPlanner=function(){window.open('https://www.ktmb.com.my/','_blank','noopener,noreferrer');};
+ window.jg60WalkingRoute=async function(){
+  if(!originCoords||!destCoords)return notice('Tetapkan lokasi mula dan destinasi dahulu.','Set start and destination first.');
+  if(navigationActive)return notice('Hentikan navigasi kereta dahulu.','Stop car navigation first.');
+  const action=el('jg60ModeAction');if(action)action.textContent=tr('Mengira laluan berjalan…','Calculating walking route…');
+  try{
+   const payload={locations:[{lat:originCoords.lat,lon:originCoords.lng},{lat:destCoords.lat,lon:destCoords.lng}],costing:'pedestrian',units:'kilometers',directions_options:{units:'kilometers'}};
+   const url='https://valhalla1.openstreetmap.de/route?json='+encodeURIComponent(JSON.stringify(payload));
+   const res=await fetch(url,{signal:AbortSignal.timeout(18000)});if(!res.ok)throw Error('service');
+   const data=await res.json();if(!data.trip?.legs?.length)throw Error('no route');
+   const points=data.trip.legs.flatMap(leg=>decodePolyline6(leg.shape));
+   if(points.length<2)throw Error('empty route');
+   if(routePolyline)map.removeLayer(routePolyline);
+   routePolyline=L.polyline(points,{color:'#16a34a',weight:6,opacity:.9}).addTo(map);
+   map.fitBounds(routePolyline.getBounds(),{padding:[45,45]});
+   // Walking routes intentionally do not populate OSRM driving steps or start car navigation.
+   currentRouteData=null;routes47=[];if(typeof renderChoices47==='function')renderChoices47();
+   const mins=Math.round(data.trip.summary.time/60),km=data.trip.summary.length;
+   notice('Laluan berjalan: '+km.toFixed(1)+' km, '+mins+' min (anggaran).','Walking route: '+km.toFixed(1)+' km, '+mins+' min (estimate).');
+  }catch{
+   notice('Laluan berjalan tidak tersedia. Periksa internet atau cuba lagi.','Walking route unavailable. Check connection or try again.');
+  }finally{updateModeNote();}
+ };
+function voiceList(){
+  if(!('speechSynthesis' in window))return[];
+  return speechSynthesis.getVoices().filter(v=>/^(ms|en)/i.test(v.lang));
+ }
+ function populateVoices(){
+  const select=el('jg60Voice');if(!select)return;
+  const voices=voiceList();state.voices=voices;
+  select.replaceChildren();
+  const auto=document.createElement('option');auto.value='';auto.textContent=tr('Automatik (peranti)','Automatic (device)');select.appendChild(auto);
+  for(const v of voices){const o=document.createElement('option');o.value=v.voiceURI;o.textContent=v.name+' ('+v.lang+')';select.appendChild(o);}
+  select.value=voices.some(v=>v.voiceURI===state.selectedVoice)?state.selectedVoice:'';
+ }
+ window.jg60SetVoice=function(v){state.selectedVoice=v;save('voice',v);};
+ window.jg60TestVoice=function(){
+  if(!('speechSynthesis' in window))return notice('Suara tidak disokong.','Speech not supported.');
+  const utterance=new SpeechSynthesisUtterance(tr('Selamat datang ke JomGerak.','Welcome to JomGerak.'));
+  utterance.lang=appLanguage==='en'?'en-MY':'ms-MY';
+  const voice=state.voices.find(v=>v.voiceURI===state.selectedVoice);if(voice)utterance.voice=voice;
+  speechSynthesis.cancel();speechSynthesis.speak(utterance);
+ };
+ // The existing app uses speechSynthesis; selecting a device voice is applied by intercepting speak().
+ function voiceHook(){
+  if(!('speechSynthesis' in window))return;
+  const original=speechSynthesis.speak.bind(speechSynthesis);
+  try{speechSynthesis.speak=function(utterance){
+   const v=voiceList().find(v=>v.voiceURI===state.selectedVoice);
+   if(v)utterance.voice=v;
+   return original(utterance);
+  };}catch{/* Native browser implementation may not allow overriding. */}
+ }
+ window.jg60VoiceSearch=function(type){
+  const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+  if(!SR)return notice('Carian suara tidak disokong oleh browser.','Voice search unsupported in this browser.');
+  if(state.search){state.search.abort();state.search=null;}
+  const rec=new SR();rec.lang=appLanguage==='en'?'en-MY':'ms-MY';rec.interimResults=false;
+  rec.onresult=ev=>{
+   let query=ev.results[0][0].transcript.trim();
+   query=query.replace(/^(cari|pergi ke|navigasi ke|navigate to|search for|go to)\s+/i,'');
+   const input=el(type==='origin'?'originInput':'destInput');
+   if(!input||query.length<2)return;
+   input.value=query;
+   input.dispatchEvent(new Event('input',{bubbles:true}));
+   if(typeof triggerNominatimSearch==='function')triggerNominatimSearch(query,type);
+   notice('Pilih lokasi daripada hasil carian.','Select a location from search results.');
+  };
+  rec.onerror=()=>notice('Mikrofon tidak tersedia atau akses ditolak.','Microphone unavailable or access denied.');
+  rec.onend=()=>{if(state.search===rec)state.search=null;};
+  state.search=rec;try{rec.start();notice('Sila sebut destinasi.','Say your destination.');}catch{notice('Tidak dapat mengaktifkan mikrofon.','Unable to start microphone.');}
+ };
+ window.jg60Enable3D=function(){
+  if(typeof jgToggle3D==='function'&&!jg3dActive)jgToggle3D();
+  else if(jg3dActive)notice('Paparan 3D sudah aktif.','3D view already active.');
+ };
+ window.jg60EnableFollow=function(){if(typeof setMapView48==='function')setMapView48('follow');};
+ window.jg60OpenOfficial=function(){window.open('https://www.e-solat.gov.my/','_blank','noopener,noreferrer');};
+ function prayerUI(){
+  let panel=el('jg60PrayerPanel');
+  if(!panel){panel=document.createElement('div');panel.id='jg60PrayerPanel';panel.className='jg60prayer';document.body.appendChild(panel);}
+  const zone=saved('zone','SGR02');
+  panel.innerHTML=`<div class="jg60prayerhead"><b>🕌 ${tr('Waktu Solat Malaysia','Malaysia Prayer Times')}</b><button onclick="jg60ClosePrayer()">✕</button></div>
+  <label>${tr('Pilih kawasan rujukan','Choose reference area')}</label>
+  <select id="jg60Zone">${places.map(p=>`<option value="${p.id}" ${zone===p.id?'selected':''}>${esc(p.name)}</option>`).join('')}</select>
+  <button onclick="jg60FetchPrayer()">${tr('Semak Waktu','Check Times')}</button>
+  <div id="jg60PrayerResult" aria-live="polite"></div>
+  <p class="jg60note">${tr('Waktu di bawah adalah anggaran daripada Aladhan mengikut koordinat bandar, bukan jadual zon JAKIM. Untuk waktu rasmi, rujuk e-Solat JAKIM.','Times below are Aladhan coordinate-based estimates, not JAKIM zone schedules. Check e-Solat JAKIM for official times.')}</p>
+  <button onclick="jg60OpenOfficial()">↗ ${tr('e-Solat JAKIM (Rasmi)','e-Solat JAKIM (Official)')}</button>`;
+ }
+ window.jg60Prayer=function(){prayerUI();};
+ window.jg60ClosePrayer=function(){el('jg60PrayerPanel')?.remove();};
+ window.jg60FetchPrayer=async function(){
+  const id=el('jg60Zone')?.value,place=places.find(p=>p.id===id),out=el('jg60PrayerResult');if(!place||!out)return;
+  save('zone',id);out.textContent=tr('Memuatkan waktu…','Loading times…');
+  try{
+   // Coordinate-based prayer times, explicit non-official source; local date in Malaysia.
+   const dt=new Intl.DateTimeFormat('en-GB',{timeZone:'Asia/Kuala_Lumpur',day:'2-digit',month:'2-digit',year:'numeric'}).format(new Date()).replaceAll('/','-');
+   const url=`https://api.aladhan.com/v1/timings/${dt}?latitude=${place.lat}&longitude=${place.lon}&method=3`;
+   const r=await fetch(url,{signal:AbortSignal.timeout(12000)});if(!r.ok)throw Error('unavailable');
+   const data=await r.json(),times=data.data?.timings;if(!times)throw Error('no timings');
+   out.replaceChildren();
+   for(const [key,ms] of [['Fajr','Subuh'],['Sunrise','Syuruk'],['Dhuhr','Zohor'],['Asr','Asar'],['Maghrib','Maghrib'],['Isha','Isyak']]){
+    const row=document.createElement('div');row.className='jg60prayerrow';
+    const name=document.createElement('span');name.textContent=tr(ms,key);
+    const value=document.createElement('strong');value.textContent=String(times[key]||'—').replace(/\s*\(.+\)/,'');
+    row.append(name,value);out.appendChild(row);
+   }
+  }catch{out.textContent=tr('Waktu tidak dapat dimuatkan. Semak jadual rasmi JAKIM.','Unable to load times. Check official JAKIM schedule.');}
+ };
+ function init(){
+  state.mode=saved('mode','car');state.selectedVoice=saved('voice','');
+  const css=document.createElement('style');css.textContent=`
+   .jg60module{border:1px solid #cbd5e1;border-radius:13px;padding:10px;margin:8px 0;background:#f8fafc;color:#172554;font:600 12px Inter,system-ui,sans-serif}
+   .jg60module b{display:block;margin-bottom:8px}.jg60grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px}
+   .jg60module button,.jg60prayer button{padding:10px 6px;border-radius:10px;background:#dbeafe;color:#1d4ed8;font-size:11px;font-weight:700}
+   .jg60module button.jg60active{background:#2563eb;color:white}
+   .jg60module select,.jg60prayer select{display:block;width:100%;padding:9px;border:1px solid #cbd5e1;border-radius:9px;margin:7px 0;color:#0f172a;background:white}
+   .jg60note{font-size:10px!important;line-height:1.55;color:#475569;margin:7px 0}
+   .jg60prayer{position:fixed;z-index:1001;left:12px;right:12px;top:50%;transform:translateY(-50%);max-width:450px;max-height:85dvh;overflow:auto;margin:auto;background:white;color:#0f172a;border-radius:18px;padding:18px;box-shadow:0 0 0 100vmax #0007,0 12px 40px #0004;font:13px Inter,system-ui,sans-serif}
+   .jg60prayerhead{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}
+   .jg60prayerrow{display:flex;justify-content:space-between;padding:9px 4px;border-bottom:1px solid #e2e8f0}
+  `;document.head.appendChild(css);
+  draw();voiceHook();
+  if('speechSynthesis' in window)speechSynthesis.addEventListener?.('voiceschanged',populateVoices);
+  const old=window.setLanguage;
+  if(typeof old==='function')window.setLanguage=function(lang){old(lang);draw();if(el('jg60PrayerPanel'))prayerUI();};
+ }
+ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init);else init();
+})();
+
+</script>
 <div id="jg65Dock" role="group" aria-label="Driving controls">
  <button id="jg65More" type="button" aria-expanded="false" aria-controls="jg65Extra" onclick="jg65ToggleMenu()">☰ Driving</button>
  <div id="jg65Extra">
@@ -2590,5 +3215,833 @@ function jg52TrackOffRoute(pos,progress){
   <button id="jg65View" type="button" onclick="jg65ToggleView()">◩ 3D</button>
  </div>
 </div>
-<script src="./v656.js" defer></script><script src="./v661.js" defer></script><script src="./v662.js" defer></script><script src="./v65.js" defer></script><script src="./v652.js" defer></script><script src="./v653.js" defer></script><script src="./v654.js" defer></script><script src="./v63.js" defer></script><script src="./v64.js" defer></script><script src="./v655.js" defer></script><script src="./v663.js" defer></script><script src="./v664.js" defer></script><script src="./v665.js" defer></script><script src="./v666.js" defer></script><script src="./v669.js" defer></script><script src="./v67.js" defer></script><script src="./v671.js" defer></script></body>
+<script data-bundled-source="v656.js">
+/* JomGerak V6.6 Premium Navigation – view controls, no new paid services */
+'use strict';
+(function(){
+ const translate=(ms,en)=>typeof appLanguage!=='undefined'&&appLanguage==='en'?en:ms;
+ window.jgPremiumMode=async function(mode){
+  try{
+   if(mode==='2d'){
+    if(typeof jg3dActive!=='undefined'&&jg3dActive)await jgToggle3D();
+    if(typeof followGps!=='undefined')followGps=false;
+   }else{
+    if(typeof jg3dActive!=='undefined'&&!jg3dActive)await jgToggle3D();
+    if(!jg3dActive)return;
+    if(mode==='follow'){
+     if(typeof followGps!=='undefined')followGps=true;
+     if(typeof lastGps!=='undefined'&&lastGps)jg3d.easeTo({center:[lastGps.lng,lastGps.lat],zoom:17.2,pitch:58,duration:700});
+    }else{
+     if(typeof followGps!=='undefined')followGps=false;
+     jg3d.easeTo({pitch:55,zoom:Math.max(jg3d.getZoom(),15.5),duration:650});
+    }
+   }
+   const hint=document.getElementById('jgPremiumHint');
+   if(hint)hint.textContent=mode==='2d'?translate('Peta 2D diaktifkan.','2D map enabled.'):mode==='follow'?translate('Kamera mengikut lokasi GPS apabila tersedia.','Camera follows GPS when available.'):translate('Paparan perspektif diaktifkan. Bangunan 3D bergantung pada data peta.','Perspective view enabled. 3D buildings depend on map data.');
+  }catch(e){console.error('Premium mode:',e);if(typeof showToast==='function')showToast(translate('Paparan tidak tersedia.','View unavailable.'),'warning');}
+ };
+ function updateLabels(){
+  const en=typeof appLanguage!=='undefined'&&appLanguage==='en';
+  const title=document.getElementById('jgPremiumHeading');if(title)title.textContent=en?'Premium Navigation Views':'Paparan Navigasi Premium';
+  const labels={ '2d':['Peta 2D','2D Map'],'3d':['Peta 3D','3D Map'],follow:['Ikut GPS','Follow GPS']};
+  document.querySelectorAll('[data-premium]').forEach(el=>{const v=labels[el.dataset.premium];if(v)el.textContent=v[en?1:0];});
+ }
+ document.addEventListener('DOMContentLoaded',()=>{
+  updateLabels();const sel=document.querySelector('select[onchange*="setLanguage"]');if(sel)sel.addEventListener('change',()=>setTimeout(updateLabels,0));
+  const lang=document.querySelector('[id*="language"]');if(lang)lang.addEventListener('change',()=>setTimeout(updateLabels,0));
+ });
+ window.jgPremiumUpdateLabels=updateLabels;
+})();
+
+</script><script data-bundled-source="v661.js">
+/* JomGerak V6.6.1 – persistent visual feedback for premium map mode buttons */
+'use strict';
+(function(){
+ const key='jg-premium-mode';
+ let selected='2d';
+ const buttons=()=>Array.from(document.querySelectorAll('#jgPremiumModes button'));
+ function paint(mode){
+  selected=mode;
+  buttons().forEach(b=>{
+   const active=b.dataset.mode===mode;
+   b.classList.toggle('jg-selected',active);
+   b.setAttribute('aria-pressed',String(active));
+   b.setAttribute('title',active?'Selected / Dipilih':'');
+  });
+ }
+ function detect(){
+  try{
+   if(typeof jg3dActive!=='undefined'&&jg3dActive){
+    if(typeof followGps!=='undefined'&&followGps)return 'follow';
+    return '3d';
+   }
+  }catch(e){}
+  return '2d';
+ }
+ function init(){
+  buttons().forEach((b,i)=>{
+   const mode=['2d','3d','follow'][i];
+   b.dataset.mode=mode;
+   b.setAttribute('aria-pressed','false');
+   // The original onclick remains in place; add a wrapper that paints only after success.
+   const original=b.onclick;
+   b.onclick=null;
+   b.addEventListener('click',async()=>{
+    if(b.classList.contains('jg-loading'))return;
+    b.classList.add('jg-loading');
+    try{
+     if(typeof window.jgPremiumMode==='function')await window.jgPremiumMode(mode);
+     const actual=detect();
+     paint(actual);
+     if(actual===mode){try{sessionStorage.setItem(key,mode)}catch(e){}}
+    }finally{b.classList.remove('jg-loading')}
+   });
+  });
+  paint(detect());
+  document.addEventListener('visibilitychange',()=>{if(!document.hidden)paint(detect())});
+ }
+ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init);else init();
+ window.jgPremiumRefreshSelected=()=>paint(detect());
+})();
+
+</script><script data-bundled-source="v662.js">
+/* V6.6.2 – uniform controls; choices persist, actions flash only. */
+'use strict';
+(function(){
+ const root=()=>document.getElementById('jgProBody');
+ const styleNames=['navigator','maptiler','standard','smart','satellite','night'];
+ const matchStyle=(button)=>{
+  const click=button.getAttribute('onclick')||'';
+  const m=click.match(/setMapStyle48\(['"]([^'"]+)['"]\)/);
+  return m?m[1]:(/jg64MapTiler\(/.test(click)?'maptiler':null);
+ };
+ const matchView=(button)=>{
+  const m=(button.getAttribute('onclick')||'').match(/setMapView48\(['"]([^'"]+)['"]\)/);
+  return m?m[1]:null;
+ };
+ const refresh=()=>{
+  const area=root();if(!area)return;
+  let mapStyle='';let view='';
+  try{mapStyle=typeof mapStyle48!=='undefined'?mapStyle48:'';view=typeof mapView48!=='undefined'?mapView48:'';}catch(e){}
+  if(!styleNames.includes(mapStyle)){try{mapStyle=localStorage.getItem('jomgerak_mapstyle48')||'navigator'}catch(e){mapStyle='navigator'}}
+  if(!view){try{view=localStorage.getItem('jomgerak_mapview48')||'north'}catch(e){view='north'}}
+  area.querySelectorAll('button').forEach(b=>{
+   const st=matchStyle(b), vw=matchView(b);
+   let selected=false,choice=false;
+   if(st){selected=st===mapStyle;choice=true}
+   else if(vw){selected=vw===view;choice=true}
+   else if(b.closest('.jg55tabs')){selected=b.getAttribute('aria-selected')==='true';choice=true}
+   else if(b.closest('#jgPremiumModes')){return;} // v661 controls actual 3D state
+   else if(b.hasAttribute('aria-pressed')){selected=b.getAttribute('aria-pressed')==='true';choice=true}
+   if(choice){b.classList.add('jg-ui-choice');b.classList.toggle('jg-ui-selected',selected);b.setAttribute('aria-pressed',String(selected));}
+  });
+ };
+ function init(){
+  const area=root();if(!area)return;
+  // Delegation also handles dynamically rendered tools without replacing original click handlers.
+  area.addEventListener('click',event=>{
+   const b=event.target.closest('button');if(!b||!area.contains(b)||b.disabled)return;
+   b.classList.remove('jg-ui-tap');void b.offsetWidth;b.classList.add('jg-ui-tap');
+   setTimeout(()=>{b.classList.remove('jg-ui-tap');refresh()},350);
+  });
+  refresh();
+  // Refresh after existing routing/map-view callbacks, including programmatic changes.
+  ['setMapStyle48','setMapView48','jg64MapTiler','jg55Tab','jgPremiumMode'].forEach(name=>{
+   const fn=window[name];if(typeof fn!=='function')return;
+   window[name]=function(...args){const result=fn.apply(this,args);Promise.resolve(result).finally(()=>setTimeout(refresh,50));return result;};
+  });
+  document.addEventListener('visibilitychange',()=>{if(!document.hidden)refresh()});
+  window.jg662Refresh=refresh;
+ }
+ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init);else init();
+})();
+
+</script><script data-bundled-source="v65.js">
+/* JomGerak 6.5 – real GPS follow UI, no simulated location */
+'use strict';
+(function(){
+ let follow=true,mode='2d',lastCamAt=0,hasNav=false,overview=false;
+ const el=id=>document.getElementById(id);
+ const tr=(ms,en)=>typeof appLanguage!=='undefined'&&appLanguage==='en'?en:ms;
+ function info(ms,en){if(typeof showToast==='function')showToast(tr(ms,en),'info');}
+ function setUI(){
+  const nav=typeof navigationActive!=='undefined'&&navigationActive;
+  hasNav=nav;
+  if(nav&&typeof map!=='undefined'&&map&&typeof map.closePopup==='function')map.closePopup();
+  document.body.classList.toggle('jg65-driving',nav);
+  const start=el('jg65Start');if(start)start.textContent=nav?tr('■ Henti','■ Stop'):tr('▶ Mula Pandu','▶ Start Driving');
+  const dock=el('jg65Dock');if(dock&&!nav)dock.classList.remove('jg65expanded');
+  const more=el('jg65More');if(more){more.textContent=tr('☰ Pandu','☰ Driving');more.setAttribute('aria-expanded',String(Boolean(dock?.classList.contains('jg65expanded'))));}
+  const view=el('jg65View');if(view)view.textContent=mode==='3d'?'▣ 2D':'◩ 3D';
+ }
+ window.jg65ToggleMenu=function(){const dock=el('jg65Dock'),more=el('jg65More');if(!dock||!navigationActive)return;const expanded=dock.classList.toggle('jg65expanded');if(more)more.setAttribute('aria-expanded',String(expanded));};
+ window.jg65Start=function(){
+  if(typeof startVoiceNavigation!=='function')return;
+  if(navigationActive){stopLiveNavigation();setUI();return;}
+  if(!currentRouteData||!destCoords){info('Pilih destinasi dan tekan Cari Laluan dahulu.','Choose a destination and find a route first.');return;}
+  if(mode==='3d'&&!jg3dActive){jgToggle3D().then(()=>{if(jg3dActive)startVoiceNavigation();setUI();});return;}
+  startVoiceNavigation();follow=true;overview=false;setUI();
+ };
+ window.jg65Overview=function(){
+  if(!currentRouteData||!routePolyline){info('Cari laluan dahulu untuk melihat keseluruhan perjalanan.','Find a route first to see the overview.');return;}
+  overview=true;follow=false;followGps=false;
+  if(jg3dActive&&jg3d){
+   try{const b=routePolyline.getBounds();jg3d.fitBounds([[b.getWest(),b.getSouth()],[b.getEast(),b.getNorth()]],{padding:75,pitch:0,duration:650});}catch{}
+  }else if(map){map.fitBounds(routePolyline.getBounds(),{padding:[60,60]});}
+  info('Paparan keseluruhan laluan. Tekan Recenter untuk ikut GPS semula.','Route overview. Press Recenter to follow GPS again.');
+ };
+ window.jg65Recenter=function(){
+  follow=true;overview=false;followGps=true;
+  if(!lastGps){info('Menunggu bacaan GPS.','Waiting for GPS fix.');return;}
+  if(jg3dActive&&jg3d)jg3d.easeTo({center:[lastGps.lng,lastGps.lat],zoom:17,pitch:54,duration:600});
+  else if(map)map.setView([lastGps.lat,lastGps.lng],17,{animate:true});
+ };
+ window.jg65ToggleView=async function(){
+  if(typeof jgToggle3D!=='function')return;
+  await jgToggle3D();mode=jg3dActive?'3d':'2d';setUI();
+  if(navigationActive&&follow)window.jg65Recenter();
+ };
+ window.jg65OnGps=function(pos){
+  if(!navigationActive||!follow||overview)return;
+  if(Date.now()-lastCamAt<850)return;
+  lastCamAt=Date.now();
+  const {latitude:lat,longitude:lng,heading,speed,accuracy}=pos.coords;
+  if(!Number.isFinite(lat)||!Number.isFinite(lng)||accuracy>120)return;
+  if(jg3dActive&&jg3d){
+   const bearing=Number.isFinite(heading)&&Number(speed)>1.5?heading:jg3d.getBearing();
+   jg3d.easeTo({center:[lng,lat],zoom:17,pitch:54,bearing,duration:850,padding:{top:Math.round(innerHeight*.15),bottom:Math.round(innerHeight*.18),left:0,right:0}});
+  }else if(map){map.panTo([lat,lng],{animate:true,duration:.7});}
+ };
+ window.jg65NavChanged=setUI;
+ function init(){setUI();
+  const panel=el('jg55TripTab')||el('jgProPanel');
+  if(panel){const note=document.createElement('p');note.style.cssText='padding:8px;font:600 11px system-ui;color:#64748b';note.textContent=tr('V6.5: Cari Laluan → Start Driving. Gunakan Overview dan Recenter untuk kamera.','V6.5: Find Route → Start Driving. Use Overview and Recenter for camera.');panel.prepend(note);}
+ }
+ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init);else init();
+})();
+
+</script><script data-bundled-source="v652.js">
+/* JomGerak V6.5.2 — voice choices from installed device TTS voices. */
+'use strict';
+(function(){
+ const $=id=>document.getElementById(id);
+ const key='jg652_voice_id';
+ function voices(){return ('speechSynthesis' in window)?speechSynthesis.getVoices():[];}
+ function id(v){return [v.voiceURI,v.name,v.lang].join('||');}
+ function refresh(){
+  const e=$('jg652VoiceSelect');if(!e)return;
+  const previous=localStorage.getItem(key)||'';
+  const available=voices().filter(v=>/^(ms|en|id)(-|_)/i.test(v.lang));
+  e.replaceChildren(new Option('Automatic (device)',''));
+  for(const v of available)e.add(new Option(v.name+' ('+v.lang+')',id(v)));
+  if(available.some(v=>id(v)===previous))e.value=previous;
+  else {e.value='';if(previous)localStorage.removeItem(key);}
+  const hint=$('jg652VoiceHint');
+  if(hint)hint.textContent=available.length?
+   'Pilih daripada '+available.length+' suara yang tersedia. Jantina suara tidak dapat disahkan secara automatik; cuba Test Voice.':
+   'Tiada suara BM/English tersedia pada browser ini. Pasang suara melalui tetapan text-to-speech telefon.';
+ }
+ window.jg652SelectedVoice=function(){
+  const selected=localStorage.getItem(key);return voices().find(v=>id(v)===selected)||null;
+ };
+ window.jg652SaveVoice=function(){try{localStorage.setItem(key,$('jg652VoiceSelect')?.value||'');}catch{}};
+ window.jg652TestVoice=function(){
+  if(!('speechSynthesis' in window))return;
+  const lang=typeof appLanguage!=='undefined'&&appLanguage==='en';
+  const u=new SpeechSynthesisUtterance(lang?'In two hundred metres, turn left.':'Dalam dua ratus meter, belok kiri.');
+  const v=window.jg652SelectedVoice();
+  if(v){u.voice=v;u.lang=v.lang;}else u.lang=lang?'en-US':'ms-MY';
+  u.rate=Number($('jgVoiceRate')?.value)||1;
+  speechSynthesis.cancel();speechSynthesis.speak(u);
+ };
+ function boot(){refresh();if('speechSynthesis' in window)speechSynthesis.addEventListener?.('voiceschanged',refresh);}
+ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot);else boot();
+})();
+
+</script><script data-bundled-source="v653.js">
+/* JomGerak V6.5.3 — UI icons and transparent manual toll cost */
+'use strict';
+(function(){
+const $=id=>document.getElementById(id);
+const emojiIcons=[
+ ['🧭','fa-compass'],['🗺️','fa-map'],['🗺','fa-map'],['🚗','fa-car'],['🚘','fa-car-side'],['🚙','fa-car-side'],['🏍️','fa-motorcycle'],['🏍','fa-motorcycle'],['🚶','fa-person-walking'],['🏃','fa-person-running'],['🚆','fa-train'],['🚉','fa-train'],['🕌','fa-mosque'],['🚦','fa-traffic-light'],['🎤','fa-microphone'],['🎙️','fa-microphone'],['🎙','fa-microphone'],['📱','fa-mobile-screen'],['⚙️','fa-gear'],['⚙','fa-gear'],['🛣️','fa-road'],['🛣','fa-road'],['🌦️','fa-cloud-sun-rain'],['🌦','fa-cloud-sun-rain'],['⏱️','fa-clock-rotate-left'],['⏱','fa-clock-rotate-left'],['⭐','fa-star'],['📍','fa-location-dot'],['📄','fa-file-export'],['🔁','fa-arrows-rotate'],['🛡️','fa-shield-halved'],['🛡','fa-shield-halved'],['🧰','fa-toolbox'],['💰','fa-coins'],['💸','fa-wallet'],['📥','fa-download'],['🌤️','fa-cloud-sun'],['🌤','fa-cloud-sun'],['🛰️','fa-satellite'],['🛰','fa-satellite'],['🌙','fa-moon'],['⬆️','fa-arrow-up'],['⬆','fa-arrow-up'],['⚡','fa-bolt'],['⛽','fa-gas-pump'],['▶️','fa-play'],['▶','fa-play'],['■','fa-stop'],['🕒','fa-clock'],['🔊','fa-volume-high'],['🎯','fa-bullseye'],['🏛️','fa-landmark'],['🏛','fa-landmark'],['🦁','fa-paw'],['🗼','fa-tower-observation'],['✕','fa-xmark'],['🚨','fa-triangle-exclamation'],['📝','fa-pen-to-square'],['☰','fa-bars'],['◎','fa-location-crosshairs'],['◩','fa-cube'],['↗','fa-share']
+];
+const pattern=new RegExp(emojiIcons.map(x=>x[0].replace(/[.*+?^${}()|[\]\\]/g,'\\$&')).sort((a,b)=>b.length-a.length).join('|'),'g');
+let scheduled=false,processing=false;
+function polish(){
+ if(processing)return;processing=true;
+ try{
+  const targets=document.querySelectorAll('button, .jg55tabs button, #routeChoices47 b, #jgProPanel .jgrow b, #jg65Dock button');
+  for(const el of targets){
+   const walker=document.createTreeWalker(el,NodeFilter.SHOW_TEXT);
+   const nodes=[];while(walker.nextNode())nodes.push(walker.currentNode);
+   for(const n of nodes){
+    const t=n.nodeValue;if(!t||!pattern.test(t)){pattern.lastIndex=0;continue;}pattern.lastIndex=0;
+    const frag=document.createDocumentFragment();let last=0;
+    for(const m of t.matchAll(pattern)){
+      if(m.index>last)frag.appendChild(document.createTextNode(t.slice(last,m.index)));
+      const found=emojiIcons.find(x=>x[0]===m[0]);
+      const i=document.createElement('i');i.className='fa-solid '+found[1]+' jg653-icon';i.setAttribute('aria-hidden','true');frag.appendChild(i);
+      last=m.index+m[0].length;
+    }
+    if(last<t.length)frag.appendChild(document.createTextNode(t.slice(last)));
+    n.replaceWith(frag);
+   }
+  }
+ }finally{processing=false;}
+}
+// V6.5.4 toll checking and display are handled by v654.js.
+function boot(){
+ polish();
+ new MutationObserver(()=>{if(!scheduled){scheduled=true;requestAnimationFrame(()=>{scheduled=false;polish();});}}).observe(document.body,{childList:true,subtree:true,characterData:true});
+}
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot);else boot();
+})();
+
+</script><script data-bundled-source="v654.js">
+/* JomGerak V6.5.4 — automatic OSM toll road flag detection, NOT a toll price API. */
+'use strict';
+(function(){
+ const $=id=>document.getElementById(id);
+ let generation=0,controller=null;
+ function status(title,note){window.jg654LastStatus={title,note};if($('jg653TollAmount'))$('jg653TollAmount').textContent=title;if($('jg654TollNote'))$('jg654TollNote').textContent=note;window.jg655Translate?.();}
+ const defaultNote='Kos petrol dipaparkan berasingan. Harga tol automatik memerlukan kadar plaza yang disahkan.';
+ function sample(coords,count){
+  const chosen=[];
+  for(let i=0;i<count;i++){
+   const idx=Math.round(i*(coords.length-1)/Math.max(1,count-1));const c=coords[idx];
+   if(c&&Number.isFinite(c[0])&&Number.isFinite(c[1]))chosen.push(c);
+  }
+  return chosen;
+ }
+ function distToSegmentMeters(p,a,b){
+  const kx=111320*Math.cos(p[1]*Math.PI/180),ky=110540;
+  const vx=(b[0]-a[0])*kx,vy=(b[1]-a[1])*ky;
+  const wx=(p[0]-a[0])*kx,wy=(p[1]-a[1])*ky;
+  const t=Math.max(0,Math.min(1,(wx*vx+wy*vy)/(vx*vx+vy*vy||1)));
+  return Math.hypot(wx-t*vx,wy-t*vy);
+ }
+ function nearRoute(geometry,coords){
+  if(!geometry?.length)return false;
+  const sampled=sample(coords,Math.min(120,coords.length));
+  for(const p of sampled)for(let i=1;i<geometry.length;i++){
+   if(distToSegmentMeters(p,geometry[i-1],geometry[i])<75)return true;
+  }
+  return false;
+ }
+ window.jg654ResetToll=function(){generation++;if(controller)controller.abort();status('Tol: menunggu laluan',defaultNote);};
+ window.jg654CheckToll=async function(){
+  const coords=(typeof currentRouteData!=='undefined'&&currentRouteData?.geometry?.coordinates)||[];
+  if(!coords.length){status('Tol: menunggu laluan',defaultNote);return;}
+  const mine=++generation;
+  if(controller)controller.abort();controller=new AbortController();
+  const timeout=setTimeout(()=>controller.abort(),13000);
+  status('Tol: sedang menyemak laluan…','Menyemak penandaan jalan bertol dalam OpenStreetMap.');
+  try{
+   const pts=sample(coords,Math.min(12,coords.length));
+   const query='[out:json][timeout:12];('+pts.map(p=>'way(around:100,'+p[1].toFixed(5)+','+p[0].toFixed(5)+')["toll"="yes"];').join('')+');out geom 100;';
+   const response=await fetch('https://overpass.kumi.systems/api/interpreter',{method:'POST',body:new URLSearchParams({data:query}),signal:controller.signal});
+   if(!response.ok)throw Error('OSM unavailable');
+   const data=await response.json();if(mine!==generation)return;
+   const matches=(data.elements||[]).filter(w=>w.type==='way'&&w.geometry&&nearRoute(w.geometry.map(p=>[p.lon,p.lat]),coords));
+   if(matches.length){status('Tol: jalan bertol dikesan • RM belum tersedia','Pengesanan automatik daripada penandaan OpenStreetMap; kadar tol dan plaza tidak dapat disahkan.');}
+   else{status('Tol: belum dapat disahkan • RM belum tersedia','Tiada jalan bertol berlabel dikesan dalam sampel. Ini TIDAK bermakna laluan bebas tol.');}
+  }catch(e){if(mine===generation)status('Tol: semakan tidak tersedia',defaultNote);}
+  finally{clearTimeout(timeout);}
+ };
+ // A fresh route is checked by the route-selection and route-creation handlers.
+})();
+
+</script><script data-bundled-source="v63.js">
+/* JomGerak 6.3: additional working browser/PWA modes; no fictitious live traffic data. */
+'use strict';
+(function(){
+ const $=id=>document.getElementById(id);
+ const T=(ms,en)=>typeof appLanguage!=='undefined'&&appLanguage==='en'?en:ms;
+ const toast=(ms,en)=>{if(typeof showToast==='function')showToast(T(ms,en),'info');};
+ const safe=(v)=>String(v).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+ const state={timer:null,watch:null,started:0,points:[],meters:0,last:null,paused:false,elapsed:0,signalLayer:null,signalAbort:null,open:false};
+ function km(m){return (m/1000).toFixed(2);}
+ function duration(ms){let n=Math.floor(ms/1000);return String(Math.floor(n/3600)).padStart(2,'0')+':'+String(Math.floor(n/60)%60).padStart(2,'0')+':'+String(n%60).padStart(2,'0');}
+ function distance(a,b){const R=6371000,rad=x=>x*Math.PI/180,dlat=rad(b.lat-a.lat),dlon=rad(b.lon-a.lon),v=Math.sin(dlat/2)**2+Math.cos(rad(a.lat))*Math.cos(rad(b.lat))*Math.sin(dlon/2)**2;return 2*R*Math.asin(Math.min(1,Math.sqrt(v)));}
+ function storage(key,def){try{return JSON.parse(localStorage.getItem('jg63_'+key))??def;}catch{return def;}}
+ function put(key,v){try{localStorage.setItem('jg63_'+key,JSON.stringify(v));return true;}catch{return false;}}
+ function ui(){const host=$('jg63Host');if(host)host.remove();const panel=$('jg63RunPanel');if(panel)refreshRun();}
+ window.jg63Toggle=function(){state.open=!state.open;ui();};
+ function dialog(){let e=$('jg63RunPanel');if(!e){e=document.createElement('div');e.id='jg63RunPanel';e.className='jg63dialog';e.setAttribute('role','dialog');e.setAttribute('aria-label','JomGerak Run');document.body.append(e);}return e;}
+ function elapsed(){return state.elapsed+(state.watch!==null&&!state.paused?Date.now()-state.started:0);}
+ function refreshRun(){const e=$('jg63RunPanel');if(!e)return;const active=state.watch!==null;
+  const pace=state.meters>100?elapsed()/60000/(state.meters/1000):null;
+  e.innerHTML=`<div class="jg63dialoghead"><strong>🏃 JomGerak Run</strong><button onclick="jg63RunClose()" aria-label="Close">✕</button></div>
+   <div class="jg63stats"><div><b>${km(state.meters)}</b><small>km</small></div><div><b>${duration(elapsed())}</b><small>${T('Tempoh','Duration')}</small></div><div><b>${pace?pace.toFixed(1):'—'}</b><small>min/km</small></div></div>
+   <p class="jg63small">${T('Jejak GPS hanya direkod semasa aplikasi aktif. GPS kurang tepat akan diabaikan. Jangan gunakan semasa memandu.','GPS tracks only while the app remains active. Low-accuracy fixes are ignored. Do not use while driving.')}</p>
+   <div class="jg63actions">${active?`<button onclick="jg63StopRun()">⏹ ${T('Tamat & Simpan','Finish & Save')}</button>`:`<button onclick="jg63StartRun()">▶ ${T('Mula Rekod','Start Tracking')}</button>`}<button onclick="jg63ExportGPX()">⬇ GPX</button><button onclick="jg63History()">🕘 ${T('Sejarah','History')}</button></div>
+   <div id="jg63History" class="jg63history"></div>`;
+ }
+ window.jg63RunOpen=function(){dialog();refreshRun();};
+ window.jg63RunClose=function(){if(state.watch!==null){toast('Tamatkan rakaman dahulu sebelum tutup.','Finish recording before closing.');return;}$('jg63RunPanel')?.remove();};
+ window.jg63StartRun=function(){
+  if(state.watch!==null)return;
+  if(!navigator.geolocation)return toast('GPS tidak disokong.','GPS unsupported.');
+  if(typeof navigationActive!=='undefined'&&navigationActive)return toast('Hentikan navigasi pemanduan dahulu.','Stop driving navigation first.');
+  state.started=Date.now();state.elapsed=0;state.points=[];state.meters=0;state.last=null;
+  try{state.watch=navigator.geolocation.watchPosition(pos=>{
+   const c=pos.coords;if(!Number.isFinite(c.latitude)||!Number.isFinite(c.longitude)||c.accuracy>55)return;
+   const p={lat:c.latitude,lon:c.longitude,at:Date.now(),acc:c.accuracy};
+   if(state.last){const dt=(p.at-state.last.at)/1000,delta=distance(state.last,p);if(dt<2||delta<4||delta/dt>9)return;state.meters+=delta;}
+   state.last=p;state.points.push(p);if(state.points.length>15000)state.points.shift();
+   if(typeof map!=='undefined'&&map&&state.points.length===1)map.setView([p.lat,p.lon],16);
+   refreshRun();
+  },()=>toast('Tidak dapat menerima lokasi GPS.','Unable to receive GPS location.'),{enableHighAccuracy:true,maximumAge:1000,timeout:15000});
+  }catch{state.watch=null;toast('GPS tidak dapat dimulakan.','Unable to start GPS.');}
+  state.timer=setInterval(()=>{if($('jg63RunPanel'))refreshRun();},1000);
+  refreshRun();
+ };
+ window.jg63StopRun=function(){
+  if(state.watch===null)return;
+  navigator.geolocation.clearWatch(state.watch);state.watch=null;if(state.timer)clearInterval(state.timer);state.timer=null;state.elapsed+=Date.now()-state.started;
+  if(state.points.length){const history=storage('runs',[]);history.unshift({date:new Date().toISOString(),meters:Math.round(state.meters),durationMs:state.elapsed,points:state.points});if(!put('runs',history.slice(0,15)))toast('Storan penuh; eksport GPX untuk simpan.','Storage full; export GPX to save.');}
+  refreshRun();toast('Aktiviti telah disimpan pada peranti.','Activity saved on this device.');
+ };
+ function exportGPX(points){if(!points?.length)return toast('Tiada rekod GPS untuk dieksport.','No GPS track to export.');
+  const body=points.map(p=>`<trkpt lat="${p.lat.toFixed(6)}" lon="${p.lon.toFixed(6)}"><time>${new Date(p.at).toISOString()}</time></trkpt>`).join('');
+  const xml=`<?xml version="1.0" encoding="UTF-8"?><gpx version="1.1" creator="JomGerak" xmlns="http://www.topografix.com/GPX/1/1"><trk><name>JomGerak Run</name><trkseg>${body}</trkseg></trk></gpx>`;
+  const blob=new Blob([xml],{type:'application/gpx+xml'}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='jomgerak-run-'+new Date().toISOString().slice(0,10)+'.gpx';document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1500);
+ }
+ window.jg63ExportGPX=function(){exportGPX(state.points.length?state.points:storage('runs',[])[0]?.points);};
+ window.jg63ExportSaved=function(index){exportGPX(storage('runs',[])[index]?.points);};
+ window.jg63History=function(){const e=$('jg63History');if(!e)return;const items=storage('runs',[]);e.innerHTML=items.length?items.map((r,i)=>`<div>${safe(new Date(r.date).toLocaleString())} · ${(r.meters/1000).toFixed(2)} km · ${duration(r.durationMs)} <button onclick="jg63ExportSaved(${i})">GPX</button></div>`).join(''):T('Belum ada rekod.','No saved activities.');};
+ window.jg63Mapbox=function(kind){
+  const token=window.JOMGERAK_CONFIG?.mapboxPublicToken;
+  if(!token)return toast('Masukkan Mapbox public token dalam config.js dahulu.','Add a Mapbox public token in config.js first.');
+  const style=kind==='satellite'?'satellite-v9':'streets-v12';
+  const url=`https://api.mapbox.com/styles/v1/mapbox/${style}/tiles/256/{z}/{x}/{y}?access_token=${encodeURIComponent(token)}`;
+  mapSources48['mapbox-'+kind]={url,maxZoom:20,attribution:'© Mapbox © OpenStreetMap'};
+  setMapStyle48('mapbox-'+kind);
+ };
+ window.jg63Signals=async function(){
+  if(typeof map==='undefined'||!map)return;
+  if(state.signalLayer){map.removeLayer(state.signalLayer);state.signalLayer=null;state.signalAbort?.abort();toast('Lapisan lampu isyarat dimatikan.','Traffic signal layer disabled.');return;}
+  const center=map.getCenter(),radius=2500;state.signalAbort=new AbortController();
+  toast('Memuatkan lokasi lampu isyarat…','Loading traffic signal locations…');
+  try{
+   const q=`[out:json][timeout:15];node[highway=traffic_signals](around:${radius},${center.lat.toFixed(5)},${center.lng.toFixed(5)});out center 150;`;
+   const r=await fetch('https://overpass.kumi.systems/api/interpreter',{method:'POST',body:'data='+encodeURIComponent(q),headers:{'Content-Type':'application/x-www-form-urlencoded'},signal:AbortSignal.any([state.signalAbort.signal,AbortSignal.timeout(18000)])});
+   if(!r.ok)throw Error('HTTP '+r.status);const json=await r.json();const group=L.layerGroup();
+   for(const p of json.elements||[]){if(Number.isFinite(p.lat)&&Number.isFinite(p.lon))L.circleMarker([p.lat,p.lon],{radius:6,color:'#fff',weight:2,fillColor:'#eab308',fillOpacity:.95}).bindPopup(T('🚦 Lampu isyarat (OSM). Masa pertukaran tidak tersedia.','🚦 Traffic signal (OSM). Timing unavailable.')).addTo(group);}
+   group.addTo(map);state.signalLayer=group;toast('Lokasi lampu isyarat dipaparkan jika direkodkan di OSM.','Traffic signals shown where mapped in OSM.');
+  }catch(e){if(e.name!=='AbortError')toast('Data lampu isyarat tidak tersedia.','Traffic signal data unavailable.');}
+ };
+ window.jg63DeviceInfo=function(){toast('Android Auto, Apple CarPlay dan jam pintar memerlukan aplikasi native; PWA tidak boleh menyambung terus.','Android Auto, Apple CarPlay and smartwatches need native apps; PWA cannot directly integrate.');};
+ window.jg63Install=function(){toast('Android Chrome: menu ⋮ → Add to Home screen / Install app.','Android Chrome: menu ⋮ → Add to Home screen / Install app.');};
+ function init(){
+  const css=document.createElement('style');css.textContent=`
+   #jg63Host{background:#f1f5f9;border:1px solid #cbd5e1;border-radius:14px;margin:0 0 8px;padding:10px;color:#0f172a;font:600 12px system-ui}
+   .jg63head,.jg63dialoghead{display:flex;align-items:center;justify-content:space-between;gap:10px}.jg63head button,.jg63dialoghead button{border-radius:10px;background:#dbeafe;padding:7px 12px;color:#1d4ed8}
+   .jg63modes{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;margin-top:8px}.jg63modes button{border:1px solid #cbd5e1;border-radius:10px;padding:9px 3px;background:#fff;font-size:11px;font-weight:700;min-height:44px}
+   .jg63small{font-size:11px!important;line-height:1.45;color:#64748b;margin:9px 0}.jg63dialog{position:fixed;z-index:1600;inset:auto 12px 12px;max-width:460px;max-height:82dvh;overflow:auto;margin:auto;background:#fff;border-radius:18px;padding:16px;box-shadow:0 0 0 100vmax #0009,0 14px 40px #0004;color:#0f172a;font:13px system-ui}
+   .jg63stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:15px 0}.jg63stats div{background:#eff6ff;border-radius:12px;text-align:center;padding:12px 4px}.jg63stats b{font-size:19px;display:block}.jg63stats small{font-size:10px;color:#64748b}
+   .jg63actions{display:flex;flex-wrap:wrap;gap:6px}.jg63actions button,.jg63history button{border-radius:10px;padding:10px;background:#2563eb;color:#fff;font-weight:700}.jg63history{max-height:160px;overflow:auto;margin-top:10px}.jg63history>div{border-top:1px solid #ddd;padding:8px 0}
+   #jg63Body[hidden]{display:none!important}
+  `;document.head.append(css);ui();
+  const old=window.setLanguage;if(typeof old==='function')window.setLanguage=function(lang){old(lang);ui();if($('jg63RunPanel'))refreshRun();};
+  // No automatic GPS tracking or permission prompts. User explicitly starts Run.
+ }
+ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init);else init();
+})();
+
+</script><script data-bundled-source="v64.js">
+/* JomGerak V6.4: runtime public config + live nearby road flow status. */
+'use strict';
+(function(){
+ const tr=(ms,en)=>typeof appLanguage!=='undefined'&&appLanguage==='en'?en:ms;
+ const el=id=>document.getElementById(id);
+ const state={ready:false,traffic:false,community:false,maptiler:false};
+ function toast(ms,en){if(typeof showToast==='function')showToast(tr(ms,en),'info');}
+ function setStatus(){
+  const e=el('jg64Status');if(!e)return;
+  e.textContent=`MapTiler: ${state.maptiler?'✓':'—'}  •  Supabase: ${state.community?'✓':'—'}  •  TomTom: ${state.traffic?'✓':'—'}`;
+ }
+ async function boot(){
+  await window.jg64Refresh();
+ }
+ window.jg64Refresh=async function(){
+  try{
+   const r=await fetch('/api/public-config',{cache:'no-store',signal:AbortSignal.timeout(10000)});
+   if(!r.ok)throw Error('HTTP '+r.status);
+   const data=await r.json();
+   state.maptiler=Boolean(data.maptilerKey);state.community=Boolean(data.communityEnabled);state.traffic=Boolean(data.trafficEnabled);
+   if(window.JOMGERAK_CONFIG){
+    window.JOMGERAK_CONFIG.maptilerKey=data.maptilerKey||'';
+    window.JOMGERAK_CONFIG.communityApi=state.community?'/api/reports':'';
+   }
+   // Original app captures config by reference, so these updates reach JG_CFG.
+   if(state.community&&typeof jgRefreshReports==='function')jgRefreshReports();
+   setStatus();
+  }catch{setStatus();}
+ };
+ window.jg64MapTiler=function(){
+  const key=window.JOMGERAK_CONFIG?.maptilerKey;
+  if(!key)return toast('MapTiler belum dikonfigurasi di Vercel.','MapTiler not configured in Vercel.');
+  if(typeof mapSources48==='undefined'||typeof setMapStyle48!=='function')return;
+  mapSources48.maptiler={url:'https://api.maptiler.com/maps/streets-v2/256/{z}/{x}/{y}.png?key='+encodeURIComponent(key),maxZoom:19,attribution:'© MapTiler © OpenStreetMap contributors',filter:'none'};
+  setMapStyle48('maptiler');
+  toast('MapTiler diaktifkan. Jika gagal, peta akan kembali ke OpenStreetMap.','MapTiler enabled. If it fails, the map falls back to OpenStreetMap.');
+ };
+ window.jg64Traffic=async function(){
+  if(!state.traffic)return toast('TomTom API belum dikonfigurasi.','TomTom API not configured.');
+  const center=typeof lastGps!=='undefined'&&lastGps?lastGps:(typeof map!=='undefined'&&map?map.getCenter():null);
+  if(!center)return toast('Lokasi peta tidak tersedia.','Map location unavailable.');
+  try{
+   const url='/api/traffic?lat='+encodeURIComponent(center.lat)+'&lng='+encodeURIComponent(center.lng);
+   const r=await fetch(url,{cache:'no-store',signal:AbortSignal.timeout(12000)});
+   const j=await r.json();if(!r.ok)throw Error(j.error||'Traffic API failed');
+   const current=Number(j.currentSpeed),free=Number(j.freeFlowSpeed);
+   const msg=tr('TomTom: kelajuan jalan berdekatan ','TomTom: nearby road speed ')+
+    (Number.isFinite(current)?current+' km/j':'—')+
+    tr(' (aliran bebas ',' (free flow ')+(Number.isFinite(free)?free+' km/j':'—')+')'+
+    (j.roadClosure?tr(' • Jalan dilaporkan ditutup',' • Road closure reported'):'');
+   toast(msg,msg);
+   const e=el('jg64Status');if(e)e.textContent=msg;
+  }catch(e){toast('Data trafik tidak tersedia: '+e.message,'Traffic unavailable: '+e.message);}
+ };
+ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot);else boot();
+})();
+
+</script><script data-bundled-source="v655.js">
+/* JomGerak V6.5.5: BM/EN dynamic translation fixes. */
+'use strict';
+(function(){
+ const dictionary={
+  'Semakan Tol Automatik':'Automatic Toll Check',
+  'Semak':'Check',
+  'Tol: menunggu laluan':'Toll: Waiting for a route',
+  'Tol: sedang menyemak laluan…':'Toll: Checking route…',
+  'Tol: jalan bertol dikesan • RM belum tersedia':'Toll road detected • Price unavailable',
+  'Tol: belum dapat disahkan • RM belum tersedia':'Toll status unverified • Price unavailable',
+  'Tol: semakan tidak tersedia':'Toll check unavailable',
+  'Kos petrol dipaparkan berasingan. Harga tol automatik memerlukan kadar plaza yang disahkan.':'Fuel cost is displayed separately. Automatic toll pricing requires verified toll-plaza rates.',
+  'Kos petrol dan tol dipaparkan berasingan. Harga tol memerlukan data kadar plaza yang disahkan.':'Fuel and toll costs are displayed separately. Toll pricing requires verified toll-plaza rates.',
+  'Menyemak penandaan jalan bertol dalam OpenStreetMap.':'Checking toll-road tags in OpenStreetMap.',
+  'Pengesanan automatik daripada penandaan OpenStreetMap; kadar tol dan plaza tidak dapat disahkan.':'Detected from OpenStreetMap tags; toll rates and plazas are not verified.',
+  'Tiada jalan bertol berlabel dikesan dalam sampel. Ini TIDAK bermakna laluan bebas tol.':'No tagged toll roads found in the sampled route. This does NOT confirm a toll-free route.',
+  'Caj tol dan status tol belum disahkan.':'Toll charges and toll status are unverified.',
+  'Laluan Alternatif':'Alternative Routes',
+  'Anggaran Kos Perjalanan':'Estimated Travel Cost',
+  'Kos Perjalanan':'Travel Cost'
+ };
+ const original={};
+ function language(){return (typeof appLanguage!=='undefined'?appLanguage:document.documentElement.lang)==='en'?'en':'ms';}
+ function translate(s){return dictionary[s]||s;}
+ function apply(id,source){const el=document.getElementById(id);if(!el)return;el.textContent=language()==='en'?translate(source):source;}
+ window.jg655Translate=function(){
+  apply('jg653TollTitle','Semakan Tol Automatik');
+  apply('jg655Unverified','Caj tol dan status tol belum disahkan.');
+  const retry=document.getElementById('jg654Retry');if(retry){const i=retry.querySelector('i');retry.textContent=language()==='en'?' Check':' Semak';if(i)retry.prepend(i);else retry.insertAdjacentHTML('afterbegin','<i class="fa-solid fa-rotate" aria-hidden="true"></i> ');}
+  const status=window.jg654LastStatus;
+  if(status){apply('jg653TollAmount',status.title);apply('jg654TollNote',status.note);}
+  else{apply('jg653TollAmount','Tol: menunggu laluan');apply('jg654TollNote','Kos petrol dan tol dipaparkan berasingan. Harga tol memerlukan data kadar plaza yang disahkan.');}
+  const choices=document.querySelector('#routeChoices47 b');if(choices){const icons=choices.querySelectorAll('i');choices.textContent=language()==='en'?'Alternative Routes':'Laluan Alternatif';icons.forEach(i=>choices.prepend(i));}
+ };
+ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',()=>window.jg655Translate());else window.jg655Translate();
+})();
+
+</script><script data-bundled-source="v663.js">
+/* JomGerak V6.6.3 — consistent bilingual UI, including late-created controls. */
+'use strict';
+(function(){
+ const pairs={
+  'Lokasi Saya':'My Location','PETA':'MAP','Pintar':'Smart','Malam':'Night',
+  'Utara Atas':'North Up','Ikut GPS':'Follow GPS','Paparan Navigasi Premium':'Premium Navigation Views',
+  'Peta 2D':'2D Map','Peta 3D':'3D Map','Semakan Tol Automatik':'Automatic Toll Check',
+  'Peta vektor MapTiler dengan kamera perspektif. Bangunan 3D dipaparkan jika data tersedia.':'MapTiler vector map with perspective camera. 3D buildings appear when data is available.',
+  'Peta vektor MapTiler dengan kamera perspektif.':'MapTiler vector map with perspective camera.',
+  'Bangunan 3D dipaparkan jika data tersedia.':'3D buildings appear when data is available.',
+  'Peta 2D diaktifkan.':'2D map enabled.','Kamera mengikut lokasi GPS apabila tersedia.':'Camera follows GPS when available.',
+  'Paparan perspektif diaktifkan. Bangunan 3D bergantung pada data peta.':'Perspective view enabled. 3D buildings depend on map data.',
+  'Paparan tidak tersedia.':'View unavailable.',
+  'Satelit':'Satellite','Standard':'Standard','Navigator (OSM)':'Navigator (OSM)',
+  'Peta':'Map','Perjalanan':'Journey','Tetapan':'Settings',
+  'Kawalan':'Controls','Semak':'Check','Cari Laluan':'Find Route',
+  'Mula Navigasi':'Start Navigation','Laluan Alternatif':'Alternative Routes',
+  'Anggaran Kos Perjalanan':'Estimated Travel Cost','Anggaran tiba:':'Estimated arrival:',
+  'Anggaran tanpa trafik langsung':'Estimate without live traffic',
+  'Tukar Mod Siang / Malam':'Toggle day/night mode',
+  'Mula':'Start','Henti':'Stop','Lapor Trafik':'Report Traffic',
+  'Pusatkan ke Lokasi Saya':'Centre on my location',
+  'Navigasi GPS & Komuniti':'GPS Navigation & Community',
+  'Peta vector MapTiler dengan kamera perspektif. Bangunan 3D dipaparkan jika data tersedia.':'MapTiler vector map with perspective camera. 3D buildings appear when data is available.'
+ };
+ const reverse=Object.fromEntries(Object.entries(pairs).map(([a,b])=>[b,a]));
+ const originals=new WeakMap();
+ const active=()=>document.documentElement.lang==='en'||document.getElementById('languageSelect')?.value==='en';
+ function translate(s,en){
+  if(en){if(pairs[s])return pairs[s];if(/^Lokasi Saya\s*\(/.test(s))return s.replace(/^Lokasi Saya/,'My Location');return s;}
+  if(reverse[s])return reverse[s];if(/^My Location\s*\(/.test(s))return s.replace(/^My Location/,'Lokasi Saya');return s;
+ }
+ let busy=false;
+ function apply(){if(busy)return;busy=true;
+  try{
+   const en=active();const walker=document.createTreeWalker(document.body,NodeFilter.SHOW_TEXT);
+   let n;while((n=walker.nextNode())){
+    const p=n.parentElement;if(!p||p.closest('script,style,textarea,option,code,pre,[contenteditable="true"]'))continue;
+    const current=n.nodeValue,trim=current.trim();if(!trim)continue;
+    if(!originals.has(n))originals.set(n,trim);
+    const original=originals.get(n);
+    const target=translate(original,en);
+    if(target!==trim && (pairs[original]||reverse[original]||/^Lokasi Saya\s*\(|^My Location\s*\(/.test(original))){
+     n.nodeValue=current.replace(trim,target);
+    }else if(target===original){
+     // The original may already be in the opposite language; translate in both directions.
+     const fallback=translate(trim,en);if(fallback!==trim)n.nodeValue=current.replace(trim,fallback);
+    }
+   }
+   const title=document.getElementById('jgPremiumHeading');if(title)title.textContent=en?'Premium Navigation Views':'Paparan Navigasi Premium';
+   document.querySelectorAll('[data-premium]').forEach(el=>{const v={ '2d':['Peta 2D','2D Map'],'3d':['Peta 3D','3D Map'],follow:['Ikut GPS','Follow GPS']}[el.dataset.premium];if(v&&el.textContent!==v[en?1:0])el.textContent=v[en?1:0];});
+  }finally{busy=false;}
+ }
+ let pending=false;function schedule(){if(pending)return;pending=true;queueMicrotask(()=>{pending=false;apply();});}
+ function init(){apply();document.getElementById('languageSelect')?.addEventListener('change',()=>setTimeout(apply,0));
+  new MutationObserver(schedule).observe(document.body,{subtree:true,childList:true,characterData:true});
+  // Original app may call setLanguage programmatically.
+  if(typeof window.setLanguage==='function'){const previous=window.setLanguage;window.setLanguage=function(...args){const r=previous.apply(this,args);schedule();return r;};}
+ }
+ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init,{once:true});else init();
+})();
+
+</script><script data-bundled-source="v664.js">
+/* JomGerak V6.6.4: state-aware Journey / Settings buttons and bilingual labels. */
+'use strict';
+(function(){
+ const $=id=>document.getElementById(id);
+ const groups={};
+ function selected(button,on){
+  button.classList.add('jg664-choice');button.classList.toggle('jg664-on',!!on);
+  button.setAttribute('aria-pressed',String(!!on));
+ }
+ function refresh(){
+  const trip=$('jg55TripTab'),settings=$('jg55SettingsTab');
+  if(!trip||!settings)return;
+  // Transport mode is owned by v60; reflect the existing .jg60active state.
+  trip.querySelectorAll('button.jg60mode').forEach(b=>selected(b,b.classList.contains('jg60active')));
+  // The route options toggle is a true open/closed choice.
+  const toggle=trip.querySelector('button.jgtoolsToggle'),content=$('smartRoute48');
+  if(toggle&&content)selected(toggle,!content.classList.contains('hidden'));
+  // Only mark panel-opening tools when their actual panel is open.
+  document.querySelectorAll('#jg55TripTab .jg55actions button,#jg55SettingsTab .jg55actions button').forEach(b=>{
+   const m=(b.getAttribute('onclick')||'').match(/jg55Show\(['"]([^'"]+)['"]\)/);
+   if(m)selected(b,typeof J55!=='undefined'&&J55.panel===m[1]&&!$('jg55Panel')?.hidden);
+  });
+  // Voice settings: don't falsely mark a one-shot action as selected.
+  settings.querySelectorAll('button').forEach(b=>{
+   if(b.classList.contains('jg664-choice')&&!b.matches('.jg55actions button')){
+    b.classList.remove('jg664-choice','jg664-on');b.removeAttribute('aria-pressed');
+   }
+  });
+ }
+ const pairs={
+  'Tetapan Laluan':'Route Settings','Tetapan Laluan ▾':'Route Settings ▾',
+  'Maklumat Tol':'Toll Information','Cuaca & Banjir':'Weather & Floods',
+  'Sejarah Perjalanan':'Trip History','Tempat Tersimpan':'Saved Places',
+  'Kemudahan Laluan':'Route Facilities','Laporan Komuniti':'Community Reports',
+  'Eksport Perjalanan':'Export Trip','Elak tol*':'Avoid tolls*',
+  'Elak highway*':'Avoid highways*','Perjalanan':'Journey',
+  'Suara navigasi / Navigation voice':'Navigation voice',
+  'Pilih daripada 7 suara yang tersedia. Jantina suara tidak dapat disahkan secara automatik; cuba Test Voice.':'Choose from 7 available voices. Voice gender cannot be determined automatically; try Test Voice.',
+  'V6.5: Cari Laluan → Start Driving. Gunakan Overview dan Recenter untuk kamera.':'V6.5: Find Route → Start Driving. Use Overview and Recenter to adjust the camera.',
+  '* Belum disokong OSRM awam; tidak mengubah laluan. Tol sebenar belum dapat disahkan.':'* Not supported by public OSRM; does not change the route. Actual tolls are unverified.',
+  'Suara navigasi':'Navigation voice','Satelit':'Satellite'
+ };
+ const rev=Object.fromEntries(Object.entries(pairs).map(([a,b])=>[b,a]));
+ function english(){return document.documentElement.lang==='en'||$('languageSelect')?.value==='en';}
+ function translate(){
+  const en=english();
+  const walker=document.createTreeWalker($('jgProBody')||document.body,NodeFilter.SHOW_TEXT);
+  let n;while(n=walker.nextNode()){
+   if(n.parentElement?.closest('script,style,textarea,select,option,code,pre'))continue;
+   const t=n.nodeValue,trim=t.trim();if(!trim)continue;
+   let value=(en?pairs:rev)[trim];
+   if(!value){const entries=Object.entries(en?pairs:rev).sort((a,b)=>b[0].length-a[0].length);
+    for(const [from,to] of entries){if(trim.includes(from)&&trim!==to){value=trim.replace(from,to);break;}}
+   }
+   if(value&&value!==trim)n.nodeValue=t.replace(trim,value);
+  }
+ }
+ let queued=false;function schedule(){if(queued)return;queued=true;setTimeout(()=>{queued=false;refresh();translate()},40)}
+ function init(){
+  const body=$('jgProBody');if(!body)return;
+  body.addEventListener('click',e=>{const b=e.target.closest('button');if(b&&body.contains(b))schedule()});
+  $('languageSelect')?.addEventListener('change',schedule);
+  new MutationObserver(schedule).observe(body,{childList:true,subtree:true});
+  // Observe only child-list updates to avoid a feedback loop from translated text.
+  schedule();
+ }
+ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init,{once:true});else init();
+})();
+
+</script><script data-bundled-source="v665.js">
+/* JomGerak V6.6.5 - map loading diagnostics and recovery. */
+(function(){
+ 'use strict';
+ let lastSuccess=0, failures=0, watched=null, firstCheck=null, notice=null, recovering=false;
+ const isEN=()=>typeof appLanguage!=='undefined'&&appLanguage==='en';
+ const msg=(bm,en)=>isEN()?en:bm;
+ function banner(){
+  if(notice)return notice;
+  notice=document.createElement('div');notice.id='jg665MapAlert';
+  notice.style.cssText='position:fixed;left:50%;bottom:125px;transform:translateX(-50%);z-index:600;background:#fff;color:#14243d;border:1px solid #bfd0e6;box-shadow:0 5px 24px #0003;border-radius:14px;padding:11px 13px;max-width:min(94vw,370px);width:max-content;display:none;font:600 12px system-ui;';
+  const text=document.createElement('span');text.id='jg665MapText';notice.appendChild(text);
+  const button=document.createElement('button');button.type='button';button.id='jg665Retry';button.style.cssText='margin-left:10px;padding:9px 12px;border-radius:9px;background:#2563eb;color:#fff;font-weight:700;';button.addEventListener('click',recover);notice.appendChild(button);
+  document.body.appendChild(notice);return notice;
+ }
+ function show(){const el=banner();el.style.display='block';document.getElementById('jg665MapText').textContent=msg('Peta gagal dimuatkan. Semak internet atau cuba lagi.','Map tiles could not load. Check your connection or retry.');document.getElementById('jg665Retry').textContent=msg('Cuba Lagi','Retry');}
+ function hide(){if(notice)notice.style.display='none';}
+ function watch(){
+  if(typeof mapTiles48==='undefined'||!mapTiles48||mapTiles48===watched)return;
+  watched=mapTiles48;failures=0;lastSuccess=Date.now();
+  watched.on('tileload',()=>{lastSuccess=Date.now();failures=0;hide()});
+  watched.on('tileerror',()=>{failures++;if(failures>=3&&Date.now()-lastSuccess>1200)show()});
+ }
+ function recover(){
+  if(recovering)return;recovering=true;hide();
+  try{
+   if(typeof jg3dActive!=='undefined'&&jg3dActive){
+    document.getElementById('jg3dMap')?.classList.remove('jgshown');
+    jg3dActive=false;
+   }
+   if(typeof map!=='undefined'&&map){
+    // Recreate the raster layer and request fresh tiles; preserve map location and route overlays.
+    const selected=typeof mapStyle48!=='undefined'?mapStyle48:'standard';
+    if(typeof setMapStyle48==='function')setMapStyle48(selected,true);
+    map.invalidateSize({pan:false});
+   }
+   setTimeout(()=>{watch();if(typeof mapTiles48!=='undefined'&&mapTiles48&&Date.now()-lastSuccess>8000)show();recovering=false;},9000);
+  }catch(e){recovering=false;show();console.warn('Map recovery:',e)}
+ }
+ function start(){
+  banner();watch();setInterval(watch,1000);
+  window.addEventListener('online',()=>{if(notice?.style.display==='block')recover()});
+  document.addEventListener('visibilitychange',()=>{if(!document.hidden&&typeof map!=='undefined'&&map)map.invalidateSize({pan:false})});
+  // A blank MapLibre layer should not permanently hide the working Leaflet map.
+  setInterval(()=>{
+   if(typeof jg3dActive==='undefined'||!jg3dActive||typeof jg3d==='undefined'||!jg3d)return;
+   try{if(jg3d.isStyleLoaded())return;}catch{}
+   if(!firstCheck)firstCheck=Date.now();
+   if(Date.now()-firstCheck>14000){
+    document.getElementById('jg3dMap')?.classList.remove('jgshown');jg3dActive=false;firstCheck=null;
+    if(typeof map!=='undefined'&&map)map.invalidateSize({pan:false});
+    show();
+   }
+  },3000);
+  setInterval(()=>{if(typeof jg3dActive==='undefined'||!jg3dActive||!jg3d||jg3d.isStyleLoaded())firstCheck=null},2000);
+ }
+ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',()=>setTimeout(start,1500));else setTimeout(start,1500);
+})();
+
+</script><script data-bundled-source="v666.js">
+/* JomGerak V6.6.6 — startup watchdog and actionable map diagnostics. */
+(function(){
+ 'use strict';
+ let banner, details, button, startupFailure='';
+ const lang=()=>typeof appLanguage!=='undefined'&&appLanguage==='en';
+ const t=(ms,en)=>lang()?en:ms;
+ function ui(){
+  if(banner)return;
+  banner=document.createElement('div');banner.id='jg666Diagnostic';
+  banner.style.cssText='position:fixed;z-index:1000;bottom:125px;left:50%;transform:translateX(-50%);max-width:calc(100vw - 28px);width:370px;background:#fff;color:#17243b;border:1px solid #cbd5e1;border-radius:16px;padding:14px;box-shadow:0 8px 30px #0005;font:500 13px/1.5 system-ui;display:none';
+  details=document.createElement('div');details.id='jg666DiagnosticText';
+  button=document.createElement('button');button.type='button';button.style.cssText='background:#2563eb;color:white;padding:9px 15px;margin-top:9px;border-radius:9px;font-weight:700';
+  button.onclick=()=>{banner.style.display='none';try{if(typeof map!=='undefined'&&map){if(typeof setMapStyle48==='function')setMapStyle48('standard',true);map.invalidateSize({pan:false});}else location.reload();}catch(e){console.error('Retry:',e);location.reload();}};
+  banner.append(details,button);document.body.appendChild(banner);
+ }
+ function show(message){ui();details.textContent=message;button.textContent=t('Cuba Lagi','Retry');banner.style.display='block';}
+ function ready(){return typeof map!=='undefined'&&map&&typeof map.getContainer==='function'&&map.getContainer().querySelector('.leaflet-pane');}
+ window.addEventListener('jg:startup-error',e=>{if(e.detail?.name==='map')startupFailure=e.detail.message||'Map initialization failed';});
+ window.addEventListener('error',e=>{if(/leaflet|maplibre|tile|map/i.test(String(e.message)))console.warn('Map error detail:',e.message);});
+ function check(){
+  if(!ready()){
+   const missing=typeof window.L==='undefined';
+   const detail=missing?t('Pustaka Leaflet tidak dimuatkan. Periksa sambungan atau sekatan CDN.','Leaflet library failed to load. Check network or CDN blocking.'):startupFailure||t('Peta gagal dimulakan. Cuba muat semula.','Map initialization failed. Try reloading.');
+   show(detail);console.error('[JomGerak V6.6.6] Map not initialized:',detail);
+   return;
+  }
+  try{map.invalidateSize({pan:false});}catch(e){console.warn('Map resize:',e);}
+  // Do not declare success from the presence of a Leaflet container alone:
+  // the existing v665 tileerror handler detects failed tile downloads.
+ }
+ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',()=>setTimeout(check,5000));else setTimeout(check,5000);
+})();
+
+</script><script data-bundled-source="v669.js">
+/* JomGerak V6.7: independent startup diagnostics and recovery. */
+(function(){
+ 'use strict';
+ const errors=[];let loadedTiles=0,failedTiles=0,attached=false,shown=false;
+ const en=()=>document.getElementById('languageSelect')?.value==='en';
+ const tr=(ms,eng)=>en()?eng:ms;
+ function record(s){if(!s)return;errors.push(String(s).slice(0,220));if(errors.length>8)errors.shift();}
+ window.addEventListener('error',e=>record((e.filename?e.filename.split('/').pop()+': ':'')+(e.message||'Script/resource error')));
+ window.addEventListener('unhandledrejection',e=>record('Promise: '+(e.reason?.message||String(e.reason))));
+ window.addEventListener('jg:startup-error',e=>record((e.detail?.name||'startup')+': '+(e.detail?.message||'failed')));
+ function panel(){
+  let el=document.getElementById('jg669Status');if(el)return el;
+  el=document.createElement('div');el.id='jg669Status';el.style.cssText='position:fixed;z-index:1800;left:12px;right:12px;bottom:115px;max-width:440px;margin:auto;padding:13px;border-radius:14px;background:#fff;color:#14233b;border:1px solid #b9c8db;box-shadow:0 10px 35px #0006;font:12px/1.5 system-ui;display:none';
+  const title=document.createElement('strong');title.id='jg669Title';el.append(title);
+  const info=document.createElement('div');info.id='jg669Info';info.style.cssText='margin-top:6px;white-space:pre-wrap;overflow-wrap:anywhere';el.append(info);
+  const controls=document.createElement('div');controls.style.cssText='display:flex;gap:8px;margin-top:10px';
+  const retry=document.createElement('button');retry.style.cssText='background:#2563eb;color:#fff;padding:9px 12px;border-radius:9px;font-weight:700';retry.onclick=()=>{el.style.display='none';try{if(typeof jg3dActive!=='undefined'&&jg3dActive){document.getElementById('jg3dMap')?.classList.remove('jgshown');jg3dActive=false;}if(typeof map!=='undefined'&&map){if(typeof setMapStyle48==='function')setMapStyle48('standard',true);map.invalidateSize({pan:false});}else location.reload();}catch(e){record(e.message);location.reload();}};
+  const copy=document.createElement('button');copy.style.cssText='background:#e2e8f0;color:#14233b;padding:9px 12px;border-radius:9px;font-weight:700';copy.onclick=()=>{const txt=diagnosis();if(navigator.clipboard?.writeText)navigator.clipboard.writeText(txt).catch(()=>{});else{const ta=document.createElement('textarea');ta.value=txt;document.body.append(ta);ta.select();document.execCommand('copy');ta.remove();}};
+  const close=document.createElement('button');close.style.cssText='background:#e2e8f0;color:#14233b;padding:9px 12px;border-radius:9px';close.textContent='×';close.onclick=()=>el.style.display='none';
+  controls.append(retry,copy,close);el.append(controls);document.body.append(el);
+  el._render=()=>{title.textContent=tr('JomGerak: masalah memuatkan peta','JomGerak: map loading issue');info.textContent=diagnosis();retry.textContent=tr('Cuba Lagi','Retry');copy.textContent=tr('Salin Diagnostik','Copy diagnostics');};return el;
+ }
+ function diagnosis(){
+  let mapReady=false;try{mapReady=typeof map!=='undefined'&&!!map&&!!map.getContainer?.().querySelector('.leaflet-pane');}catch{}
+  return ['Version: V6.7','Leaflet: '+(typeof window.L!=='undefined'?'loaded':'missing'),'Map initialized: '+mapReady,'Tiles loaded: '+loadedTiles,'Tiles failed: '+failedTiles,'Controls: '+(typeof window.jgTogglePro==='function'?'defined':'missing'),'Errors: '+(errors.join(' | ')||'none captured')].join('\n');
+ }
+ function show(){if(shown)return;shown=true;const el=panel();el._render();el.style.display='block';}
+ function watchTiles(){
+  try{if(typeof mapTiles48==='undefined'||!mapTiles48||mapTiles48===attached)return;attached=mapTiles48;
+   mapTiles48.on('tileload',()=>{loadedTiles++;const el=document.getElementById('jg669Status');if(el)el.style.display='none';shown=false;});
+   mapTiles48.on('tileerror',()=>{failedTiles++;if(failedTiles>=3&&loadedTiles===0)show();});
+  }catch(e){record('tile watch: '+e.message);}
+ }
+ function start(){
+  panel();watchTiles();setInterval(watchTiles,1500);
+  setTimeout(()=>{let ready=false;try{ready=typeof map!=='undefined'&&!!map&&!!map.getContainer?.().querySelector('.leaflet-pane');}catch{}if(!ready||(!loadedTiles&&failedTiles>=1))show();},8500);
+  // Give the user a visible way to open diagnostics even when tile events never fire.
+  const btn=document.createElement('button');btn.type='button';btn.textContent='ⓘ';btn.title='JomGerak diagnostics';btn.setAttribute('aria-label','JomGerak diagnostics');btn.style.cssText='position:fixed;right:12px;bottom:15px;z-index:1750;border-radius:50%;background:#fff;color:#1d4ed8;border:1px solid #bfdbfe;width:32px;height:32px;font:700 16px system-ui;box-shadow:0 2px 8px #0003';btn.onclick=()=>{shown=false;show();};document.body.append(btn);
+ }
+ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',start,{once:true});else start();
+})();
+
+</script><script data-bundled-source="v67.js">
+/* JomGerak V6.7 — Leaflet-first startup and optional 3D isolation. */
+(function(){
+ 'use strict';
+ let ready=false,checks=0;
+ const report=(name,message)=>window.dispatchEvent(new CustomEvent('jg:startup-error',{detail:{name,message}}));
+ function check(){
+  checks++;
+  try{
+   if(typeof map!=='undefined'&&map&&map.getContainer()){
+    if(!ready){ready=true;map.invalidateSize({pan:false});}
+    return;
+   }
+   if(window.L&&typeof initMap==='function'){
+    try{initMap();ready=true;map.invalidateSize({pan:false});return;}
+    catch(e){if(checks===3)report('Leaflet recovery',e.message);}
+   }
+   if(checks===4)report('Leaflet startup','Map not initialized; verify Leaflet CDN and browser console');
+  }catch(e){if(checks===4)report('startup check',e.message);}
+ }
+ function begin(){
+  check();const poll=setInterval(()=>{check();if(ready||checks>=8)clearInterval(poll);},1800);
+  window.addEventListener('resize',()=>{try{if(typeof map!=='undefined'&&map)map.invalidateSize({pan:false});}catch{}});
+  document.addEventListener('visibilitychange',()=>{if(!document.hidden)setTimeout(()=>{try{if(typeof map!=='undefined'&&map)map.invalidateSize({pan:false});}catch{}},250);});
+ }
+ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',begin,{once:true});else begin();
+})();
+
+</script></body>
 </html>
