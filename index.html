@@ -601,6 +601,7 @@ if ('serviceWorker' in navigator) {
                     </button>
                 </div>
 
+                <div id="jg709Status" role="status" aria-live="polite" class="hidden text-[11px] rounded-lg px-3 py-2 bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-100" style="overflow-wrap:anywhere"></div>
                 <div class="flex flex-wrap gap-2">
                   <button onclick="saveCurrentDestination()" class="text-xs font-bold bg-indigo-100 dark:bg-indigo-900 text-indigo-700 dark:text-white rounded-xl px-3 py-2">★ Simpan Destinasi</button>
                   <button onclick="showSavedDestinations()" class="text-xs font-bold bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-white rounded-xl px-3 py-2">⌚ Tersimpan</button>
@@ -922,6 +923,7 @@ if ('serviceWorker' in navigator) {
           try{localStorage.setItem('jomgerak_language',appLanguage);}catch{}
           document.documentElement.lang=appLanguage;
           document.getElementById('languageSelect').value=appLanguage;
+          const jg709=document.getElementById('jg709Status');if(jg709&&!jg709.classList.contains('hidden'))jg709.textContent=appLanguage==='en'?jg709.dataset.en:jg709.dataset.bm;
           const routeButton=document.getElementById('calcRouteBtn');
           if(routeButton?.disabled && routeButton.querySelector('.fa-spinner')){
             const loadingText=routeButton.querySelector('span');
@@ -1829,10 +1831,16 @@ function jg52TrackOffRoute(pos,progress){
         function escapeHTML(v) {
             return String(v ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
         }
+        function jg709Status(bm,en,type='info') {
+            const el=document.getElementById('jg709Status');if(!el)return;
+            el.textContent=appLanguage==='en'?en:bm;
+            el.classList.remove('hidden');
+            el.dataset.bm=bm;el.dataset.en=en;el.dataset.kind=type;
+            el.style.borderLeft='3px solid '+(type==='error'?'#dc2626':type==='success'?'#16a34a':'#2563eb');
+        }
         function showToast(message, type = 'info') {
-            // V7.0.8: User preference — no floating notification popups.
-            // Keep errors available to developers without obstructing the UI.
-            if (type === 'error') console.warn('[JomGerak]', message);
+            // Keep popups suppressed. Only critical failures appear inline.
+            if(type==='error') console.warn('[JomGerak]',message);
         }
 
         // ==========================================
@@ -2155,7 +2163,7 @@ function jg52TrackOffRoute(pos,progress){
         // ==========================================
         async function calculateRoute() {
             if (!originCoords || !destCoords) {
-                showToast('Sila tetapkan Lokasi Permulaan dan Destinasi terlebih dahulu.', 'warning');
+                jg709Status('Sila tetapkan lokasi permulaan dan destinasi.','Set a starting point and destination first.','error');
                 return;
             }
 
@@ -2164,6 +2172,7 @@ function jg52TrackOffRoute(pos,progress){
             const originalHTML = btn.innerHTML;
             btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> <span>${appLanguage==='en'?'Calculating...':'Mengira...'}</span>`;
             btn.disabled = true;
+            jg709Status('Sedang mengira laluan...','Calculating route...');
 
             try {
                 const coordsString = `${originCoords.lng},${originCoords.lat};${destCoords.lng},${destCoords.lat}`;
@@ -2175,7 +2184,7 @@ function jg52TrackOffRoute(pos,progress){
                 if(reqId!==routeRequestId)return;
 
                 if (data.code !== 'Ok' || !data.routes || data.routes.length === 0) {
-                    showToast('Tiada laluan jalan raya ditemui antara dua lokasi ini.', 'error');
+                    jg709Status('Tiada laluan jalan raya ditemui.','No road route found.','error');
                     return;
                 }
 
@@ -2203,9 +2212,9 @@ function jg52TrackOffRoute(pos,progress){
                 renderChoices47();
                 jgSync3DRoute();
 
-                showToast('Laluan terbaik & anggaran kos berjaya dikira!', 'success');
+                jg709Status('Laluan berjaya dikira.','Route calculated successfully.','success');
             } catch (error) {
-                showToast('Ralat ketika menghubungi pelayan laluan OSRM.', 'error');
+                jg709Status('Pelayan laluan tidak dapat dihubungi. Cuba lagi.','Route server unavailable. Please try again.','error');
             } finally {
                 if(reqId===routeRequestId){btn.innerHTML = originalHTML;btn.disabled = false;}
             }
