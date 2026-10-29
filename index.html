@@ -2242,18 +2242,18 @@ function jg52TrackOffRoute(pos,progress){
             if (totalMinutes >= 60) {
                 const hrs = Math.floor(totalMinutes / 60);
                 const mins = totalMinutes % 60;
-                timeFormatted = `${hrs} j ${mins} min`;
+                timeFormatted = `${hrs} ${appLanguage==='en'?'hr':'j'} ${mins} min`;
             } else {
                 timeFormatted = `${Math.max(1, totalMinutes)} min`;
             }
 
             const now = new Date();
             now.setSeconds(now.getSeconds() + durationSec);
-            const etaStr = now.toLocaleTimeString('ms-MY', { hour: '2-digit', minute: '2-digit' });
+            const etaStr = now.toLocaleTimeString(appLanguage==='en'?'en-MY':'ms-MY', { hour: '2-digit', minute: '2-digit' });
 
             document.getElementById('summaryTime').textContent = timeFormatted;
             document.getElementById('summaryDistance').textContent = `(${distanceKm} km)`;
-            document.getElementById('summaryEta').textContent = `Anggaran tiba: ${etaStr} • Anggaran tanpa trafik langsung`;
+            document.getElementById('summaryEta').textContent = `${appLanguage==='en'?'Estimated arrival':'Anggaran tiba'}: ${etaStr} • ${appLanguage==='en'?'Estimate without live traffic':'Anggaran tanpa trafik langsung'}`;
 
             const stepsContainer = document.getElementById('stepsContainer');
             stepsContainer.innerHTML = '';
@@ -2997,6 +2997,53 @@ if(trigger)trigger.setAttribute('aria-expanded',String(!panel.classList.contains
  document.addEventListener('click',e=>{
    if(e.target.closest('#jgProPanel,#languageSelect'))setTimeout(translate,50);
  },false);
+})();
+</script>
+<script id="jg707-trip-translation">
+(function(){
+'use strict';
+// Scope translation to the trip summary. Avoid whole-document mutation observers.
+const ids=['summaryEta','summaryTime','jg653TollTitle','jg653TollAmount','jg654TollNote','jg654Retry','jg655Unverified'];
+const pairs=[
+ ['Semakan Tol Automatik','Automatic Toll Check'],['Semak','Check'],
+ ['Kos petrol dan tol dipaparkan berasingan. Harga tol memerlukan data kadar plaza yang disahkan.','Fuel and toll costs are shown separately. Toll prices require verified plaza rates.'],
+ ['Caj tol dan status tol belum disahkan.','Toll charges and toll status are unverified.'],
+ ['Anggaran Kos Perjalanan','Estimated Travel Cost'],
+ ['Anggaran tanpa trafik langsung','Estimate without live traffic'],
+ ['Anggaran tiba:','Estimated arrival:'],
+ ['Tol: menunggu laluan','Toll: waiting for route'],
+ ['Tol:','Toll:'],['Kos tol belum disahkan','Toll cost not verified'],
+ ['Tidak diketahui','Unknown'],['Tiada tol','No tolls'],
+ ['Laluan Alternatif','Alternative Routes']
+];
+const msToEn=new Map(pairs),enToMs=new Map(pairs.map(([a,b])=>[b,a]));
+function swap(s,toEn){
+ let v=s;
+ const dict=toEn?msToEn:enToMs;
+ for(const [a,b] of dict){v=v.split(a).join(b)}
+ return v;
+}
+let changing=false;
+function translate(){
+ if(changing)return;
+ changing=true;
+ try{
+ const en=typeof appLanguage!=='undefined'&&appLanguage==='en';
+ const root=document.getElementById('routeSummaryPanel');if(!root)return;
+ const targets=ids.map(id=>document.getElementById(id)).filter(Boolean);
+ const other=[...root.querySelectorAll('*')].filter(el=>el.childNodes.length===1&&el.firstChild.nodeType===3);
+ for(const el of [...new Set([...targets,...other])]){
+  for(const n of el.childNodes){if(n.nodeType!==3)continue;const next=swap(n.nodeValue,en);if(next!==n.nodeValue)n.nodeValue=next;}
+ }
+ }finally{changing=false}
+}
+let queued=false;
+function schedule(){if(queued)return;queued=true;requestAnimationFrame(()=>{queued=false;translate()})}
+const root=document.getElementById('routeSummaryPanel');
+if(root){new MutationObserver(mutations=>{if(!changing&&mutations.some(m=>m.type==='childList'||m.type==='characterData'))schedule()}).observe(root,{subtree:true,childList:true,characterData:true});}
+const lang=document.getElementById('languageSelect');if(lang)lang.addEventListener('change',()=>setTimeout(schedule,0));
+window.jg707TranslateTrip=translate;
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',schedule,{once:true});else schedule();
 })();
 </script>
 </body>
