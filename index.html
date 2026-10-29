@@ -2771,5 +2771,63 @@ window.jg52InstallApp=function(){toast('Untuk pasang aplikasi, gunakan menu brow
 document.addEventListener('click',function(e){const b=e.target.closest('button');if(!b)return;b.classList.remove('jg703-pulse');void b.offsetWidth;b.classList.add('jg703-pulse');setTimeout(()=>b.classList.remove('jg703-pulse'),350)}, {passive:true});
 })();
 </script>
+
+<!-- V7.0.4: Control selection feedback; does not initialize maps or legacy modules. -->
+<style id="jg704-control-feedback">
+#jgProBody button.jg704-selected, #jgProBody button.jg704-selected:hover,
+#jgPremiumModes button.jg704-selected, #jgProPanel .jg55tabs button.jg704-selected {
+ background:#155eef!important;color:#fff!important;border-color:#0b4ac7!important;
+ box-shadow:0 0 0 2px rgba(37,99,235,.24),0 4px 12px rgba(37,99,235,.22)!important;
+ transform:translateY(-1px);
+}
+#jgProBody button.jg704-selected::after {content:' ✓';font-weight:900;white-space:nowrap}
+#jgProBody button.jg704-ack {animation:jg704ack .55s ease}
+@keyframes jg704ack {0%{box-shadow:0 0 0 0 rgba(16,185,129,.6)}100%{box-shadow:0 0 0 9px rgba(16,185,129,0)}}
+#jg704-feedback{position:absolute;left:8px;right:8px;bottom:5px;pointer-events:none;font-size:10px;font-weight:700;color:#1d4ed8;text-align:center;opacity:0;transition:opacity .15s}
+#jg704-feedback.jg704-visible{opacity:1}
+@media(prefers-reduced-motion:reduce){#jgProBody button.jg704-ack{animation:none}}
+</style>
+<script id="jg-v704-control-feedback">
+(function(){'use strict';
+ const root=document.getElementById('jgProBody');if(!root)return;
+ const groups=new Map();
+ function choose(btn,group){
+  const prev=groups.get(group);if(prev&&prev!==btn){prev.classList.remove('jg704-selected');prev.setAttribute('aria-pressed','false')}
+  groups.set(group,btn);btn.classList.add('jg704-selected');btn.setAttribute('aria-pressed','true');
+ }
+ function ack(btn){btn.classList.remove('jg704-ack');void btn.offsetWidth;btn.classList.add('jg704-ack')}
+ function groupFor(btn){
+  const code=btn.getAttribute('onclick')||'';
+  if(/^jg55Tab\(/.test(code))return 'tabs';
+  if(/^setMapStyle48\(/.test(code)||/^jg64MapTiler\(/.test(code))return 'map-style';
+  if(/^setMapView48\(/.test(code))return 'map-view';
+  if(/^jgPremiumMode\(/.test(code))return 'premium-view';
+  if(/^jg55Show\(/.test(code))return 'feature';
+  return null;
+ }
+ root.addEventListener('click',function(event){
+  const btn=event.target.closest('button');if(!btn||!root.contains(btn)||btn.disabled)return;
+  ack(btn);
+  const group=groupFor(btn);
+  if(group){choose(btn,group);return}
+  // For one-off commands only acknowledge the click; never claim a mode is active.
+  btn.setAttribute('data-jg704-last-clicked','true');
+ });
+ const tab=document.getElementById('jg55tab-map');if(tab)choose(tab,'tabs');
+ // Mirror the current tab when it changes programmatically.
+ const original=window.jg55Tab;
+ if(typeof original==='function')window.jg55Tab=function(which){
+  const result=original.apply(this,arguments);
+  const button=document.getElementById('jg55tab-'+which);
+  if(button)choose(button,'tabs');
+  return result;
+ };
+ // Keep the main Kawalan disclosure's expanded state accessible.
+ const trigger=document.querySelector('#jgProPanel > button');
+ if(trigger){trigger.addEventListener('click',function(){
+  requestAnimationFrame(()=>trigger.setAttribute('aria-expanded',String(!document.getElementById('jgProPanel').classList.contains('jgfolded'))));
+ });}
+})();
+</script>
 </body>
 </html>
