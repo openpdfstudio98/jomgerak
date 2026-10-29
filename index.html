@@ -3211,5 +3211,31 @@ if(lang)lang.addEventListener('change',()=>{const label=document.getElementById(
  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',place,{once:true});else place();
 })();
 </script>
+
+<style id="jg713-mobile-layout">
+@media(max-width:767px){
+ #jg712MobilePoiWrap{position:relative!important;top:auto!important;left:auto!important;right:auto!important;z-index:auto!important;width:100%!important;max-width:100%!important;display:block!important;pointer-events:auto!important;margin:4px 0 12px!important;overflow:hidden!important}
+ #jg712MobilePoiWrap #poiPillsContainer{width:100%!important;max-width:100%!important;display:flex!important;gap:8px!important;padding:4px 2px 8px!important;overflow-x:auto!important;overflow-y:hidden!important;touch-action:pan-x!important}
+ #jg712MobilePoiWrap .poi-pill{min-height:38px!important;white-space:nowrap!important}
+ #jg71NearbyStatus{position:relative!important;top:auto!important;left:auto!important;right:auto!important;z-index:auto!important;max-width:100%!important;width:100%!important;margin:3px 0 12px!important;box-shadow:none!important;border-radius:10px!important;font-size:12px!important}
+ #jg71NearbyStatus[data-show="true"]{display:block!important}
+ body.driving-mode #jg712MobilePoiWrap,body.driving-mode #jg71NearbyStatus{display:none!important}
+}
+</style>
+<script id="jg713-mobile-layout-script">
+(function(){
+ function move(){
+  const card=document.querySelector('#searchPanelWrap > div:first-child');
+  const header=card?.querySelector('div.flex.items-center.justify-between.mb-3');
+  const bar=document.getElementById('jg712MobilePoiWrap');
+  const status=document.getElementById('jg71NearbyStatus');
+  if(!card||!header||!bar||!status)return;
+  // Keep POI controls and status in the normal document flow under the app header.
+  header.insertAdjacentElement('afterend',bar);
+  bar.insertAdjacentElement('afterend',status);
+ }
+ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',move,{once:true});else move();
+})();
+</script>
 </body>
 </html>
