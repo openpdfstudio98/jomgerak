@@ -3178,27 +3178,7 @@ document.addEventListener('click',event=>{const b=event.target.closest?.('#poiBt
 }
 @media(prefers-reduced-motion:reduce){#poiPillsContainer button{transition:none!important}}
 </style>
-<script id="jg73-responsive-layout">
-(function(){
- 'use strict';
- const search=document.getElementById('searchPanelWrap');
- const bar=document.getElementById('jg712MobilePoiWrap');
- if(!search||!bar)return;
- let queued=false;
- function position(){queued=false;if(window.innerWidth>767){bar.style.removeProperty('top');return}
-  const card=search.firstElementChild;
-  if(!card)return;
-  const bounds=card.getBoundingClientRect();
-  // Place the category strip directly beneath the visible search card, without overlapping it.
-  bar.style.setProperty('top',Math.min(window.innerHeight-130,Math.max(78,bounds.bottom+8))+'px','important');
- }
- function schedule(){if(!queued){queued=true;requestAnimationFrame(position)}}
- window.addEventListener('resize',schedule,{passive:true});
- const button=document.getElementById('toggleSearchBtn');if(button)button.addEventListener('click',()=>setTimeout(schedule,100));
- const observer=new ResizeObserver(schedule);observer.observe(search.firstElementChild||search);
- schedule();
-})();
-</script>
+
 
 <style id="jg731-layout-repair">
 /* Keep floating controls separate from one another at all screen widths. */
@@ -3224,6 +3204,33 @@ document.addEventListener('click',event=>{const b=event.target.closest?.('#poiBt
  if(install)install.title='Install JomGerak';
  // Avoid cached legacy CARTO map selection; all street styles now use labeled OSM tiles.
  // Satellite remains imagery-only and will not show road labels.
+})();
+</script>
+
+<style id="jg733-mobile-nearby-final">
+@media(max-width:767px){
+ #jg712MobilePoiWrap{position:relative!important;top:auto!important;left:auto!important;right:auto!important;bottom:auto!important;width:100%!important;max-width:100%!important;z-index:auto!important;display:block!important;overflow:hidden!important;margin:12px 0 0!important;pointer-events:auto!important;transform:none!important}
+ #jg712MobilePoiWrap #poiPillsContainer{display:flex!important;width:100%!important;max-width:100%!important;overflow-x:auto!important;overflow-y:hidden!important;flex-wrap:nowrap!important;gap:8px!important;touch-action:pan-x!important;pointer-events:auto!important;padding:5px 2px 8px!important}
+ #jg712MobilePoiWrap .poi-pill{flex:0 0 auto!important;white-space:nowrap!important}
+ #searchPanelWrap{overflow-x:hidden!important}
+ #searchPanelWrap>div:first-child{overflow:hidden!important}
+ body.driving-mode #jg712MobilePoiWrap{display:none!important}
+}
+</style>
+<script id="jg733-mobile-nearby-placement">
+(function(){
+ 'use strict';
+ function arrange(){
+  const bar=document.getElementById('jg712MobilePoiWrap');
+  const card=document.querySelector('#searchPanelWrap > div:first-child');
+  if(!bar||!card)return;
+  if(window.innerWidth<=767){
+   if(bar.parentElement!==card||bar!==card.lastElementChild)card.appendChild(bar);
+   bar.style.removeProperty('top');bar.style.removeProperty('left');bar.style.removeProperty('right');
+  }
+ }
+ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',arrange,{once:true});else arrange();
+ window.addEventListener('resize',arrange,{passive:true});
 })();
 </script>
 </body>
