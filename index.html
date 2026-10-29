@@ -2605,5 +2605,68 @@ function jg52TrackOffRoute(pos,progress){
   <button id="jg65View" type="button" onclick="jg65ToggleView()">◩ 3D</button>
  </div>
 </div>
-<!-- Optional legacy version module disabled for startup isolation --><!-- Optional legacy version module disabled for startup isolation --><!-- Optional legacy version module disabled for startup isolation --><!-- Optional legacy version module disabled for startup isolation --><!-- Optional legacy version module disabled for startup isolation --><!-- Optional legacy version module disabled for startup isolation --><!-- Optional legacy version module disabled for startup isolation --><!-- Optional legacy version module disabled for startup isolation --><!-- Optional legacy version module disabled for startup isolation --><!-- Optional legacy version module disabled for startup isolation --><!-- Optional legacy version module disabled for startup isolation --><!-- Optional legacy version module disabled for startup isolation --><!-- Optional legacy version module disabled for startup isolation --><!-- Optional legacy version module disabled for startup isolation --><!-- Optional legacy version module disabled for startup isolation --><!-- Optional legacy version module disabled for startup isolation --></body>
+<!-- Optional legacy version module disabled for startup isolation --><!-- Optional legacy version module disabled for startup isolation --><!-- Optional legacy version module disabled for startup isolation --><!-- Optional legacy version module disabled for startup isolation --><!-- Optional legacy version module disabled for startup isolation --><!-- Optional legacy version module disabled for startup isolation --><!-- Optional legacy version module disabled for startup isolation --><!-- Optional legacy version module disabled for startup isolation --><!-- Optional legacy version module disabled for startup isolation --><!-- Optional legacy version module disabled for startup isolation --><!-- Optional legacy version module disabled for startup isolation --><!-- Optional legacy version module disabled for startup isolation --><!-- Optional legacy version module disabled for startup isolation --><!-- Optional legacy version module disabled for startup isolation --><!-- Optional legacy version module disabled for startup isolation --><!-- Optional legacy version module disabled for startup isolation -->
+<!-- V7.0.2: Lightweight control-panel event handlers; no legacy startup modules. -->
+<script id="jg-v702-menu-repair">
+(function(){
+  'use strict';
+  var tabs={map:'jg55MapTab',trip:'jg55TripTab',settings:'jg55SettingsTab'};
+  var active='map';
+  window.jg55Tab=function(tab){
+    if(!Object.prototype.hasOwnProperty.call(tabs,tab))return;
+    active=tab;
+    Object.keys(tabs).forEach(function(key){
+      var pane=document.getElementById(tabs[key]);
+      var btn=document.getElementById('jg55tab-'+key);
+      if(pane)pane.hidden=(key!==tab);
+      if(btn){btn.setAttribute('aria-selected',String(key===tab));btn.classList.toggle('jg702-active',key===tab);}
+    });
+    var details=document.getElementById('jg55Panel');
+    if(details){details.hidden=true;details.textContent='';}
+    var panel=document.getElementById('jgProPanel');
+    if(panel)panel.classList.remove('jgfolded');
+  };
+  // Features implemented in disabled legacy modules must not silently fail.
+  window.jg55Show=function(feature){
+    var details=document.getElementById('jg55Panel');
+    var tab=active==='settings'?'jg55SettingsTab':'jg55TripTab';
+    var host=document.getElementById(tab);
+    if(!details||!host)return;
+    if(details.parentElement!==host)host.appendChild(details);
+    var names={compare:'Banding Laluan',stops:'Multi-Hentian',pit:'Pit Stop',cost:'Kos Perjalanan',weather:'Cuaca Laluan',offline:'Simpan Offline',reports:'Sahkan Laporan',vehicle:'Profil Kenderaan'};
+    details.replaceChildren();
+    var heading=document.createElement('strong');heading.textContent=names[feature]||feature;
+    var message=document.createElement('p');message.textContent='Fungsi ini belum diaktifkan dalam versi ujian V7.0.2. Peta utama dikekalkan supaya stabil.';
+    details.append(heading,message);details.hidden=false;
+  };
+  function init(){
+    var panel=document.getElementById('jgProPanel');
+    if(!panel)return;
+    // The original toggle exists in the core script; restore a minimal fallback only if missing.
+    if(typeof window.jgTogglePro!=='function')window.jgTogglePro=function(){panel.classList.toggle('jgfolded');};
+    window.jg55Tab('map');
+    panel.classList.add('jgfolded');
+    var trigger=panel.querySelector(':scope > button');
+    if(trigger){
+      trigger.setAttribute('type','button');
+      trigger.setAttribute('aria-controls','jgProBody');
+      trigger.setAttribute('aria-expanded','false');
+      // Replace only the menu trigger handler to ensure ARIA state follows visual state.
+      trigger.onclick=function(event){
+        event.preventDefault();
+        panel.classList.toggle('jgfolded');
+        var opened=!panel.classList.contains('jgfolded');
+        trigger.setAttribute('aria-expanded',String(opened));
+      };
+    }
+  }
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init,{once:true});else init();
+})();
+</script>
+<style id="jg-v702-menu-style">
+#jg55Panel:not([hidden]){display:block;margin-top:10px;padding:12px;border-radius:12px;background:#eaf2ff;color:#17345b;font-size:12px}
+#jg55Panel p{margin:7px 0 0;line-height:1.5}
+#jgProPanel .jg55tabs button.jg702-active{background:#2563eb!important;color:white!important;border-color:#2563eb!important}
+</style>
+</body>
 </html>
