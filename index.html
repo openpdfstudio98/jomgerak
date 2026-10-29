@@ -1016,7 +1016,7 @@ function jgDownloadTrip(){
 async function jgLoadMapLibre(){
  if(window.maplibregl)return;
  if(!document.getElementById('jgMaplibreCSS')){const l=document.createElement('link');l.id='jgMaplibreCSS';l.rel='stylesheet';l.href='https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css';document.head.appendChild(l);}
- await new Promise((resolve,reject)=>{const el=document.createElement('script');el.src='https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js';el.onload=resolve;el.onerror=reject;document.head.appendChild(el);});
+ await new Promise((resolve,reject)=>{const el=document.createElement('script');let finished=false;const done=(err)=>{if(finished)return;finished=true;clearTimeout(timer);err?reject(err):resolve();};const timer=setTimeout(()=>done(new Error('3D loading timed out')),8000);el.src='https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js';el.onload=()=>done();el.onerror=()=>done(new Error('3D library unavailable'));document.head.appendChild(el);});
 }
 function jgPremiumAddBuildings(){
  if(!jg3d||!jg3d.isStyleLoaded()||jg3d.getLayer('jg-premium-buildings'))return;
@@ -1067,6 +1067,7 @@ function jg60Refresh3DStyle(){
 
 async function jgToggle3D(){
  if(jg52Loading3D)return;
+ if(!map){if(typeof showToast==='function')showToast('Wait for the 2D map to load before enabling 3D.','warning');return;}
  if(jg3dActive){jg3dActive=false;document.getElementById('jg3dMap').classList.remove('jgshown');document.getElementById('jg3dBadge').style.display='none';map.invalidateSize();return;}
  const hasVector3D=Boolean(JG_CFG.maptilerKey);
  if(!hasVector3D)jgStatus('3D perspective uses OpenStreetMap raster tiles. For detailed vector 3D buildings, add a MapTiler key in config.js.');
@@ -1300,7 +1301,7 @@ function jg52TrackOffRoute(pos,progress){
                     safe('map',()=>{throw new Error('Leaflet unavailable: check network or CDN');});
                     return;
                 }
-                safe('map',()=>initMap());
+                safe('map',()=>{if(!map)initMap();});
             }
             function boot(){
                 if(started)return;started=true;
@@ -1367,8 +1368,10 @@ function jg52TrackOffRoute(pos,progress){
         function setMapStyle48(style,quiet=false){
           if(!mapSources48[style]||!map)return;
           const config=mapSources48[style];
-          const next=L.tileLayer(config.url,{maxZoom:config.maxZoom,attribution:config.attribution});
+          const next=L.tileLayer(config.url,{maxZoom:config.maxZoom,attribution:config.attribution,updateWhenIdle:true,keepBuffer:2});
           let failures=0;
+          let success=false;
+          next.on('tileload',()=>{success=true;});
           next.on('tileerror',()=>{
             failures++;
             // Prevent persistent white/API-key tile screen when a provider rejects tiles.
@@ -1382,6 +1385,7 @@ function jg52TrackOffRoute(pos,progress){
             }
           });
           next.addTo(map);
+          setTimeout(()=>{if(mapTiles48!==next||success)return;if(style!=='standard'&&!jgTileFallbackActive){jgTileFallbackActive=true;setMapStyle48('standard',true);jgTileFallbackActive=false;}else if(style==='standard'){window.dispatchEvent(new CustomEvent('jg:startup-error',{detail:{name:'tiles',message:'No base-map tiles loaded after 12 seconds; check connection or tile provider'}}));}},12000);
           if(mapTiles48)map.removeLayer(mapTiles48);
           next.bringToBack();mapTiles48=next;mapStyle48=style; jgApplyTileFilter48();
           if(jg3dActive&&jg3d&&typeof jg60Refresh3DStyle==='function')jg60Refresh3DStyle();
@@ -2586,5 +2590,5 @@ function jg52TrackOffRoute(pos,progress){
   <button id="jg65View" type="button" onclick="jg65ToggleView()">◩ 3D</button>
  </div>
 </div>
-<script src="./v656.js" defer></script><script src="./v661.js" defer></script><script src="./v662.js" defer></script><script src="./v65.js" defer></script><script src="./v652.js" defer></script><script src="./v653.js" defer></script><script src="./v654.js" defer></script><script src="./v63.js" defer></script><script src="./v64.js" defer></script><script src="./v655.js" defer></script><script src="./v663.js" defer></script><script src="./v664.js" defer></script><script src="./v665.js" defer></script><script src="./v666.js" defer></script><script src="./v669.js" defer></script></body>
+<script src="./v656.js" defer></script><script src="./v661.js" defer></script><script src="./v662.js" defer></script><script src="./v65.js" defer></script><script src="./v652.js" defer></script><script src="./v653.js" defer></script><script src="./v654.js" defer></script><script src="./v63.js" defer></script><script src="./v64.js" defer></script><script src="./v655.js" defer></script><script src="./v663.js" defer></script><script src="./v664.js" defer></script><script src="./v665.js" defer></script><script src="./v666.js" defer></script><script src="./v669.js" defer></script><script src="./v67.js" defer></script></body>
 </html>

@@ -1,4 +1,4 @@
-/* JomGerak V6.6.9: independent startup diagnostics and recovery. */
+/* JomGerak V6.7: independent startup diagnostics and recovery. */
 (function(){
  'use strict';
  const errors=[];let loadedTiles=0,failedTiles=0,attached=false,shown=false;
@@ -22,7 +22,7 @@
  }
  function diagnosis(){
   let mapReady=false;try{mapReady=typeof map!=='undefined'&&!!map&&!!map.getContainer?.().querySelector('.leaflet-pane');}catch{}
-  return ['Version: V6.6.9','Leaflet: '+(typeof window.L!=='undefined'?'loaded':'missing'),'Map initialized: '+mapReady,'Tiles loaded: '+loadedTiles,'Tiles failed: '+failedTiles,'Controls: '+(typeof window.jgTogglePro==='function'?'defined':'missing'),'Errors: '+(errors.join(' | ')||'none captured')].join('\n');
+  return ['Version: V6.7','Leaflet: '+(typeof window.L!=='undefined'?'loaded':'missing'),'Map initialized: '+mapReady,'Tiles loaded: '+loadedTiles,'Tiles failed: '+failedTiles,'Controls: '+(typeof window.jgTogglePro==='function'?'defined':'missing'),'Errors: '+(errors.join(' | ')||'none captured')].join('\n');
  }
  function show(){if(shown)return;shown=true;const el=panel();el._render();el.style.display='block';}
  function watchTiles(){
