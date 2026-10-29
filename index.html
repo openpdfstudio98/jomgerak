@@ -1384,13 +1384,13 @@ function jg52TrackOffRoute(pos,progress){
         let mapView48='north';
         // V6.3.1: No CARTO raster endpoints: they now return API KEY REQUIRED tiles.
         // OSM raster tiles are a low-volume fallback, subject to OSM tile usage policy.
-        const jgOSM='https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png';
-        const jgOSMAttr='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap contributors</a> &copy; <a href="https://carto.com/attributions">CARTO</a>';
+        const jgOSM='https://tile.openstreetmap.org/{z}/{x}/{y}.png';
+        const jgOSMAttr='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap contributors</a>'; 
         const mapSources48={
           navigator:{url:jgOSM,maxZoom:19,attribution:jgOSMAttr,filter:'none'},
           standard:{url:jgOSM,maxZoom:19,attribution:jgOSMAttr,filter:'none'},
           smart:{url:jgOSM,maxZoom:19,attribution:jgOSMAttr,filter:'saturate(.75) contrast(1.07)'},
-          night:{url:'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',maxZoom:19,attribution:jgOSMAttr,filter:'none'},
+          night:{url:jgOSM,maxZoom:19,attribution:jgOSMAttr,filter:'invert(.92) hue-rotate(180deg) brightness(.82) contrast(1.12)'},
           satellite:{url:'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',maxZoom:19,attribution:'Tiles &copy; Esri and imagery contributors',filter:'none'}
         };
         let jgTileFallbackActive=false;
@@ -3193,6 +3193,33 @@ const toolbar=document.getElementById('poiBtn-ev')?.parentElement;if(toolbar&&!d
  const button=document.getElementById('toggleSearchBtn');if(button)button.addEventListener('click',()=>setTimeout(schedule,100));
  const observer=new ResizeObserver(schedule);observer.observe(search.firstElementChild||search);
  schedule();
+})();
+</script>
+
+<style id="jg731-layout-repair">
+/* Keep floating controls separate from one another at all screen widths. */
+@media(min-width:768px){
+ #jg712MobilePoiWrap{left:420px!important;right:85px!important;max-width:calc(100vw - 505px)!important;width:auto!important}
+ #floatingMapTools{right:16px!important;bottom:110px!important;gap:10px!important;z-index:540!important}
+ #jg52Install{right:16px!important;bottom:76px!important;z-index:570!important}
+ #jgProPanel{right:16px!important;bottom:16px!important;max-width:min(340px,calc(100vw - 32px))!important}
+ #jg720Results{bottom:16px!important;max-height:min(42dvh,350px)!important}
+}
+@media(max-width:767px){
+ #floatingMapTools{right:10px!important;bottom:155px!important;gap:8px!important;z-index:540!important}
+ #jg52Install{right:10px!important;bottom:105px!important;z-index:560!important}
+ #jgProPanel{right:10px!important;bottom:12px!important;max-width:calc(100vw - 20px)!important}
+ #jg720Results{bottom:calc(190px + env(safe-area-inset-bottom,0px))!important;max-height:32dvh!important}
+}
+</style>
+<script id="jg731-map-repair">
+(function(){
+ 'use strict';
+ // Fix layouts where the fixed install button and map tools overlap.
+ const install=document.getElementById('jg52Install');
+ if(install)install.title='Install JomGerak';
+ // Avoid cached legacy CARTO map selection; all street styles now use labeled OSM tiles.
+ // Satellite remains imagery-only and will not show road labels.
 })();
 </script>
 </body>
