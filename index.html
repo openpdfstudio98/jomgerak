@@ -1699,7 +1699,7 @@ function jg52TrackOffRoute(pos,progress){
         // ==========================================
         // 6. CARIAN PANTAS POI BERDEKATAN (OVERPASS / NOMINATIM)
         // ==========================================
-        async function searchNearbyPOI(category) {
+        async function legacySearchNearbyPOI(category) {
             const center = map.getCenter();
             const lat = center.lat;
             const lng = center.lng;
@@ -3031,6 +3031,137 @@ if(root){new MutationObserver(mutations=>{if(!changing&&mutations.some(m=>m.type
 const lang=document.getElementById('languageSelect');if(lang)lang.addEventListener('change',()=>setTimeout(schedule,0));
 window.jg707TranslateTrip=translate;
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',schedule,{once:true});else schedule();
+})();
+</script>
+
+<style id="jg71-nearby-style">
+#jg71NearbyStatus{position:absolute;top:116px;right:12px;z-index:850;max-width:min(340px,85vw);background:rgba(255,255,255,.96);color:#17243b;border:1px solid #dce5f3;border-radius:14px;padding:10px 13px;box-shadow:0 6px 20px #10182822;font:600 12px/1.45 system-ui;display:none}
+#jg71NearbyStatus[data-show="true"]{display:block}
+.poi-pill.jg71-selected{background:#175bea!important;color:white!important;border-color:#175bea!important}
+</style>
+<script id="jg71-nearby-script">
+(function(){
+'use strict';
+const categories={
+ fuel:{bm:'Stesen Minyak',en:'Petrol Stations',filter:'["amenity"="fuel"]',symbol:'⛽'},
+ mosque:{bm:'Masjid / Surau',en:'Mosques / Prayer Rooms',filter:'["amenity"="place_of_worship"]["religion"="muslim"]',symbol:'🕌'},
+ food:{bm:'Makanan / R&R',en:'Food / Rest Stops',filter:'["amenity"~"restaurant|fast_food|food_court"]',symbol:'🍴'},
+ ev:{bm:'Pengecas EV',en:'EV Chargers',filter:'["amenity"="charging_station"]',symbol:'⚡'},
+ toll:{bm:'Plaza Tol',en:'Toll Plazas',filter:'["barrier"="toll_booth"]',symbol:'🛣️'}
+};
+let requestNo=0, activeCategory=null;
+const status=document.createElement('div');
+status.id='jg71NearbyStatus';status.setAttribute('role','status');status.setAttribute('aria-live','polite');
+document.body.appendChild(status);
+function en(){return typeof appLanguage!=='undefined'&&appLanguage==='en'}
+function say(bm,english){status.textContent=en()?english:bm;status.dataset.show='true'}
+function iconFor(item){
+ const sym=categories[item].symbol;
+ return L.divIcon({className:'',html:'<div style="background:#175bea;color:white;border:2px solid white;border-radius:15px;display:grid;place-items:center;width:36px;height:36px;box-shadow:0 3px 10px #0003;font-size:19px">'+sym+'</div>',iconSize:[36,36],iconAnchor:[18,18]});
+}
+function coords(el){
+ if(typeof el.lat==='number')return {lat:el.lat,lng:el.lon};
+ if(el.center)return {lat:el.center.lat,lng:el.center.lon};
+ return null;
+}
+function distance(a,b){
+ const r=Math.PI/180,dl=(b.lng-a.lng)*r,dp=(b.lat-a.lat)*r;
+ const h=Math.sin(dp/2)**2+Math.cos(a.lat*r)*Math.cos(b.lat*r)*Math.sin(dl/2)**2;
+ return 12742*Math.asin(Math.min(1,Math.sqrt(h)));
+}
+async function gps(){
+ if(!navigator.geolocation)throw Error('GPS unsupported');
+ return await new Promise((resolve,reject)=>{
+  navigator.geolocation.getCurrentPosition(
+   p=>resolve({lat:p.coords.latitude,lng:p.coords.longitude}),
+   reject,{enableHighAccuracy:true,timeout:12000,maximumAge:60000});
+ });
+}
+function setSelected(category){
+ document.querySelectorAll('[id^="poiBtn-"],#jg71TollBtn').forEach(b=>{
+  const chosen=b.id==='poiBtn-'+category||(category==='toll'&&b.id==='jg71TollBtn');
+  b.classList.toggle('jg71-selected',chosen);
+  b.setAttribute('aria-pressed',String(chosen));
+ });
+}
+async function queryOSM(category,origin,radius,signal){
+ const q='[out:json][timeout:16];(node'+categories[category].filter+'(around:'+radius+','+origin.lat+','+origin.lng+');way'+categories[category].filter+'(around:'+radius+','+origin.lat+','+origin.lng+'););out center 60;';
+ const url='https://overpass.kumi.systems/api/interpreter';
+ const res=await fetch(url,{method:'POST',body:new URLSearchParams({data:q}),signal});
+ if(!res.ok)throw Error('Overpass HTTP '+res.status);
+ const data=await res.json();
+ return (data.elements||[]).map(el=>({...coords(el),name:el.tags?.name||el.tags?.brand||(en()?categories[category].en:categories[category].bm),id:el.type+el.id}))
+  .filter(x=>Number.isFinite(x.lat)&&Number.isFinite(x.lng))
+  .map(x=>({...x,km:distance(origin,x)})).sort((a,b)=>a.km-b.km).slice(0,25);
+}
+window.searchNearbyPOI=async function(category,radius=5000){
+ if(!categories[category])return;
+ const id=++requestNo;
+ activeCategory=category;setSelected(category);
+ say('Mendapatkan lokasi GPS semasa…','Getting your current GPS location…');
+ if(typeof map==='undefined'||!map||typeof poiMarkersGroup==='undefined'||!poiMarkersGroup){
+  say('Peta belum sedia.','Map is not ready.');return;
+ }
+ let origin;
+ try{origin=await gps()}catch(e){
+  if(id!==requestNo)return;
+  say('GPS tidak tersedia. Benarkan lokasi dalam browser dan cuba lagi.','GPS unavailable. Allow browser location access and retry.');
+  return;
+ }
+ if(id!==requestNo)return;
+ map.setView([origin.lat,origin.lng],Math.max(map.getZoom(),12));
+ poiMarkersGroup.clearLayers();
+ say('Mencari tempat berdekatan…','Searching nearby places…');
+ const ctrl=new AbortController();
+ const timer=setTimeout(()=>ctrl.abort(),19000);
+ try{
+  const results=await queryOSM(category,origin,radius,ctrl.signal);
+  if(id!==requestNo)return;
+  if(!results.length){
+   say('Tiada hasil dalam '+radius/1000+' km. Cuba radius lebih besar.','No results within '+radius/1000+' km. Try a larger radius.');
+   return;
+  }
+  const bounds=[];
+  results.forEach(item=>{
+   const marker=L.marker([item.lat,item.lng],{icon:iconFor(category)}).addTo(poiMarkersGroup);
+   const wrap=document.createElement('div');wrap.style.minWidth='170px';
+   const title=document.createElement('strong');title.textContent=item.name;wrap.appendChild(title);
+   const info=document.createElement('p');info.textContent=item.km.toFixed(1)+' km '+(en()?'straight-line distance':'jarak garis lurus');wrap.appendChild(info);
+   if(category==='toll'){
+    const note=document.createElement('p');note.textContent=en()?'Toll price not available':'Harga tol tidak tersedia';wrap.appendChild(note);
+   }
+   const go=document.createElement('button');go.type='button';go.textContent=en()?'Set destination':'Jadikan destinasi';
+   go.style.cssText='background:#175bea;color:#fff;padding:7px 10px;border-radius:8px;width:100%;font-weight:700';
+   go.onclick=()=>{if(typeof selectLocation==='function')selectLocation('dest',item.lat,item.lng,item.name);map.closePopup()};
+   wrap.appendChild(go);marker.bindPopup(wrap);bounds.push([item.lat,item.lng]);
+  });
+  const clear=document.getElementById('clearPoiBtn');if(clear)clear.classList.remove('hidden');
+  say(results.length+' '+(en()?'places found near your GPS location':'tempat ditemui berhampiran lokasi GPS'));
+  // Do not zoom out to fit faraway POIs; keep GPS location as the anchor.
+ }catch(err){
+  if(id!==requestNo)return;
+  say('Carian gagal atau tamat masa. Cuba lagi kemudian.','Search failed or timed out. Please try again later.');
+  console.warn('[JomGerak nearby]',err);
+ }finally{clearTimeout(timer)}
+};
+window.jg71ClearNearby=function(){
+ requestNo++;activeCategory=null;setSelected(null);
+ if(typeof poiMarkersGroup!=='undefined'&&poiMarkersGroup)poiMarkersGroup.clearLayers();
+ const clear=document.getElementById('clearPoiBtn');if(clear)clear.classList.add('hidden');
+ status.dataset.show='false';
+};
+const clearBtn=document.getElementById('clearPoiBtn');
+if(clearBtn)clearBtn.addEventListener('click',()=>window.jg71ClearNearby());
+const toolbar=document.getElementById('poiBtn-ev')?.parentElement;
+if(toolbar&&!document.getElementById('jg71TollBtn')){
+ const btn=document.createElement('button');btn.id='jg71TollBtn';btn.type='button';
+ btn.className=document.getElementById('poiBtn-ev').className;
+ btn.innerHTML='<span>🛣️</span><span id="jg71TollLabel">Plaza Tol</span>';
+ btn.addEventListener('click',()=>window.searchNearbyPOI('toll'));
+ toolbar.appendChild(btn);
+}
+const lang=document.getElementById('languageSelect');
+if(lang)lang.addEventListener('change',()=>{const label=document.getElementById('jg71TollLabel');if(label)label.textContent=en()?'Toll Plazas':'Plaza Tol'});
 })();
 </script>
 </body>
