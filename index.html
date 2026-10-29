@@ -2668,5 +2668,108 @@ function jg52TrackOffRoute(pos,progress){
 #jg55Panel p{margin:7px 0 0;line-height:1.5}
 #jgProPanel .jg55tabs button.jg702-active{background:#2563eb!important;color:white!important;border-color:#2563eb!important}
 </style>
+
+<!-- V7.0.3: Safe, lightweight interactive recovery. No legacy startup modules. -->
+<style id="jg703-styles">
+button, [role="button"]{transition:transform .14s ease,box-shadow .18s ease,filter .18s ease}
+button:active,[role="button"]:active{transform:scale(.955);filter:brightness(.94)}
+button:focus-visible{outline:3px solid #22c55e!important;outline-offset:2px}
+.jg703-pulse{animation:jg703tap .28s ease-out}
+@keyframes jg703tap{0%{box-shadow:0 0 0 0 rgba(37,99,235,.5)}100%{box-shadow:0 0 0 13px rgba(37,99,235,0)}}
+#jg55Panel .jg703-row{display:flex;gap:7px;flex-wrap:wrap;margin-top:9px}
+#jg55Panel button{background:#2563eb;color:white;border:0;border-radius:9px;padding:8px 11px;font-weight:650;cursor:pointer}
+#jg55Panel input,#jg55Panel select{background:white;color:#172b4d;border:1px solid #b4c8e7;border-radius:8px;padding:7px;max-width:100%}
+#jg55Panel label{display:block;margin:8px 0 3px}
+#jg55Panel .jg703-info{margin-top:7px;line-height:1.55}
+@media(prefers-reduced-motion:reduce){button,[role="button"]{transition:none}.jg703-pulse{animation:none}}
+</style>
+<script id="jg-v703-interactions">
+(function(){'use strict';
+const $=id=>document.getElementById(id);
+function toast(message){if(typeof window.showToast==='function')window.showToast(message,'info');else console.info('[JomGerak]',message)}
+function panel(title){
+  if(typeof window.jg55Tab==='function')window.jg55Tab('trip');
+  const el=$('jg55Panel');if(!el)return null;
+  const host=$('jg55TripTab');if(host&&el.parentElement!==host)host.appendChild(el);
+  el.replaceChildren();el.hidden=false;
+  const h=document.createElement('strong');h.textContent=title;el.appendChild(h);
+  const body=document.createElement('div');body.className='jg703-info';el.appendChild(body);
+  $('jgProPanel')?.classList.remove('jgfolded');return body;
+}
+function line(host,text){const p=document.createElement('p');p.textContent=text;host.appendChild(p);return p}
+function btn(host,label,callback){const b=document.createElement('button');b.type='button';b.textContent=label;b.addEventListener('click',callback);host.appendChild(b);return b}
+function input(host,labelText,type='text',value=''){const label=document.createElement('label');label.textContent=labelText;const field=document.createElement('input');field.type=type;field.value=value;label.appendChild(field);host.appendChild(label);return field}
+function route(){try{return typeof currentRouteData!=='undefined'?currentRouteData:null}catch{return null}}
+function routes(){try{return typeof routes47!=='undefined'&&Array.isArray(routes47)?routes47:[]}catch{return []}}
+const names={compare:'Banding Laluan',stops:'Multi-Hentian',pit:'Pit Stop',cost:'Kos Perjalanan',weather:'Cuaca Laluan',offline:'Simpan Offline',reports:'Sahkan Laporan',vehicle:'Profil Kenderaan'};
+window.jg55Show=function(feature){
+ const host=panel(names[feature]||feature);if(!host)return;
+ const r=route(),rr=routes();
+ if(feature==='compare'){
+   if(!rr.length){line(host,'Cari laluan dahulu untuk membandingkan pilihan perjalanan.');return}
+   rr.forEach((x,i)=>line(host,`Pilihan ${i+1}: ${(x.distance/1000).toFixed(1)} km • ${Math.round(x.duration/60)} min`));
+   line(host,'Anggaran berdasarkan perkhidmatan laluan; keadaan trafik sebenar mungkin berbeza.');return;
+ }
+ if(feature==='cost'){
+   if(!r){line(host,'Cari laluan dahulu untuk mengira kos perjalanan.');return}
+   const distance=r.distance/1000;
+   const fuel=input(host,'Penggunaan bahan api (L/100 km)','number',localStorage.getItem('jg703-fuel')||'7');
+   const price=input(host,'Harga petrol (RM/L)','number',localStorage.getItem('jg703-price')||'2.05');
+   const result=line(host,'');
+   const calc=()=>{const f=Number(fuel.value),p=Number(price.value);if(f<=0||p<0||!Number.isFinite(f*p)){result.textContent='Masukkan nombor yang sah.';return}localStorage.setItem('jg703-fuel',String(f));localStorage.setItem('jg703-price',String(p));result.textContent=`Jarak ${(distance).toFixed(1)} km • Anggaran petrol RM ${(distance*f/100*p).toFixed(2)} (tidak termasuk tol dan parkir).`};
+   fuel.addEventListener('input',calc);price.addEventListener('input',calc);calc();return;
+ }
+ if(feature==='vehicle'){
+   const name=input(host,'Nama kenderaan','text',localStorage.getItem('jg703-vehicle')||'Kereta saya');
+   const fuel=input(host,'Penggunaan minyak (L/100 km)','number',localStorage.getItem('jg703-fuel')||'7');
+   btn(host,'Simpan profil',()=>{if(!(Number(fuel.value)>0)){toast('Masukkan penggunaan minyak yang sah.');return}localStorage.setItem('jg703-vehicle',name.value.trim().slice(0,70));localStorage.setItem('jg703-fuel',fuel.value);toast('Profil kenderaan disimpan pada peranti ini.')});return;
+ }
+ if(feature==='stops'){
+   line(host,'Simpan senarai hentian untuk merancang perjalanan. Ini bukan pengoptimuman laluan automatik.');
+   const field=input(host,'Nama hentian');const list=document.createElement('div');host.appendChild(list);
+   const key='jg703-stops';let stops=[];try{stops=JSON.parse(localStorage.getItem(key)||'[]')}catch{}
+   const render=()=>{list.replaceChildren();stops.forEach((s,i)=>{const row=document.createElement('div');row.className='jg703-row';line(row,`${i+1}. ${s}`);btn(row,'Buang',()=>{stops.splice(i,1);localStorage.setItem(key,JSON.stringify(stops));render()});list.appendChild(row)})};
+   btn(host,'Tambah hentian',()=>{const s=field.value.trim().slice(0,100);if(!s)return;stops.push(s);stops=stops.slice(-15);localStorage.setItem(key,JSON.stringify(stops));field.value='';render()});render();return;
+ }
+ if(feature==='pit'){
+   line(host,'Cari kemudahan berhampiran lokasi atau sepanjang laluan.');
+   const row=document.createElement('div');row.className='jg703-row';host.appendChild(row);
+   [['⛽ Petrol','fuel'],['🍴 Makan','food'],['🕌 Masjid','mosque'],['⚡ EV','ev']].forEach(([label,kind])=>btn(row,label,()=>{if(typeof window.searchNearbyPOI==='function')window.searchNearbyPOI(kind);else toast('Carian kemudahan tidak tersedia.')}));return;
+ }
+ if(feature==='weather'){
+   line(host,'Cuaca laluan memerlukan data cuaca semasa. Gunakan fungsi Cuaca & Banjir di menu Perjalanan untuk mendapatkan data jika servis tersedia.');
+   btn(host,'Semak cuaca',()=>{if(typeof window.jgWeatherAlerts==='function')window.jgWeatherAlerts();else toast('Perkhidmatan cuaca tidak tersedia.')});return;
+ }
+ if(feature==='reports'){
+   line(host,'Laporan komuniti perlu disahkan menggunakan sumber dan masa laporan. Jangan anggap laporan pengguna sebagai maklumat rasmi.');
+   btn(host,'Muat semula laporan',()=>{if(typeof window.jgRefreshReports==='function')window.jgRefreshReports();else toast('Laporan komuniti tidak tersedia.')});return;
+ }
+ if(feature==='offline'){
+   line(host,'Peta luar talian sepenuhnya belum tersedia. Menyimpan halaman tidak menjamin tiles, carian atau navigasi boleh digunakan tanpa internet.');
+   btn(host,'Semak sambungan',()=>toast(navigator.onLine?'Peranti melaporkan sambungan internet aktif.':'Peranti sedang offline.'));return;
+ }
+ line(host,'Fungsi belum tersedia.');
+};
+// Restore direct controls whose original handlers live in disabled modules.
+window.jgPremiumMode=function(mode){
+ if(mode==='3d'){if(typeof window.jgToggle3D==='function')window.jgToggle3D();return}
+ if(mode==='follow'){if(typeof window.setMapView48==='function')window.setMapView48('follow');return}
+ if(typeof window.jgToggle3D==='function'&&typeof jg3dActive!=='undefined'&&jg3dActive)window.jgToggle3D();
+ toast('Peta 2D aktif.');
+};
+window.jg64MapTiler=function(){if(typeof window.setMapStyle48==='function')window.setMapStyle48('navigator');toast('Peta OSM digunakan. MapTiler memerlukan konfigurasi API tersendiri.')};
+window.jg65ToggleMenu=function(){const el=$('jg65Extra');if(!el)return;const open=el.classList.toggle('jg703-open');el.style.display=open?'flex':'none';$('jg65More')?.setAttribute('aria-expanded',String(open))};
+window.jg65Start=function(){if(typeof window.stopLiveNavigation==='function')window.stopLiveNavigation();toast('Navigasi dihentikan.')};
+window.jg65Overview=function(){try{if(typeof map!=='undefined'&&map){if(typeof routeLayer!=='undefined'&&routeLayer&&routeLayer.getBounds&&routeLayer.getBounds().isValid())map.fitBounds(routeLayer.getBounds());else map.setView([3.139,101.687],11)}}catch(e){console.warn(e)}};
+window.jg65Recenter=function(){if(typeof window.recenterNavigation==='function')window.recenterNavigation();else if(typeof window.useMyLocation==='function')window.useMyLocation()};
+window.jg65ToggleView=function(){if(typeof window.jgToggle3D==='function')window.jgToggle3D()};
+window.jg55VoiceStart=function(){if(!('speechSynthesis'in window)){toast('Suara tidak disokong browser ini.');return}const u=new SpeechSynthesisUtterance('JomGerak. Arahan suara diaktifkan.');u.lang='ms-MY';u.rate=Number($('jgVoiceRate')?.value)||1;speechSynthesis.speak(u)};
+window.jg652TestVoice=window.jg55VoiceStart;
+window.jg55ToggleDriving=function(){if(typeof window.toggleDrivingPanels==='function')window.toggleDrivingPanels();else toast('Paparan pemanduan tidak tersedia.')};
+window.jg52InstallApp=function(){toast('Untuk pasang aplikasi, gunakan menu browser → Install app / Add to Home Screen jika tersedia.')};
+// Visible feedback without global click interception or repeated timers.
+document.addEventListener('click',function(e){const b=e.target.closest('button');if(!b)return;b.classList.remove('jg703-pulse');void b.offsetWidth;b.classList.add('jg703-pulse');setTimeout(()=>b.classList.remove('jg703-pulse'),350)}, {passive:true});
+})();
+</script>
 </body>
 </html>
