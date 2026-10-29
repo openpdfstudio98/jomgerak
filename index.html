@@ -2829,5 +2829,106 @@ document.addEventListener('click',function(e){const b=e.target.closest('button')
  });}
 })();
 </script>
+
+<!-- V7.0.5: Unified visual feedback for every control, no map reinitialization. -->
+<style id="jg705-style">
+#jgProPanel button,#mapStyleControls button {
+  transition:background-color .18s ease,color .18s ease,border-color .18s ease,
+             box-shadow .18s ease,transform .12s ease!important;
+}
+#jgProPanel button:active,#mapStyleControls button:active{transform:scale(.96)!important}
+#jgProPanel button.jg705-active,#mapStyleControls button.jg705-active {
+  background:#175bea!important;color:white!important;border-color:#0c46c7!important;
+  box-shadow:0 2px 12px rgba(23,91,234,.26)!important;
+}
+#jgProPanel button.jg705-active i,#mapStyleControls button.jg705-active i{color:inherit!important}
+#jgProPanel button.jg705-ack,#mapStyleControls button.jg705-ack{
+  animation:jg705-pulse .5s ease-out;
+}
+#jgProPanel button.jg705-recent,#mapStyleControls button.jg705-recent {
+  background:#e0ecff!important;color:#1246a2!important;border-color:#6096f5!important;
+}
+#jgProPanel button.jg705-unavailable {
+  outline:2px dashed #f59e0b!important;outline-offset:1px;
+}
+@keyframes jg705-pulse {
+  0%{box-shadow:0 0 0 0 rgba(37,99,235,.55)}
+  100%{box-shadow:0 0 0 10px rgba(37,99,235,0)}
+}
+@media(prefers-reduced-motion:reduce){
+  #jgProPanel button.jg705-ack,#mapStyleControls button.jg705-ack{animation:none}
+}
+</style>
+<script id="jg705-unified-feedback">
+(function(){
+'use strict';
+const panel=document.getElementById('jgProPanel');
+if(!panel)return;
+const mapBox=document.getElementById('mapStyleControls');
+const scopes=[panel,mapBox].filter(Boolean);
+const groupState=new Map();
+const timers=new WeakMap();
+const code=(b)=>b.getAttribute('onclick')||'';
+function group(b){
+ const c=code(b);
+ if(/^jg55Tab\(/.test(c))return 'tab';
+ if(/^setMapStyle48\(/.test(c)||/^jg64MapTiler\(/.test(c))return 'mapstyle';
+ if(/^setMapView48\(/.test(c))return 'mapview';
+ if(/^jgPremiumMode\(/.test(c))return 'premium';
+ if(/^jg55Show\(/.test(c))return 'feature';
+ return null;
+}
+function activate(b,g){
+ const prev=groupState.get(g);
+ if(prev&&prev!==b){prev.classList.remove('jg705-active','jg704-selected');prev.setAttribute('aria-pressed','false')}
+ groupState.set(g,b);
+ b.classList.add('jg705-active');
+ b.classList.remove('jg704-selected');
+ b.setAttribute('aria-pressed','true');
+}
+function acknowledge(b){
+ b.classList.remove('jg705-ack');void b.offsetWidth;b.classList.add('jg705-ack');
+}
+function momentary(b){
+ b.classList.add('jg705-recent');
+ clearTimeout(timers.get(b));
+ timers.set(b,setTimeout(()=>b.classList.remove('jg705-recent'),1100));
+}
+function updateToggle(b){
+ const c=code(b);
+ if(/jgTogglePro\(/.test(c)){
+  const open=!panel.classList.contains('jgfolded');
+  b.setAttribute('aria-expanded',String(open));
+  b.classList.toggle('jg705-active',open);
+  return true;
+ }
+ if(/smartRoute48/.test(c)){
+  const el=document.getElementById('smartRoute48');
+  const open=!!el&&!el.classList.contains('hidden');
+  b.setAttribute('aria-expanded',String(open));b.classList.toggle('jg705-active',open);
+  return true;
+ }
+ return false;
+}
+function handle(e){
+ const b=e.target.closest('button');
+ if(!b||b.disabled||!scopes.some(s=>s.contains(b)))return;
+ acknowledge(b);
+ // Let inline handlers run first; then read resulting state.
+ setTimeout(()=>{
+   if(updateToggle(b))return;
+   const g=group(b);
+   if(g){activate(b,g);return;}
+   momentary(b);
+ },0);
+}
+document.addEventListener('click',handle,false);
+// Establish initial tab highlight without firing any action.
+const tab=document.getElementById('jg55tab-map');
+if(tab)activate(tab,'tab');
+const trigger=panel.querySelector(':scope > button');
+if(trigger)trigger.setAttribute('aria-expanded',String(!panel.classList.contains('jgfolded')));
+})();
+</script>
 </body>
 </html>
