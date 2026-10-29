@@ -1384,13 +1384,13 @@ function jg52TrackOffRoute(pos,progress){
         let mapView48='north';
         // V6.3.1: No CARTO raster endpoints: they now return API KEY REQUIRED tiles.
         // OSM raster tiles are a low-volume fallback, subject to OSM tile usage policy.
-        const jgOSM='https://tile.openstreetmap.org/{z}/{x}/{y}.png';
-        const jgOSMAttr='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap contributors</a>';
+        const jgOSM='https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png';
+        const jgOSMAttr='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap contributors</a> &copy; <a href="https://carto.com/attributions">CARTO</a>';
         const mapSources48={
           navigator:{url:jgOSM,maxZoom:19,attribution:jgOSMAttr,filter:'none'},
           standard:{url:jgOSM,maxZoom:19,attribution:jgOSMAttr,filter:'none'},
           smart:{url:jgOSM,maxZoom:19,attribution:jgOSMAttr,filter:'saturate(.75) contrast(1.07)'},
-          night:{url:jgOSM,maxZoom:19,attribution:jgOSMAttr,filter:'invert(.88) hue-rotate(180deg) brightness(.78) contrast(1.1)'},
+          night:{url:'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',maxZoom:19,attribution:jgOSMAttr,filter:'none'},
           satellite:{url:'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',maxZoom:19,attribution:'Tiles &copy; Esri and imagery contributors',filter:'none'}
         };
         let jgTileFallbackActive=false;
@@ -3039,148 +3039,44 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
 #jg71NearbyStatus[data-show="true"]{display:block}
 .poi-pill.jg71-selected{background:#175bea!important;color:white!important;border-color:#175bea!important}
 </style>
-<script id="jg71-nearby-script">
+<style id="jg720-style">
+#jg720Results{position:fixed;z-index:1550;bottom:96px;left:12px;width:min(360px,calc(100vw - 24px));max-height:37vh;overflow:auto;background:#17243b;color:#eaf2ff;border:1px solid #42608a;border-radius:16px;box-shadow:0 8px 30px #0006;padding:12px;display:none;font:13px system-ui}
+#jg720Results[data-open="true"]{display:block}
+#jg720Results button{border-radius:8px;background:#2563eb;color:white;padding:7px 10px;font-weight:700}
+#jg720Results .jg720-item{border-top:1px solid #344b68;padding:9px 0;display:flex;gap:10px;align-items:center;justify-content:space-between}
+#jg720Results .jg720-item small{color:#b5c8e2;display:block;margin-top:3px}
+#jg720Results .jg720-head{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:5px}
+.poi-pill.jg71-selected,#jg71TollBtn.jg71-selected{background:#2563eb!important;color:white!important}
+@media(max-width:650px){#jg720Results{bottom:110px;max-height:32vh}}
+</style>
+<script id="jg720-nearby">
 (function(){
 'use strict';
-const categories={
- fuel:{bm:'Stesen Minyak',en:'Petrol Stations',filter:'["amenity"="fuel"]',symbol:'⛽'},
- mosque:{bm:'Masjid / Surau',en:'Mosques / Prayer Rooms',filter:'["amenity"="place_of_worship"]["religion"="muslim"]',symbol:'🕌'},
- food:{bm:'Makanan / R&R',en:'Food / Rest Stops',filter:'["amenity"~"restaurant|fast_food|food_court"]',symbol:'🍴'},
- ev:{bm:'Pengecas EV',en:'EV Chargers',filter:'["amenity"="charging_station"]',symbol:'⚡'},
- toll:{bm:'Plaza Tol',en:'Toll Plazas',filter:'["barrier"="toll_booth"]',symbol:'🛣️'}
-};
-let requestNo=0, activeCategory=null;
-const status=document.createElement('div');
-status.id='jg71NearbyStatus';status.setAttribute('role','status');status.setAttribute('aria-live','polite');
-document.body.appendChild(status);
-function en(){return typeof appLanguage!=='undefined'&&appLanguage==='en'}
-function say(bm,english){status.textContent=en()?english:bm;status.dataset.show='true'}
-function iconFor(item){
- const sym=categories[item].symbol;
- return L.divIcon({className:'',html:'<div style="background:#175bea;color:white;border:2px solid white;border-radius:15px;display:grid;place-items:center;width:36px;height:36px;box-shadow:0 3px 10px #0003;font-size:19px">'+sym+'</div>',iconSize:[36,36],iconAnchor:[18,18]});
+const categories={fuel:{bm:'Stesen Minyak',en:'Petrol Stations',filter:'["amenity"="fuel"]',emoji:'⛽'},mosque:{bm:'Masjid / Surau',en:'Mosques',filter:'["amenity"="place_of_worship"]["religion"="muslim"]',emoji:'🕌'},food:{bm:'Makan / R&R',en:'Food / Rest Stops',filter:'["amenity"~"restaurant|fast_food|food_court|cafe"]',emoji:'🍔'},ev:{bm:'Pengecas EV',en:'EV Chargers',filter:'["amenity"="charging_station"]',emoji:'⚡'},toll:{bm:'Plaza Tol',en:'Toll Plazas',filter:'["barrier"="toll_booth"]',emoji:'🛣️'}};
+let serial=0,layer=null,origin=null,category=null;
+const el=document.createElement('section');el.id='jg720Results';el.setAttribute('aria-live','polite');document.body.appendChild(el);
+const en=()=>typeof appLanguage!=='undefined'&&appLanguage==='en';
+const txt=(bm,english)=>en()?english:bm;
+function head(title){el.replaceChildren();const h=document.createElement('div');h.className='jg720-head';const t=document.createElement('strong');t.textContent=title;const x=document.createElement('button');x.textContent='✕';x.setAttribute('aria-label','Close nearby results');x.onclick=()=>{el.dataset.open='false'};h.append(t,x);el.appendChild(h);el.dataset.open='true'}
+function message(bm,english){const p=document.createElement('div');p.textContent=txt(bm,english);el.appendChild(p)}
+function currentMap(){return typeof map!=='undefined'&&map&&typeof L!=='undefined'?map:null}
+function getLayer(){const m=currentMap();if(!m)return null;if(!layer)layer=L.layerGroup().addTo(m);return layer}
+function km(a,b){const r=Math.PI/180,dl=(b.lng-a.lng)*r,dp=(b.lat-a.lat)*r;return 12742*Math.asin(Math.min(1,Math.sqrt(Math.sin(dp/2)**2+Math.cos(a.lat*r)*Math.cos(b.lat*r)*Math.sin(dl/2)**2)))}
+async function getGPS(){return new Promise((ok,bad)=>{if(!navigator.geolocation)return bad(Error('No geolocation'));navigator.geolocation.getCurrentPosition(p=>ok({lat:p.coords.latitude,lng:p.coords.longitude}),bad,{timeout:13000,maximumAge:60000,enableHighAccuracy:true})})}
+async function lookup(cat,where,radius){
+ const f=categories[cat].filter;const q='[out:json][timeout:12];(node'+f+'(around:'+radius+','+where.lat+','+where.lng+');way'+f+'(around:'+radius+','+where.lat+','+where.lng+'););out center 100;';
+ const urls=['https://overpass.kumi.systems/api/interpreter','https://overpass-api.de/api/interpreter'];let last;
+ for(const url of urls){const c=new AbortController();const timer=setTimeout(()=>c.abort(),14500);try{const res=await fetch(url,{method:'POST',body:new URLSearchParams({data:q}),signal:c.signal});if(!res.ok)throw Error('HTTP '+res.status);const json=await res.json();if(!Array.isArray(json.elements))throw Error('Invalid JSON');return json.elements.map(x=>({lat:x.lat??x.center?.lat,lng:x.lon??x.center?.lon,name:x.tags?.name||x.tags?.brand||txt(categories[cat].bm,categories[cat].en)})).filter(x=>Number.isFinite(x.lat)&&Number.isFinite(x.lng)).map(x=>({...x,km:km(where,x)})).sort((a,b)=>a.km-b.km).slice(0,25)}catch(e){last=e;console.warn('[JomGerak Nearby]',url,e)}finally{clearTimeout(timer)}}throw last||Error('Unavailable')
 }
-function coords(el){
- if(typeof el.lat==='number')return {lat:el.lat,lng:el.lon};
- if(el.center)return {lat:el.center.lat,lng:el.center.lon};
- return null;
-}
-function distance(a,b){
- const r=Math.PI/180,dl=(b.lng-a.lng)*r,dp=(b.lat-a.lat)*r;
- const h=Math.sin(dp/2)**2+Math.cos(a.lat*r)*Math.cos(b.lat*r)*Math.sin(dl/2)**2;
- return 12742*Math.asin(Math.min(1,Math.sqrt(h)));
-}
-async function gps(){
- if(!navigator.geolocation)throw Error('GPS unsupported');
- return await new Promise((resolve,reject)=>{
-  navigator.geolocation.getCurrentPosition(
-   p=>resolve({lat:p.coords.latitude,lng:p.coords.longitude}),
-   reject,{enableHighAccuracy:true,timeout:12000,maximumAge:60000});
- });
-}
-function setSelected(category){
- document.querySelectorAll('[id^="poiBtn-"],#jg71TollBtn').forEach(b=>{
-  const chosen=b.id==='poiBtn-'+category||(category==='toll'&&b.id==='jg71TollBtn');
-  b.classList.toggle('jg71-selected',chosen);
-  b.setAttribute('aria-pressed',String(chosen));
- });
-}
-async function queryOSM(category,origin,radius,signal){
- const filter=categories[category].filter;
- const q='[out:json][timeout:12];(node'+filter+'(around:'+radius+','+origin.lat+','+origin.lng+');way'+filter+'(around:'+radius+','+origin.lat+','+origin.lng+'););out center 80;';
- const endpoints=[
-  'https://overpass.kumi.systems/api/interpreter',
-  'https://overpass.nchc.org.tw/api/interpreter',
-  'https://overpass-api.de/api/interpreter'
- ];
- let lastError;
- for(const url of endpoints){
-  if(signal.aborted)throw Error('Cancelled');
-  const controller=new AbortController();
-  const cancel=()=>controller.abort();
-  signal.addEventListener('abort',cancel,{once:true});
-  const timer=setTimeout(()=>controller.abort(),11500);
-  try{
-   const res=await fetch(url+'?data='+encodeURIComponent(q),{signal:controller.signal,headers:{Accept:'application/json'}});
-   if(!res.ok)throw Error('Overpass '+res.status);
-   const data=await res.json();
-   if(!Array.isArray(data.elements))throw Error('Invalid response');
-   return data.elements.map(el=>({...coords(el),name:el.tags?.name||el.tags?.brand||(en()?categories[category].en:categories[category].bm),id:el.type+el.id}))
-    .filter(x=>Number.isFinite(x.lat)&&Number.isFinite(x.lng))
-    .map(x=>({...x,km:distance(origin,x)})).sort((a,b)=>a.km-b.km).slice(0,25);
-  }catch(e){lastError=e;console.warn('[JomGerak nearby endpoint]',url,e.message)}
-  finally{clearTimeout(timer);signal.removeEventListener('abort',cancel)}
- }
- throw lastError||Error('All Overpass endpoints unavailable');
-}
-
-window.searchNearbyPOI=async function(category,radius=5000){
- if(!categories[category])return;
- const id=++requestNo;
- activeCategory=category;setSelected(category);
- say('Mendapatkan lokasi GPS semasa…','Getting your current GPS location…');
- if(typeof map==='undefined'||!map||typeof poiMarkersGroup==='undefined'||!poiMarkersGroup){
-  say('Peta belum sedia.','Map is not ready.');return;
- }
- let origin;
- try{origin=await gps()}catch(e){
-  if(id!==requestNo)return;
-  say('GPS tidak tersedia. Benarkan lokasi dalam browser dan cuba lagi.','GPS unavailable. Allow browser location access and retry.');
-  return;
- }
- if(id!==requestNo)return;
- map.setView([origin.lat,origin.lng],Math.max(map.getZoom(),12));
- poiMarkersGroup.clearLayers();
- say('Mencari tempat berdekatan…','Searching nearby places…');
- const ctrl=new AbortController();
- const timer=setTimeout(()=>ctrl.abort(),38000);
- try{
-  const results=await queryOSM(category,origin,radius,ctrl.signal);
-  if(id!==requestNo)return;
-  if(!results.length){
-   say('Tiada hasil dalam '+radius/1000+' km. Cuba kategori lain.','No results within '+radius/1000+' km. Try another category.');
-   return;
-  }
-  const bounds=[];
-  results.forEach(item=>{
-   const marker=L.marker([item.lat,item.lng],{icon:iconFor(category)}).addTo(poiMarkersGroup);
-   const wrap=document.createElement('div');wrap.style.minWidth='170px';
-   const title=document.createElement('strong');title.textContent=item.name;wrap.appendChild(title);
-   const info=document.createElement('p');info.textContent=item.km.toFixed(1)+' km '+(en()?'straight-line distance':'jarak garis lurus');wrap.appendChild(info);
-   if(category==='toll'){
-    const note=document.createElement('p');note.textContent=en()?'Toll price not available':'Harga tol tidak tersedia';wrap.appendChild(note);
-   }
-   const go=document.createElement('button');go.type='button';go.textContent=en()?'Set destination':'Jadikan destinasi';
-   go.style.cssText='background:#175bea;color:#fff;padding:7px 10px;border-radius:8px;width:100%;font-weight:700';
-   go.onclick=()=>{if(typeof selectLocation==='function')selectLocation('dest',item.lat,item.lng,item.name);map.closePopup()};
-   wrap.appendChild(go);marker.bindPopup(wrap);bounds.push([item.lat,item.lng]);
-  });
-  const clear=document.getElementById('clearPoiBtn');if(clear)clear.classList.remove('hidden');
-  say(results.length+' '+(en()?'places found near your GPS location':'tempat ditemui berhampiran lokasi GPS'));
-  // Do not zoom out to fit faraway POIs; keep GPS location as the anchor.
- }catch(err){
-  if(id!==requestNo)return;
-  say('Pelayan tempat berdekatan tidak dapat dihubungi. Cuba lagi.','Nearby places server unavailable. Please retry.');
-  console.warn('[JomGerak nearby]',err);
- }finally{clearTimeout(timer)}
-};
-window.jg71ClearNearby=function(){
- requestNo++;activeCategory=null;setSelected(null);
- if(typeof poiMarkersGroup!=='undefined'&&poiMarkersGroup)poiMarkersGroup.clearLayers();
- const clear=document.getElementById('clearPoiBtn');if(clear)clear.classList.add('hidden');
- status.dataset.show='false';
-};
-const clearBtn=document.getElementById('clearPoiBtn');
-if(clearBtn)clearBtn.addEventListener('click',()=>window.jg71ClearNearby());
-const toolbar=document.getElementById('poiBtn-ev')?.parentElement;
-if(toolbar&&!document.getElementById('jg71TollBtn')){
- const btn=document.createElement('button');btn.id='jg71TollBtn';btn.type='button';
- btn.className=document.getElementById('poiBtn-ev').className;
- btn.innerHTML='<span>🛣️</span><span id="jg71TollLabel">Plaza Tol</span>';
- btn.addEventListener('click',()=>window.searchNearbyPOI('toll'));
- toolbar.appendChild(btn);
-}
-const lang=document.getElementById('languageSelect');
-if(lang)lang.addEventListener('change',()=>{const label=document.getElementById('jg71TollLabel');if(label)label.textContent=en()?'Toll Plazas':'Plaza Tol'});
+function select(cat){document.querySelectorAll('[id^="poiBtn-"],#jg71TollBtn').forEach(b=>{const on=b.id==='poiBtn-'+cat||(cat==='toll'&&b.id==='jg71TollBtn');b.classList.toggle('jg71-selected',on);b.setAttribute('aria-pressed',String(on))})}
+function destination(item){if(typeof selectLocation==='function')selectLocation('dest',item.lat,item.lng,item.name);else{const input=document.getElementById('destInput');if(input)input.value=item.name;}el.dataset.open='false'}
+function render(cat,places,where){const l=getLayer();if(!l){head(txt('Peta belum sedia','Map not ready'));return}l.clearLayers();head(places.length+' '+txt('tempat berdekatan','nearby places'));const positions=[];
+ for(const item of places){const marker=L.marker([item.lat,item.lng]).addTo(l);const wrap=document.createElement('div');const name=document.createElement('strong');name.textContent=item.name;const distance=document.createElement('p');distance.textContent=item.km.toFixed(1)+' km '+txt('(garis lurus)','(straight line)');const go=document.createElement('button');go.textContent=txt('Jadikan destinasi','Set destination');go.onclick=()=>destination(item);wrap.append(name,distance,go);marker.bindPopup(wrap);positions.push([item.lat,item.lng]);const row=document.createElement('div');row.className='jg720-item';const info=document.createElement('div');const nm=document.createElement('strong');nm.textContent=item.name;const sub=document.createElement('small');sub.textContent=item.km.toFixed(1)+' km';info.append(nm,sub);const action=document.createElement('button');action.textContent=txt('Lihat','View');action.onclick=()=>{currentMap().setView([item.lat,item.lng],16);marker.openPopup()};row.append(info,action);el.appendChild(row)}
+ if(positions.length){currentMap().fitBounds(L.latLngBounds([[where.lat,where.lng],...positions.slice(0,7)]).pad(.12),{maxZoom:15,animate:false});currentMap().invalidateSize()}}
+window.searchNearbyPOI=async function(cat,radius=5000){if(!categories[cat])return;const id=++serial;category=cat;select(cat);head(txt('Mencari '+categories[cat].bm,'Searching '+categories[cat].en));message('Mendapatkan lokasi GPS…','Getting GPS location…');let where;try{where=await getGPS()}catch(e){if(id!==serial)return;head(txt('GPS tidak tersedia','GPS unavailable'));message('Benarkan akses lokasi dalam browser dan cuba lagi.','Allow location access in your browser and retry.');return}if(id!==serial)return;origin=where;const m=currentMap();if(!m){head(txt('Peta belum sedia','Map not ready'));return}m.setView([where.lat,where.lng],13);const l=getLayer();l.clearLayers();head(txt('Mencari '+categories[cat].bm,'Searching '+categories[cat].en));message('Sedang mendapatkan data tempat…','Fetching places data…');try{const places=await lookup(cat,where,radius);if(id!==serial)return;if(places.length){render(cat,places,where)}else{head(txt('Tiada hasil dalam '+radius/1000+' km','No results within '+radius/1000+' km'));for(const r of [10000,20000]){if(r<=radius)continue;const b=document.createElement('button');b.style.margin='5px';b.textContent=txt('Cari '+r/1000+' km','Search '+r/1000+' km');b.onclick=()=>window.searchNearbyPOI(cat,r);el.appendChild(b)}}}catch(e){if(id!==serial)return;head(txt('Carian tidak berjaya','Search unavailable'));message('Pelayan lokasi tidak memberi respons. Cuba semula.','Places server did not respond. Retry.');const b=document.createElement('button');b.textContent=txt('Cuba lagi','Retry');b.onclick=()=>window.searchNearbyPOI(cat,radius);el.appendChild(b)}};
+window.jg71ClearNearby=function(){serial++;category=null;select(null);if(layer)layer.clearLayers();el.dataset.open='false'};
+const old=document.getElementById('jg71NearbyStatus');if(old)old.remove();
+const toolbar=document.getElementById('poiBtn-ev')?.parentElement;if(toolbar&&!document.getElementById('jg71TollBtn')){const b=document.createElement('button');b.id='jg71TollBtn';b.className=document.getElementById('poiBtn-ev').className;b.textContent='🛣️ '+txt('Plaza Tol','Toll Plazas');b.onclick=()=>window.searchNearbyPOI('toll');toolbar.appendChild(b)}
 })();
 </script>
 
@@ -3217,7 +3113,7 @@ if(lang)lang.addEventListener('change',()=>{const label=document.getElementById(
  #jg712MobilePoiWrap{position:relative!important;top:auto!important;left:auto!important;right:auto!important;z-index:auto!important;width:100%!important;max-width:100%!important;display:block!important;pointer-events:auto!important;margin:4px 0 12px!important;overflow:hidden!important}
  #jg712MobilePoiWrap #poiPillsContainer{width:100%!important;max-width:100%!important;display:flex!important;gap:8px!important;padding:4px 2px 8px!important;overflow-x:auto!important;overflow-y:hidden!important;touch-action:pan-x!important}
  #jg712MobilePoiWrap .poi-pill{min-height:38px!important;white-space:nowrap!important}
- #jg71NearbyStatus{position:relative!important;top:auto!important;left:auto!important;right:auto!important;z-index:auto!important;max-width:100%!important;width:100%!important;margin:3px 0 12px!important;box-shadow:none!important;border-radius:10px!important;font-size:12px!important}
+ #jg71NearbyStatus{position:fixed!important;top:auto!important;bottom:calc(145px + env(safe-area-inset-bottom,0px))!important;left:12px!important;right:12px!important;z-index:1600!important;max-width:none!important;width:auto!important;margin:0!important;box-shadow:0 3px 14px #0003!important;border-radius:12px!important;font-size:12px!important;pointer-events:none!important}
  #jg71NearbyStatus[data-show="true"]{display:block!important}
  body.driving-mode #jg712MobilePoiWrap,body.driving-mode #jg71NearbyStatus{display:none!important}
 }
@@ -3232,9 +3128,71 @@ if(lang)lang.addEventListener('change',()=>{const label=document.getElementById(
   if(!card||!header||!bar||!status)return;
   // Keep POI controls and status in the normal document flow under the app header.
   header.insertAdjacentElement('afterend',bar);
-  bar.insertAdjacentElement('afterend',status);
+  document.body.appendChild(status); // Keep status visible when panel collapses
  }
  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',move,{once:true});else move();
+})();
+</script>
+
+<style id="jg73-premium-layout">
+:root{--jg73-navy:#0d1b34;--jg73-card:#152746;--jg73-stroke:#365077;--jg73-accent:#2878f0}
+#searchPanelWrap{z-index:610!important}
+#searchPanelWrap>div:first-child{background:rgba(13,27,52,.97)!important;border:1px solid #365077!important;color:#eff6ff!important;box-shadow:0 15px 42px #06132955!important;border-radius:20px!important}
+#searchPanelWrap>div:first-child h1,#searchPanelWrap>div:first-child p{color:#eaf2ff!important}
+#searchPanelWrap input,#searchPanelWrap select{border-radius:12px!important}
+#poiPillsContainer{gap:8px!important;scrollbar-width:none;overflow-x:auto!important;max-width:100%!important;padding:4px 1px!important}
+#poiPillsContainer::-webkit-scrollbar{display:none}
+#poiPillsContainer button{background:rgba(20,39,70,.97)!important;color:#e9f3ff!important;border:1px solid #365077!important;border-radius:22px!important;min-height:40px!important;box-shadow:0 4px 16px #06132944!important;white-space:nowrap}
+#poiPillsContainer button.jg71-selected{background:#2878f0!important;border-color:#6aabff!important;color:white!important}
+#poiPillsContainer button:focus-visible{outline:3px solid #93c5fd!important;outline-offset:2px}
+#jg720Results{background:rgba(13,27,52,.98)!important;color:#f0f6ff!important;border:1px solid #42618e!important;box-shadow:0 15px 40px #06132966!important;border-radius:20px!important}
+#jg720Results .jg720-item{min-height:52px}
+#jg720Results button{cursor:pointer}
+#jgProPanel{background:rgba(15,31,55,.97)!important;color:#eaf2ff!important;border:1px solid #42618e!important}
+#jgProPanel .jgmuted{color:#bdcde4!important}
+#jgProPanel button:not(.jg705-active){background:#243d60;color:#eaf2ff;border-color:#42618e}
+#jgProPanel select{background:#243d60;color:#eaf2ff;border-color:#42618e}
+#jg720Results .jg720-head{position:sticky;top:-12px;background:#0d1b34;padding:8px 0;z-index:1}
+@media(min-width:768px){
+ #searchPanelWrap{top:12px!important;left:14px!important;width:min(390px,calc(100vw - 28px))!important;right:auto!important;max-height:calc(100dvh - 24px)!important}
+ #poiPillsContainer{width:100%!important}
+ #jg712MobilePoiWrap{position:fixed!important;top:14px!important;left:420px!important;right:16px!important;max-width:calc(100vw - 436px)!important;z-index:520!important;pointer-events:none}
+ #jg712MobilePoiWrap #poiPillsContainer{pointer-events:auto}
+ #jg720Results{left:14px!important;bottom:18px!important;width:min(390px,calc(100vw - 28px))!important;max-height:42dvh!important;z-index:640!important}
+ #jgProPanel{right:14px!important;left:auto!important;bottom:20px!important;z-index:560!important}
+}
+@media(max-width:767px){
+ #searchPanelWrap{top:calc(env(safe-area-inset-top,0px) + 8px)!important;left:10px!important;right:10px!important;max-height:65dvh!important;overflow-y:auto!important;overscroll-behavior:contain}
+ #searchPanelWrap>div:first-child{padding:11px!important}
+ #jg712MobilePoiWrap{position:fixed!important;top:calc(env(safe-area-inset-top,0px) + 106px)!important;left:10px!important;right:10px!important;z-index:615!important;pointer-events:none!important}
+ #jg712MobilePoiWrap #poiPillsContainer{pointer-events:auto!important}
+ #jg720Results{left:8px!important;right:8px!important;width:auto!important;bottom:calc(env(safe-area-inset-bottom,0px) + 12px)!important;max-height:37dvh!important;z-index:680!important}
+ #jgProPanel{bottom:calc(env(safe-area-inset-bottom,0px) + 16px)!important;z-index:600!important}
+ #jgProPanel:not(.jgfolded){max-height:48dvh!important}
+ #jg71NearbyStatus{display:none!important}
+ body.driving-mode #jg712MobilePoiWrap,body.driving-mode #jg720Results{display:none!important}
+}
+@media(prefers-reduced-motion:reduce){#poiPillsContainer button{transition:none!important}}
+</style>
+<script id="jg73-responsive-layout">
+(function(){
+ 'use strict';
+ const search=document.getElementById('searchPanelWrap');
+ const bar=document.getElementById('jg712MobilePoiWrap');
+ if(!search||!bar)return;
+ let queued=false;
+ function position(){queued=false;if(window.innerWidth>767){bar.style.removeProperty('top');return}
+  const card=search.firstElementChild;
+  if(!card)return;
+  const bounds=card.getBoundingClientRect();
+  // Place the category strip directly beneath the visible search card, without overlapping it.
+  bar.style.setProperty('top',Math.min(window.innerHeight-130,Math.max(78,bounds.bottom+8))+'px','important');
+ }
+ function schedule(){if(!queued){queued=true;requestAnimationFrame(position)}}
+ window.addEventListener('resize',schedule,{passive:true});
+ const button=document.getElementById('toggleSearchBtn');if(button)button.addEventListener('click',()=>setTimeout(schedule,100));
+ const observer=new ResizeObserver(schedule);observer.observe(search.firstElementChild||search);
+ schedule();
 })();
 </script>
 </body>
