@@ -371,6 +371,7 @@ if ('serviceWorker' in navigator) {
   navigator.serviceWorker.getRegistrations().then(regs => Promise.all(regs.map(r => r.unregister()))).catch(()=>{});
 }
 </script>
+<style id="jg708-quiet-ui">#toastContainer{display:none!important}</style>
 </head>
 <body class="bg-slate-900 select-none relative">
 
@@ -921,6 +922,11 @@ if ('serviceWorker' in navigator) {
           try{localStorage.setItem('jomgerak_language',appLanguage);}catch{}
           document.documentElement.lang=appLanguage;
           document.getElementById('languageSelect').value=appLanguage;
+          const routeButton=document.getElementById('calcRouteBtn');
+          if(routeButton?.disabled && routeButton.querySelector('.fa-spinner')){
+            const loadingText=routeButton.querySelector('span');
+            if(loadingText)loadingText.textContent=appLanguage==='en'?'Calculating...':'Mengira...';
+          }
           (window.jgTextNodes||[]).forEach(n=>{n.nodeValue=n.nodeValue.replace(n._jgDisplayed||n._jgOriginal,tr(n._jgOriginal));n._jgDisplayed=tr(n._jgOriginal);});
           document.querySelectorAll('[data-jg-placeholder]').forEach(el=>{
             const original=el.getAttribute('data-jg-placeholder');
@@ -1824,37 +1830,9 @@ function jg52TrackOffRoute(pos,progress){
             return String(v ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
         }
         function showToast(message, type = 'info') {
-            message=tr(message);
-            const container = document.getElementById('toastContainer');
-            const toast = document.createElement('div');
-            
-            let colorClasses = 'bg-slate-800 text-white border-slate-700';
-            let iconClass = 'fa-circle-info text-blue-400';
-
-            if (type === 'success') {
-                colorClasses = 'bg-emerald-900/95 text-white border-emerald-700';
-                iconClass = 'fa-circle-check text-emerald-400';
-            } else if (type === 'warning') {
-                colorClasses = 'bg-amber-900/95 text-white border-amber-700';
-                iconClass = 'fa-triangle-exclamation text-amber-400';
-            } else if (type === 'error') {
-                colorClasses = 'bg-rose-900/95 text-white border-rose-700';
-                iconClass = 'fa-circle-exclamation text-rose-400';
-            }
-
-            toast.className = `${colorClasses} backdrop-blur-md px-4 py-3 rounded-2xl shadow-xl border flex items-center gap-3 text-xs sm:text-sm font-medium transition-all duration-300 pointer-events-auto`;
-            toast.innerHTML = `
-                <i class="fa-solid ${iconClass} text-base shrink-0"></i>
-                <span class="flex-1">${escapeHTML(tr(message))}</span>
-            `;
-
-            container.appendChild(toast);
-
-            setTimeout(() => {
-                toast.style.opacity = '0';
-                toast.style.transform = 'translateY(-10px)';
-                setTimeout(() => toast.remove(), 300);
-            }, 3500);
+            // V7.0.8: User preference — no floating notification popups.
+            // Keep errors available to developers without obstructing the UI.
+            if (type === 'error') console.warn('[JomGerak]', message);
         }
 
         // ==========================================
@@ -2184,7 +2162,7 @@ function jg52TrackOffRoute(pos,progress){
             const reqId=++routeRequestId;
             const btn = document.getElementById('calcRouteBtn');
             const originalHTML = btn.innerHTML;
-            btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> <span>Mengira...</span>`;
+            btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> <span>${appLanguage==='en'?'Calculating...':'Mengira...'}</span>`;
             btn.disabled = true;
 
             try {
