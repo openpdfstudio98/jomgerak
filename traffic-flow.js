@@ -26,7 +26,7 @@
   try{
    const r=await fetch('/api/public-config',{cache:'no-store',signal:AbortSignal.timeout(10000)});if(!r.ok)throw Error();
    const c=await r.json();if(token!==epoch||!active)return;
-   if(!c.trafficEnabled){status(t('Live traffic not configured · route time excludes congestion','Trafik langsung belum dikonfigurasi · anggaran masa tanpa kesesakan'));return;}
+   if(!c.trafficEnabled){const preview=c.deploymentEnvironment==='preview';status(preview?t('Traffic key missing in Preview · check Vercel Preview settings','Kunci trafik tiada di Preview · semak tetapan Vercel Preview'):t('Live traffic not configured for this deployment · route time excludes congestion','Trafik belum dikonfigurasi untuk deployment ini · masa tanpa kesesakan'));return;}
    enabled=true;status(t('Loading traffic flow · © TomTom','Memuatkan aliran trafik · © TomTom'));revision=Math.floor(Date.now()/60000);sync();
    timer=setInterval(()=>{if(document.hidden)return;revision=Math.floor(Date.now()/60000);sync();},60000);
   }catch{if(token===epoch)unavailable();}

@@ -1041,11 +1041,7 @@ function jgSync3DRoute(){
   jg3d.addLayer({id:'jg-route-outline',type:'line',source:'jg-route',layout:{'line-join':'round','line-cap':'round'},paint:{'line-color':'#fff','line-width':12,'line-opacity':0.96}});
   jg3d.addLayer({id:'jg-route-core',type:'line',source:'jg-route',layout:{'line-join':'round','line-cap':'round'},paint:{'line-color':'#2563eb','line-width':7,'line-opacity':1}});
  }
- if(!jg3d.getSource('jg-premium-gps')){
-  jg3d.addSource('jg-premium-gps',{type:'geojson',data:{type:'FeatureCollection',features:[]}});
-  jg3d.addLayer({id:'jg-premium-gps-ring',type:'circle',source:'jg-premium-gps',paint:{'circle-radius':13,'circle-color':'#ffffff','circle-stroke-color':'#2563eb','circle-stroke-width':2}});
-  jg3d.addLayer({id:'jg-premium-gps-dot',type:'circle',source:'jg-premium-gps',paint:{'circle-radius':8,'circle-color':'#2563eb'}});
- }
+ window.JG_3D_VEHICLE?.sync();
 }
 let jg52Loading3D=false;
 /* 6.0.1 map style adapter. Raster perspective is not real 3D buildings. */
@@ -1098,13 +1094,13 @@ async function jgToggle3D(navigationOnly=false){
    jg3d.on('zoomstart',e=>{if(e.originalEvent)window.jg65SuspendFollow?.();});
    jg3d.getCanvasContainer().addEventListener('touchstart',()=>{window.jg65SuspendFollow?.();jg3d.stop();},{passive:true,capture:true});
    jg3d.getCanvasContainer().addEventListener('mousedown',()=>{window.jg65SuspendFollow?.();jg3d.stop();},{passive:true,capture:true});
-   jg3d.on('load',()=>{jgSync3DRoute();jgPremiumAddBuildings();jg3d.resize();window.JG_TRAFFIC?.sync();});jg3d.on('error',e=>{if(e.error)jgStatus('3D tiles error: '+e.error.message);});
+   jg3d.on('load',()=>{jgSync3DRoute();jgPremiumAddBuildings();jg3d.resize();window.JG_3D_VEHICLE?.sync();window.JG_TRAFFIC?.sync();});jg3d.on('error',e=>{if(e.error)jgStatus('3D tiles error: '+e.error.message);});
   }else{jg3d.resize();jgSync3DRoute();}
   jg3d.dragPan?.enable();jg3d.touchZoomRotate?.enable();
   jg3dActive=true;document.getElementById('jg3dBadge').style.display='none';
   jg3d.resize();
   jg3d.easeTo({center:[center.lng,center.lat],zoom:map.getZoom(),pitch:50,duration:400});
-  window.JG_MAP_UI?.refresh();window.JG_TRAFFIC?.sync();
+  window.JG_MAP_UI?.refresh();window.JG_3D_VEHICLE?.sync();window.JG_TRAFFIC?.sync();
  }catch(e){jg3dActive=false;document.getElementById('jg3dMap').classList.remove('jgshown');if(!jg3d)document.getElementById('jg3dMap').replaceChildren();jgStatus('3D unavailable: '+e.message);showToast(tr('3D could not load. Check your connection and try again.'),'warning');}finally{jg52Loading3D=false;}
 }
 function jgGPSAdvanced(pos){
@@ -1114,10 +1110,8 @@ function jgGPSAdvanced(pos){
   if(!jgTripStarted)jgTripStarted=Date.now();
   if(Date.now()-jgLastGpsLog>5000&&pos.coords.accuracy<100){jgTripPoints.push([+pos.coords.longitude.toFixed(5),+pos.coords.latitude.toFixed(5)]);jgLastGpsLog=Date.now();}
  }
- if(jg3dActive&&jg3d){
-  try{jg3d.getSource('jg-premium-gps')?.setData({type:'FeatureCollection',features:[{type:'Feature',properties:{},geometry:{type:'Point',coordinates:[pos.coords.longitude,pos.coords.latitude]}}]});}catch{}
+ window.JG_3D_VEHICLE?.update(pos);
 
- }
 }
 async function jgWeatherAlerts(){
  await weather47();
@@ -2698,5 +2692,5 @@ function jg52TrackOffRoute(pos,progress){
   <button id="jg65View" type="button" onclick="jg65ToggleView()">◩ 3D</button>
  </div>
 </div>
-<script src="./v656.js" defer></script><script src="./v661.js" defer></script><script src="./v662.js" defer></script><script src="./v65.js" defer></script><script src="./v652.js" defer></script><script src="./v653.js" defer></script><script src="./v654.js" defer></script><script src="./v63.js" defer></script><script src="./v64.js" defer></script><script src="./v655.js" defer></script><script src="./v664.js" defer></script><script src="./v665.js" defer></script><script src="./v666.js" defer></script><script src="./v669.js" defer></script><script src="./v67.js" defer></script><script src="./v671.js" defer></script><script src="./garage.js" defer></script><script src="./app-shell.js" defer></script><script src="./map-controls.js" defer></script><script src="./traffic-flow.js" defer></script></body>
+<script src="./v656.js" defer></script><script src="./v661.js" defer></script><script src="./v662.js" defer></script><script src="./v65.js" defer></script><script src="./v652.js" defer></script><script src="./v653.js" defer></script><script src="./v654.js" defer></script><script src="./v63.js" defer></script><script src="./v64.js" defer></script><script src="./v655.js" defer></script><script src="./v664.js" defer></script><script src="./v665.js" defer></script><script src="./v666.js" defer></script><script src="./v669.js" defer></script><script src="./v67.js" defer></script><script src="./v671.js" defer></script><script src="./garage.js" defer></script><script src="./app-shell.js" defer></script><script src="./map-controls.js" defer></script><script src="./traffic-flow.js" defer></script><script src="./vehicle-3d.js" defer></script></body>
 </html>

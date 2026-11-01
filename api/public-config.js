@@ -2,5 +2,5 @@
 module.exports=async function handler(req,res){
  if(req.method!=='GET'){res.setHeader('Allow','GET');return res.status(405).end();}
  res.setHeader('Cache-Control','no-store');
- return res.status(200).json({maptilerKey:process.env.MAPTILER_API_KEY||'',geocodingBaseUrl:process.env.GEOCODING_BASE_URL||'',communityEnabled:Boolean(process.env.SUPABASE_URL&&(process.env.SUPABASE_ANON_KEY||process.env.SUPABASE_PUBLISHABLE_KEY)),trafficEnabled:Boolean(process.env.TOMTOM_API_KEY)});
+ return res.status(200).json({maptilerKey:process.env.MAPTILER_API_KEY||'',geocodingBaseUrl:process.env.GEOCODING_BASE_URL||'',communityEnabled:Boolean(process.env.SUPABASE_URL&&(process.env.SUPABASE_ANON_KEY||process.env.SUPABASE_PUBLISHABLE_KEY)),trafficEnabled:Boolean(process.env.TOMTOM_API_KEY?.trim()),deploymentEnvironment:['production','preview','development'].includes(process.env.VERCEL_ENV)?process.env.VERCEL_ENV:'unknown'});
 };

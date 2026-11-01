@@ -237,3 +237,16 @@ test('Configured traffic mounts in 2D and 3D, then removes both overlays on stop
  a.run('jg3d=vector;jg3dActive=true');a.c.JG_TRAFFIC.sync();assert.equal(mounted.size,0);assert.equal(layers.has('jg-traffic-flow'),true);assert.match(sources.get('jg-traffic-flow').tiles[0],/\/api\/traffic-tile\?/);
  a.c.JG_TRAFFIC.stop();assert.equal(sources.size,0);assert.equal(layers.size,0);assert.equal(a.get('jgTrafficFlow').hidden,true);
 });
+test('3D vehicle uses Garage SVG, updates GPS/heading and replaces blue circles',()=>{
+ const a=app();a.load('garage.js');a.load('vehicle-3d.js');let options,coords,rotation,removed=[],count=0;
+ a.c.maplibregl={Marker:class{constructor(o){options=o;count++}setLngLat(v){coords=v;return this}setRotation(v){rotation=v;return this}addTo(){return this}remove(){}}};
+ a.c.removeLayer=id=>removed.push(id);a.run("jg3d={isStyleLoaded:()=>true,getLayer:()=>true,removeLayer};lastGps=null");
+ a.c.JG_3D_VEHICLE.sync();assert.equal(count,0);
+ a.c.JG_3D_VEHICLE.update({coords:{latitude:3,longitude:101,heading:45,speed:10}});
+ assert.equal(count,1);assert.match(options.element.innerHTML,/<svg/);assert.equal(options.rotationAlignment,'map');assert.equal(rotation,45);assert.deepEqual(Array.from(coords),[101,3]);assert.deepEqual(removed,['jg-premium-gps-dot','jg-premium-gps-ring']);
+ a.c.JG_3D_VEHICLE.update({coords:{latitude:3.01,longitude:101.01,heading:null,speed:0}});assert.equal(rotation,45);assert.equal(count,1);
+ a.c.JG_GARAGE.apply({type:'motor',model:'Test bike',color:'#ef4444'});a.c.JG_3D_VEHICLE.refresh();assert.match(options.element.innerHTML,/#ef4444/);
+});
+test('Traffic configuration distinguishes a Preview deployment without a key',async()=>{
+ const a=app();a.load('traffic-flow.js');a.c.fetch=async()=>({ok:true,json:async()=>({trafficEnabled:false,deploymentEnvironment:'preview'})});await a.c.JG_TRAFFIC.start();assert.match(a.get('jgTrafficFlow').textContent,/Preview/);
+});
