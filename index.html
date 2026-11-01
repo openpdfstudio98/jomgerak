@@ -1031,6 +1031,7 @@ function jgPremiumAddBuildings(){
  }catch(err){console.warn('Optional 3D buildings unavailable:',err.message);}
 }
 function jgSync3DRoute(){
+ window.JG_3D_PINS?.sync();
  if(!jg3d||!jg3d.isStyleLoaded())return;
  jgPremiumAddBuildings();
  const route=currentRouteData?.geometry;
@@ -2022,6 +2023,7 @@ function jg52TrackOffRoute(pos,progress){
                 updateMarker('dest', lat, lng, labelName);
             }
 
+            window.JG_3D_PINS?.sync();
             if (originCoords && destCoords) {
                 calculateRoute();
             } else {
@@ -2447,6 +2449,7 @@ function jg52TrackOffRoute(pos,progress){
                 document.getElementById('clearDestBtn').classList.add('hidden');
                 if (destMarker) map.removeLayer(destMarker);
             }
+            window.JG_3D_PINS?.sync();
         }
 
         function swapLocations() {
@@ -2470,6 +2473,7 @@ function jg52TrackOffRoute(pos,progress){
             if (originCoords) updateMarker('origin', originCoords.lat, originCoords.lng, originCoords.name);
             if (destCoords) updateMarker('dest', destCoords.lat, destCoords.lng, destCoords.name);
 
+            window.JG_3D_PINS?.sync();
             if (originCoords && destCoords) calculateRoute();
         }
 
@@ -2692,5 +2696,5 @@ function jg52TrackOffRoute(pos,progress){
   <button id="jg65View" type="button" onclick="jg65ToggleView()">◩ 3D</button>
  </div>
 </div>
-<script src="./v656.js" defer></script><script src="./v661.js" defer></script><script src="./v662.js" defer></script><script src="./v65.js" defer></script><script src="./v652.js" defer></script><script src="./v653.js" defer></script><script src="./v654.js" defer></script><script src="./v63.js" defer></script><script src="./v64.js" defer></script><script src="./v655.js" defer></script><script src="./v664.js" defer></script><script src="./v665.js" defer></script><script src="./v666.js" defer></script><script src="./v669.js" defer></script><script src="./v67.js" defer></script><script src="./v671.js" defer></script><script src="./garage.js" defer></script><script src="./app-shell.js" defer></script><script src="./map-controls.js" defer></script><script src="./traffic-flow.js" defer></script><script src="./vehicle-3d.js" defer></script></body>
+<script src="./v656.js" defer></script><script src="./v661.js" defer></script><script src="./v662.js" defer></script><script src="./v65.js" defer></script><script src="./v652.js" defer></script><script src="./v653.js" defer></script><script src="./v654.js" defer></script><script src="./v63.js" defer></script><script src="./v64.js" defer></script><script src="./v655.js" defer></script><script src="./v664.js" defer></script><script src="./v665.js" defer></script><script src="./v666.js" defer></script><script src="./v669.js" defer></script><script src="./v67.js" defer></script><script src="./v671.js" defer></script><script src="./garage.js" defer></script><script src="./app-shell.js" defer></script><script src="./map-controls.js" defer></script><script src="./traffic-flow.js" defer></script><script src="./vehicle-3d.js" defer></script><script src="./route-pins-3d.js" defer></script></body>
 </html>
