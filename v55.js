@@ -124,7 +124,7 @@ async function jg55SearchStop(){
  if(q.length<3)return;
  el.textContent=jg55T('Mencari…','Searching…');
  try{
-  const r=await fetch('https://nominatim.openstreetmap.org/search?format=json&countrycodes=my&limit=5&q='+encodeURIComponent(q),{signal:AbortSignal.timeout(12000)});
+  const r=await jgGeocodeFetch('https://nominatim.openstreetmap.org/search?format=json&countrycodes=my&limit=5&q='+encodeURIComponent(q),{signal:AbortSignal.timeout(12000)});
   if(!r.ok)throw Error('Search failed');const data=await r.json();el.replaceChildren();
   for(const place of data){
    const b=document.createElement('button');b.textContent=(place.display_name||'').slice(0,100);
@@ -145,19 +145,22 @@ async function jg55RouteStops(){
  if(!originCoords||!destCoords)return jg55Msg('Tetapkan mula dan destinasi dahulu.','Set start and destination first.');
  if(!J55.stops.length)return jg55Msg('Tambah sekurang-kurangnya satu hentian.','Add at least one stop.');
  if(navigationActive)return jg55Msg('Hentikan navigasi dahulu.','Stop navigation first.');
+ const mode=window.jg60GetMode?.()||'car';
+ if(mode==='walk'||mode==='rail')return jg55Msg('Multi-hentian kini untuk kereta/motosikal sahaja.','Multi-stop currently supports car/motorcycle routes only.');
+ const reqId=++routeRequestId;
  const btn=document.querySelector('#jg55Panel button[onclick="jg55RouteStops()"]');if(btn)btn.disabled=true;
  try{
   const all=[originCoords,...J55.stops,destCoords];
   const coords=all.map(p=>p.lng+','+p.lat).join(';');
   const r=await fetch('https://router.project-osrm.org/route/v1/driving/'+coords+'?overview=full&geometries=geojson&steps=true',{signal:AbortSignal.timeout(18000)});
-  if(!r.ok)throw Error('routing');const data=await r.json();if(!data.routes?.length)throw Error('no route');
+  if(!r.ok)throw Error('routing');const data=await r.json();if(reqId!==routeRequestId)return;if(!data.routes?.length)throw Error('no route');
   routes47=[data.routes[0]];selected47=0;currentRouteData=data.routes[0];lastSpokenStep=-1;
   if(routePolyline)map.removeLayer(routePolyline);
   routePolyline=L.geoJSON(currentRouteData.geometry,{style:{color:'#2563eb',weight:6,opacity:.95}}).addTo(map);
   map.fitBounds(routePolyline.getBounds(),{padding:[60,60]});
   renderRouteSummary(currentRouteData);updateFuelCalculation();renderChoices47();jgSync3DRoute();
   jg55Msg('Laluan multi-hentian berjaya dikira.','Multi-stop route calculated.');
- }catch{jg55Msg('Gagal mengira laluan multi-hentian.','Multi-stop routing failed.');}
+ }catch{if(reqId!==routeRequestId)return;jg55Msg('Gagal mengira laluan multi-hentian.','Multi-stop routing failed.');}
  finally{if(btn)btn.disabled=false;}
 }
 function jg55Samples(){

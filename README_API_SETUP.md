@@ -32,3 +32,9 @@ Upload **all** ZIP contents to the GitHub repo root and commit. Redeploy in Verc
 - Public routing/geocoding/tiles endpoints can have usage restrictions. For production traffic, obtain appropriate paid/licensed service plans.
 - MapTiler raster tile API path may vary with your account/plan; check MapTiler dashboard if the map falls back.
 - Never send secrets in chat or commit them into GitHub.
+
+## Navigation audit (1 November 2026)
+
+See [AUDIT_2026-11-01.md](./AUDIT_2026-11-01.md) for repaired defects, a function-by-function matrix and the remaining production/device gates. Run `node --test tests/audit.test.cjs` for the regression suite.
+
+Search now uses Enter or **Cari lokasi / Search location**, not public-Nominatim autocomplete. `GEOCODING_BASE_URL` optionally supplies an HTTPS Nominatim-compatible production base URL via `/api/public-config`; no secret may be embedded in that public URL. The public fallback is for low-volume beta use only. Its client queue is per tab, not the required application-wide rate limiter. Read the official policy and audit before public launch.
