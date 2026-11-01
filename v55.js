@@ -118,7 +118,7 @@ function jg55Compare(){
   const b=document.createElement('button');b.textContent=jg55T('Pilih','Select');b.onclick=()=>{selectRoute47(i);jg55Compare();};
   div.append(document.createTextNode(label+' '),b);el.appendChild(div);
  });
- const note=document.createElement('p');note.className='jg55note';note.textContent=jg55T('OSRM tidak menyediakan trafik langsung atau kadar tol.','OSRM provides neither live traffic nor toll prices.');el.appendChild(note);
+ const note=document.createElement('p');note.className='jg55note';note.textContent=(window.jgTrafficRouteLabel?.(currentRouteData)||'Estimate excludes traffic delay')+' · '+jg55T('Kadar tol belum disahkan.','Toll prices are not verified.');el.appendChild(note);
 }
 async function jg55SearchStop(){
  const input=document.getElementById('j55search'),el=document.getElementById('j55searchResults');const q=input.value.trim();
@@ -152,9 +152,7 @@ async function jg55RouteStops(){
  const btn=document.querySelector('#jg55Panel button[onclick="jg55RouteStops()"]');if(btn)btn.disabled=true;
  try{
   const all=[originCoords,...J55.stops,destCoords];
-  const coords=all.map(p=>p.lng+','+p.lat).join(';');
-  const r=await fetch('https://router.project-osrm.org/route/v1/driving/'+coords+'?overview=full&geometries=geojson&steps=true',{signal:AbortSignal.timeout(18000)});
-  if(!r.ok)throw Error('routing');const data=await r.json();if(reqId!==routeRequestId)return;if(!data.routes?.length)throw Error('no route');
+  const data=await jgRequestDrivingRoute(all,{alternatives:false});if(reqId!==routeRequestId)return;if(!data.routes?.length)throw Error('no route');
   routes47=[data.routes[0]];selected47=0;currentRouteData=data.routes[0];lastSpokenStep=-1;
   if(routePolyline)map.removeLayer(routePolyline);
   routePolyline=L.geoJSON(currentRouteData.geometry,{style:{color:'#2563eb',weight:6,opacity:.95}}).addTo(map);
