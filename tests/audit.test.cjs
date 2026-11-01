@@ -1,0 +1,120 @@
+const {test}=require('node:test');
+const assert=require('node:assert/strict');
+const fs=require('node:fs');
+const vm=require('node:vm');
+const path=require('node:path');
+const root=path.resolve(__dirname,'..');
+const html=fs.readFileSync(path.join(root,'index.html'),'utf8');
+function element(){
+ const classes=new Set();return {innerHTML:'',textContent:'',value:'',hidden:false,disabled:false,children:[],listeners:{},dataset:{},style:{removeProperty(){}},
+ classList:{add(...a){a.forEach(x=>classes.add(x));},remove(...a){a.forEach(x=>classes.delete(x));},contains(x){return classes.has(x)},toggle(x,on){const v=on??!classes.has(x);v?classes.add(x):classes.delete(x);return v;},replace(a,b){classes.delete(a);classes.add(b)}},
+ append(...a){this.children.push(...a)},appendChild(a){this.children.push(a);return a},replaceChildren(...a){this.children=[...a]},setAttribute(){},addEventListener(n,f){this.listeners[n]=f},querySelector(){return element()},querySelectorAll(){return []},remove(){},focus(){},scrollIntoView(){}};
+}
+function app(){
+ const nodes=new Map(),timers=new Map(),storage=new Map();let next=0;
+ const get=id=>{if(!nodes.has(id))nodes.set(id,element());nodes.get(id).parentElement=element();return nodes.get(id)};
+ const document={readyState:'loading',body:element(),head:element(),documentElement:{lang:'ms',classList:element().classList},getElementById:get,querySelector(){return null},querySelectorAll(){return []},createElement:element,createTextNode:s=>({textContent:s}),addEventListener(){}};
+ const c={console,document,navigator:{onLine:true},location:{href:'https://jomgerak.test/',origin:'https://jomgerak.test',protocol:'https:'},localStorage:{getItem:k=>storage.get(k)??null,setItem:(k,v)=>storage.set(k,v),removeItem:k=>storage.delete(k)},URL,URLSearchParams,AbortController,AbortSignal,DOMException,Response,Date,CustomEvent:class {},setTimeout:(f,ms)=>{timers.set(++next,{f,ms});return next},clearTimeout:id=>timers.delete(id),setInterval:()=>0,requestAnimationFrame:f=>f(),addEventListener(){},dispatchEvent(){},isSecureContext:true};
+ c.window=c;c.JOMGERAK_CONFIG={};vm.createContext(c);
+ for(const [,code]of html.matchAll(/<script\b[^>]*>([\s\S]*?)<\/script>/g))if(code.includes('const TRANSLATIONS'))vm.runInContext(code,c);
+ for(const name of ['v55.js','v60.js'])vm.runInContext(fs.readFileSync(path.join(root,name),'utf8'),c);
+ const markers=[];
+ c.L={divIcon:x=>x,marker:(coords)=>{const m={coords,addTo(group){group.markers?.push(this);return this},bindPopup(){return this},on(){return this},setLatLng(){}};markers.push(m);return m},geoJSON:()=>({addTo(){return this},getBounds(){return {}}}),polyline:()=>({addTo(){return this},getBounds(){return {}}})};
+ vm.runInContext(`map={getCenter:()=>({lat:3,lng:101}),getBounds:()=>({getWest:()=>100,getEast:()=>102,getNorth:()=>4,getSouth:()=>2}),removeLayer(){},flyTo(){},fitBounds(){},invalidateSize(){}};stepMarkersGroup={clearLayers(){}};communityMarkersGroup={clearLayers(){}};poiMarkersGroup={markers:[],clearLayers(){this.markers=[]}};showToast=(...v)=>{window.lastToast=v};jgSync3DRoute=()=>{window.synced=(window.synced||0)+1};`,c);
+ return {c,get,nodes,timers,storage,markers,run:s=>vm.runInContext(s,c),load:n=>vm.runInContext(fs.readFileSync(path.join(root,n),'utf8'),c)};
+}
+const deferred=()=>{let resolve,reject;const promise=new Promise((a,b)=>{resolve=a;reject=b});return{resolve,reject,promise}};
+const route=(name='route')=>({distance:2000,duration:120,geometry:{type:'LineString',coordinates:[[101,3],[101.02,3]]},legs:[{steps:[{name,maneuver:{type:'depart',location:[101,3]},distance:2000,geometry:{coordinates:[[101,3],[101.02,3]]}},{name:'End',maneuver:{type:'arrive',location:[101.02,3]},distance:0}]}]});
+function locations(a){a.run(`originCoords={lat:3,lng:101,name:'Start'};destCoords={lat:3,lng:101.02,name:'End'};`)}
+test('All inline, browser and server scripts parse; local script assets exist',()=>{
+ for(const [,code]of html.matchAll(/<script\b[^>]*>([\s\S]*?)<\/script>/g))new vm.Script(code);
+ for(const [,src]of html.matchAll(/<script[^>]*src="(\.\/[^"?]+)[^"]*"/g))assert.ok(fs.existsSync(path.join(root,src)),'Missing '+src);
+ for(const dir of [root,path.join(root,'api')])for(const f of fs.readdirSync(dir).filter(f=>f.endsWith('.js')))new vm.Script(fs.readFileSync(path.join(dir,f),'utf8'),{filename:f});
+});
+test('Clearing a pending route unlocks the button and ignores the old response',async()=>{
+ const a=app();locations(a);const d=deferred();a.c.fetch=()=>d.promise;
+ const pending=a.run('calculateRoute()');assert.equal(a.get('calcRouteBtn').disabled,true);
+ a.run('clearInput("dest")');assert.equal(a.get('calcRouteBtn').disabled,false);
+ d.resolve({ok:true,json:async()=>({code:'Ok',routes:[route()]})});await pending;
+ assert.equal(a.run('currentRouteData'),null);assert.equal(a.run('destCoords'),null);
+});
+test('Changing a destination discards a route already in flight',async()=>{
+ const a=app();locations(a);const first=deferred(),second=deferred();let calls=0;a.c.fetch=()=>++calls===1?first.promise:second.promise;
+ a.run('renderRouteSummary=()=>{};renderChoices47=()=>{};updateFuelCalculation=()=>{}');
+ const old=a.run('calculateRoute()');a.run('selectLocation("dest",3,101.03,"New")');
+ first.resolve({ok:true,json:async()=>({code:'Ok',routes:[route('Old')]})});await old;
+ assert.equal(a.run('currentRouteData'),null);assert.equal(a.get('calcRouteBtn').disabled,true);
+ second.resolve({ok:true,json:async()=>({code:'Ok',routes:[route('New')]})});await new Promise(setImmediate);
+ assert.equal(a.run('currentRouteData.legs[0].steps[0].name'),'New');assert.equal(a.get('calcRouteBtn').disabled,false);
+});
+test('Routing HTTP failure restores controls',async()=>{
+ const a=app();locations(a);a.c.fetch=async()=>({ok:false});await a.run('calculateRoute()');assert.equal(a.get('calcRouteBtn').disabled,false);assert.equal(a.run('currentRouteData'),null);
+});
+test('Editing selected input clears coordinates and existing navigation',()=>{
+ const a=app();locations(a);a.run('navigationActive=true;invalidateLocationInput("dest")');assert.equal(a.run('destCoords'),null);assert.equal(a.run('navigationActive'),false);
+});
+test('Search is explicit; typing does not call a geocoder',()=>{
+ const a=app();locations(a);let calls=0;a.c.jgGeocodeFetch=()=>{calls++;return Promise.reject(Error())};a.run('setupSearchListeners()');
+ a.get('destInput').listeners.input({target:{value:'Klang'}});assert.equal(a.run('destCoords'),null);assert.equal(calls,0);assert.equal(a.timers.size,1); // map resize timer from stopping navigation only
+ assert.ok(a.get('destInput').listeners.keydown);
+});
+test('Clearing search cancels queued suggestions',()=>{
+ const a=app();a.run('triggerNominatimSearch("Klang","dest");clearInput("dest")');assert.equal([...a.timers.values()].some(x=>x.ms===350),false);assert.equal(a.get('destSuggestions').classList.contains('hidden'),true);
+});
+test('Nearby includes buildings and relations with center coordinates and sorts by distance',async()=>{
+ const a=app();let requested='';a.c.fetch=async url=>{requested=url;return{ok:true,json:async()=>({elements:[{type:'way',center:{lat:3,lon:101.02},tags:{name:'Building'}},{type:'relation',center:{lat:3,lon:101.001},tags:{name:'Complex'}},{type:'way',tags:{}}]})}};
+ await a.run('searchNearbyPOI("mosque")');assert.match(decodeURIComponent(requested),/nwr\[/);assert.equal(a.markers.length,2);assert.deepEqual(Array.from(a.markers[0].coords),[3,101.001]);
+});
+test('Nearby HTTP failure uses its fallback',async()=>{
+ const a=app();a.c.fetch=async()=>({ok:false});a.c.jgGeocodeFetch=async()=>({ok:true,json:async()=>[{lat:'3',lon:'101',display_name:'Station, Malaysia'}]});await a.run('searchNearbyPOI("fuel")');assert.equal(a.markers.length,1);
+});
+test('Clear POIs discards a delayed Nearby response',async()=>{
+ const a=app(),d=deferred();a.c.fetch=()=>d.promise;const pending=a.run('searchNearbyPOI("fuel")');a.run('clearPOIMarkers()');d.resolve({ok:true,json:async()=>({elements:[{lat:3,lon:101,tags:{}}]})});await pending;assert.equal(a.markers.length,0);
+});
+test('Multi-leg route summary includes all legs and labels intermediate arrival as waypoint',()=>{
+ const a=app(),r=route();r.legs.push({steps:[{name:'Second road',distance:600,maneuver:{type:'turn',modifier:'left',location:[101.01,3]}}]});a.c.fixture=r;a.run('renderRouteSummary(fixture)');assert.equal(a.get('stepsContainer').children.length,3);assert.equal(a.run('currentRouteStepsBM.length'),3);assert.match(a.run('currentRouteStepsBM[1].plainText'),/hentian/);
+});
+test('Alternative selection synchronizes the 3D route',()=>{
+ const a=app();a.c.fixture=route();a.run('routes47=[fixture];renderRouteSummary=()=>{};renderChoices47=()=>{};updateFuelCalculation=()=>{};selectRoute47(0)');assert.equal(a.c.synced,1);
+});
+test('Corrupt local reports cannot crash startup',()=>{
+ const a=app();a.storage.set('jomgerak_community_reports_v2','{}');assert.doesNotThrow(()=>a.run('loadCommunityReports()'));a.run('communityMarkersGroup=null');assert.doesNotThrow(()=>a.run('loadCommunityReports()'));
+});
+test('Malformed saved destinations are filtered',()=>{
+ const a=app();a.storage.set('jg_saved_v42',JSON.stringify([null,{}, {lat:3,lng:101,name:'Valid'}]));assert.equal(a.run('getSavedDestinations().length'),1);
+});
+test('Walking mode delegates Find Route and rail mode never silently routes a car',async()=>{
+ const a=app();locations(a);let walks=0,requests=0;a.c.fetch=()=>{requests++;throw Error()};a.c.jg60WalkingRoute=()=>{walks++};a.run('jg60Mode("walk")');await a.run('calculateRoute()');assert.equal(walks,1);a.run('jg60Mode("rail")');await a.run('calculateRoute()');assert.equal(requests,0);
+});
+test('Stopping navigation prevents a late reroute from restoring a route',async()=>{
+ const a=app();locations(a);const d=deferred();a.c.fetch=()=>d.promise;a.run('navigationActive=true');const pending=a.run('jg52Reroute({coords:{latitude:3,longitude:101}})');a.run('stopLiveNavigation(true)');d.resolve({ok:true,json:async()=>({code:'Ok',routes:[route()]})});await pending;assert.equal(a.run('currentRouteData'),null);
+});
+test('Multi-stop response cannot resurrect a cleared route',async()=>{
+ const a=app();locations(a);a.run('J55.stops=[{lat:3,lng:101.01,name:"Stop"}]');const d=deferred();a.c.fetch=()=>d.promise;const pending=a.run('jg55RouteStops()');a.run('clearRoute(true)');d.resolve({ok:true,json:async()=>({routes:[route()]})});await pending;assert.equal(a.run('currentRouteData'),null);
+});
+test('Geocoding responses are cached and a cancelled request never fetches',async()=>{
+ const a=app();a.load('geocoding.js');let calls=0;a.c.fetch=async()=>{calls++;return new Response('[{"name":"Place"}]',{status:200})};
+ const response=await a.c.jgGeocodeFetch('https://nominatim.openstreetmap.org/search?q=test');assert.equal((await response.json())[0].name,'Place');await a.c.jgGeocodeFetch('https://nominatim.openstreetmap.org/search?q=test');assert.equal(calls,1);
+ const controller=new AbortController();controller.abort();await assert.rejects(a.c.jgGeocodeFetch('https://nominatim.openstreetmap.org/search?q=cancel',{signal:controller.signal}),{name:'AbortError'});assert.equal(calls,1);
+});
+test('Translation observer converges without repeatedly replacing the title',()=>{
+ const a=app(),callbacks=[],microtasks=[];let value='',writes=0;
+ Object.defineProperty(a.get('jgPremiumHeading'),'textContent',{get:()=>value,set:v=>{value=v;writes++}});
+ a.c.document.readyState='complete';a.c.document.createTreeWalker=()=>({nextNode:()=>null});a.c.NodeFilter={SHOW_TEXT:4};a.c.MutationObserver=class{constructor(f){callbacks.push(f)}observe(){}};a.c.queueMicrotask=f=>microtasks.push(f);
+ a.load('v663.js');assert.equal(writes,1);callbacks[0]();while(microtasks.length)microtasks.shift()();assert.equal(writes,1);
+});
+test('Approaching a turn does not skip it for the following maneuver',()=>{
+ const a=app();a.c.fixture={distance:2200,duration:180,geometry:{coordinates:[[101,3],[101.01,3],[101.01,3.01]]},legs:[{steps:[
+ {name:'First road',distance:1100,maneuver:{type:'depart',location:[101,3]},geometry:{coordinates:[[101,3],[101.01,3]]}},
+ {name:'Upcoming turn',distance:1100,maneuver:{type:'turn',modifier:'left',location:[101.01,3]},geometry:{coordinates:[[101.01,3],[101.01,3.01]]}},
+ {name:'End',distance:0,maneuver:{type:'arrive',location:[101.01,3.01]}}
+ ]}]};
+ a.run('currentRouteData=fixture;destCoords={lat:3.01,lng:101.01};navigationActive=true;followGps=false;jgGPSAdvanced=()=>{};jg52Dashboard=()=>{};jg52TrackOffRoute=()=>{};speakText=()=>{};updateLivePosition({coords:{latitude:3,longitude:101.009,speed:10,accuracy:5}})');
+ assert.match(a.get('liveInstruction').textContent,/Upcoming turn/);
+});
+test('Sparse route geometry reports remaining distance from projected position',()=>{
+ const a=app();a.c.fixture=route();a.run('currentRouteData=fixture');const p=a.run('jg52RouteProgress({lat:3,lng:101.015})');assert.ok(p.remaining>500&&p.remaining<600);assert.ok(p.nearest<1);
+});
+test('Automatic reroute never silently drops multi-stop waypoints',async()=>{
+ const a=app();locations(a);let calls=0;a.c.fetch=async()=>{calls++;throw Error()};a.c.fixture=route();a.run('currentRouteData=fixture;currentRouteData.legs.push(currentRouteData.legs[0]);navigationActive=true');await a.run('jg52Reroute({coords:{latitude:3,longitude:101}})');assert.equal(calls,0);
+});

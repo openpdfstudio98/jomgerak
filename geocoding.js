@@ -1,0 +1,45 @@
+/* Shared explicit geocoding, cache, cancellation and per-tab request spacing.
+ * Public Nominatim is beta-only: the application-wide 1 req/s limit needs
+ * a shared production proxy. Configure GEOCODING_BASE_URL before public scale.
+ * Policy: https://operations.osmfoundation.org/policies/nominatim/
+ */
+'use strict';
+(function(){
+ let queue=Promise.resolve(),lastRequest=0;
+ const cache=new Map();
+ window.jgGeocodeFetch=function(input,options={}){
+  const url=new URL(input,location.href);
+  const base=window.JOMGERAK_CONFIG?.geocodingBaseUrl;
+  if(base){
+   const target=new URL(base,location.href);
+   if(target.protocol!=='https:'&&target.origin!==location.origin)return Promise.reject(Error('Geocoding requires HTTPS'));
+   url.protocol=target.protocol;url.host=target.host;
+   url.pathname=target.pathname.replace(/\/$/,'')+url.pathname;
+  }
+  const key=url.href+'|'+JSON.stringify(options.headers||{});
+  const run=async()=>{
+   if(options.signal?.aborted)throw new DOMException('Cancelled','AbortError');
+   const entry=cache.get(key);
+   if(entry&&Date.now()-entry.at<300000)return entry.response.clone();
+   const delay=Math.max(0,1100-(Date.now()-lastRequest));
+   if(delay)await new Promise(resolve=>setTimeout(resolve,delay));
+   if(options.signal?.aborted)throw new DOMException('Cancelled','AbortError');
+   const controller=new AbortController();
+   const abort=()=>controller.abort();
+   options.signal?.addEventListener('abort',abort,{once:true});
+   const timer=setTimeout(abort,12000);
+   lastRequest=Date.now();
+   try{
+    const response=await fetch(url.href,{...options,signal:controller.signal});
+    // Consume a clone now so the sequential queue includes body download time.
+    if(response.ok){
+     const copy=response.clone();await copy.text();
+     if(cache.size>=100)cache.delete(cache.keys().next().value);
+     cache.set(key,{at:Date.now(),response:response.clone()});
+    }
+    return response;
+   }finally{clearTimeout(timer);options.signal?.removeEventListener('abort',abort);}
+  };
+  const result=queue.then(run,run);queue=result.catch(()=>{});return result;
+ };
+})();

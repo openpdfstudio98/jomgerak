@@ -20,6 +20,7 @@
    state.maptiler=Boolean(data.maptilerKey);state.community=Boolean(data.communityEnabled);state.traffic=Boolean(data.trafficEnabled);
    if(window.JOMGERAK_CONFIG){
     window.JOMGERAK_CONFIG.maptilerKey=data.maptilerKey||'';
+    window.JOMGERAK_CONFIG.geocodingBaseUrl=data.geocodingBaseUrl||window.JOMGERAK_CONFIG.geocodingBaseUrl||'';
     window.JOMGERAK_CONFIG.communityApi=state.community?'/api/reports':'';
    }
    // Original app captures config by reference, so these updates reach JG_CFG.

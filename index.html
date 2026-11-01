@@ -14,6 +14,7 @@
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="./config.js"></script>
+    <script src="./geocoding.js"></script>
     <script>
         tailwind.config = {
             darkMode: 'class',
@@ -891,6 +892,7 @@ body.dark #jgPremiumModes button:not(.jg-selected) i{color:#2563eb!important}
             const original=el.getAttribute('data-jg-title');el.title=tr(original);
           });
           updateNavButtonUI();
+          document.querySelectorAll('[data-search-type]').forEach(b=>b.textContent=appLanguage==='en'?'Search location':'Cari lokasi');
           const speedLabel=document.querySelector('#speed47 .text-\\[9px\\]');
           if(speedLabel)speedLabel.textContent=appLanguage==='en'?'Speed limit: N/A':'Had laju: N/A';
           if(navigationActive){
@@ -938,7 +940,7 @@ body.dark #jgPremiumModes button:not(.jg-selected) i{color:#2563eb!important}
           if(routePolyline)map.removeLayer(routePolyline);
           routePolyline=L.geoJSON(route.geometry,{style:{color:'#2563eb',weight:6,opacity:.9,lineCap:'round',lineJoin:'round',className:'glowing-route'}}).addTo(map);
           map.fitBounds(routePolyline.getBounds(),{padding:[60,60]});
-          renderRouteSummary(route);updateFuelCalculation();renderChoices47();window.jg654CheckToll?.();
+          renderRouteSummary(route);updateFuelCalculation();renderChoices47();jgSync3DRoute();window.jg654CheckToll?.();
         }
         async function weather47(){
           const p=destCoords||lastGps||originCoords;
@@ -1111,6 +1113,7 @@ async function jgWeatherAlerts(){
  document.getElementById('jgProPanel').classList.remove('jgfolded');
 }
 async function jgRefreshReports(){
+ if(!communityMarkersGroup)return;
  if(!JG_CFG.communityApi){jgStatus('Community reports are stored locally on this device. Configure communityApi and Supabase backend to sync between users.');document.getElementById('jgProPanel').classList.remove('jgfolded');return;}
  try{
   const r=await fetch(JG_CFG.communityApi,{cache:'no-store'});if(!r.ok)throw Error('server '+r.status);
@@ -1146,15 +1149,18 @@ function jg52Safety(text,priority=false){
 function jg52RouteProgress(p){
  const coords=currentRouteData?.geometry?.coordinates;
  if(!coords?.length)return null;
- // nearest route vertex; inexpensive approximation for the dashboard (not live traffic)
- let nearest=Infinity,idx=0;
- for(let i=0;i<coords.length;i++){
-   const d=gpsDistance(p,{lat:coords[i][1],lng:coords[i][0]});
-   if(d<nearest){nearest=d;idx=i;}
+ // Project onto road segments so sparse geometry does not snap progress to an endpoint.
+ let nearest=Infinity,travelled=0,total=0,bestProgress=0;
+ for(let i=1;i<coords.length;i++){
+  const a={lat:coords[i-1][1],lng:coords[i-1][0]},b={lat:coords[i][1],lng:coords[i][0]};
+  const k=111320,c=Math.cos(p.lat*Math.PI/180);
+  const ax=(a.lng-p.lng)*k*c,ay=(a.lat-p.lat)*k,vx=(b.lng-a.lng)*k*c,vy=(b.lat-a.lat)*k;
+  const t=Math.max(0,Math.min(1,-(ax*vx+ay*vy)/(vx*vx+vy*vy||1)));
+  const distance=Math.hypot(ax+t*vx,ay+t*vy),length=gpsDistance(a,b);
+  if(distance<nearest){nearest=distance;bestProgress=travelled+length*t;}
+  travelled+=length;total+=length;
  }
- let remaining=0;
- for(let i=idx+1;i<coords.length;i++)remaining+=gpsDistance({lat:coords[i-1][1],lng:coords[i-1][0]},{lat:coords[i][1],lng:coords[i][0]});
- return {remaining,nearest};
+ return {remaining:Math.max(0,total-bestProgress),nearest};
 }
 function jg52Dashboard(pos){
  const e=document.getElementById('jg52TripMetrics');if(!e||!navigationActive)return;
@@ -1170,18 +1176,21 @@ function jg52Dashboard(pos){
 }
 async function jg52Reroute(pos){
  if(jg52Rerouting||!navigationActive||!destCoords||!navigator.onLine)return;
- jg52Rerouting=true;const oldOrigin=originCoords;
+ if(currentRouteData?.legs?.length>1){
+  jg52Safety(appLanguage==='en'?'Multi-stop route: stop navigation and recalculate waypoints.':'Laluan multi-hentian: henti navigasi dan kira semula hentian.',true);return;
+ }
+ jg52Rerouting=true;const reqId=++routeRequestId;
  try{
    const url='https://router.project-osrm.org/route/v1/driving/'+pos.coords.longitude+','+pos.coords.latitude+';'+destCoords.lng+','+destCoords.lat+'?overview=full&geometries=geojson&steps=true&alternatives=true';
    const res=await fetch(url,{signal:AbortSignal.timeout(13000)});
    if(!res.ok)throw Error('OSRM '+res.status);
-   const data=await res.json();if(data.code!=='Ok'||!data.routes?.length)throw Error('No route');
+   const data=await res.json();if(reqId!==routeRequestId||!navigationActive)return;if(data.code!=='Ok'||!data.routes?.length)throw Error('No route');
    routes47=data.routes.slice(0,3);selected47=0;currentRouteData=routes47[0];lastSpokenStep=-1;
    if(routePolyline)map.removeLayer(routePolyline);
    routePolyline=L.geoJSON(currentRouteData.geometry,{style:{color:'#2563eb',weight:6,opacity:.9}}).addTo(map);
    jgSync3DRoute();renderRouteSummary(currentRouteData);updateFuelCalculation();renderChoices47();window.jg654CheckToll?.();
    jg52Safety(appLanguage==='en'?'Route recalculated.':'Laluan dikira semula.');
- }catch(e){originCoords=oldOrigin;jg52Safety(appLanguage==='en'?'Rerouting unavailable. Follow road signs.':'Gagal kira semula. Ikut papan tanda jalan.',true);}
+ }catch(e){if(reqId!==routeRequestId||!navigationActive)return;jg52Safety(appLanguage==='en'?'Rerouting unavailable. Follow road signs.':'Gagal kira semula. Ikut papan tanda jalan.',true);}
  finally{jg52Rerouting=false;}
 }
 function jg52TrackOffRoute(pos,progress){
@@ -1211,7 +1220,9 @@ function jg52TrackOffRoute(pos,progress){
 
         let currentMapPickMode = null;
         let pendingReportData = null;
-        let searchTimeout = null;
+        const searchTimeout = {origin:null,dest:null};
+        let nearbyRequestId = 0;
+        let nearbyController = null;
         let routeRequestId = 0;
         let gpsWatchId = null;
         let navigationActive = false;
@@ -1417,6 +1428,8 @@ function jg52TrackOffRoute(pos,progress){
             stepMarkersGroup = L.layerGroup().addTo(map);
             communityMarkersGroup = L.layerGroup().addTo(map);
             poiMarkersGroup = L.layerGroup().addTo(map);
+            loadCommunityReports();
+            if(JG_CFG.communityApi)jgRefreshReports();
 
             map.on('click', handleMapClick);
             map.on('dragstart',()=>{if(navigationActive)followGps=false;});
@@ -1426,7 +1439,7 @@ function jg52TrackOffRoute(pos,progress){
         // 3. MOD MALAM (DARK MODE)
         // ==========================================
         function initTheme() {
-            const savedTheme = localStorage.getItem(STORAGE_KEY_THEME);
+            let savedTheme;try{savedTheme=localStorage.getItem(STORAGE_KEY_THEME);}catch{}
             if (savedTheme === 'dark') {
                 document.documentElement.classList.add('dark');
                 updateDarkModeIcon(true);
@@ -1436,7 +1449,7 @@ function jg52TrackOffRoute(pos,progress){
         function toggleDarkMode() {
             const htmlEl = document.documentElement;
             const isDark = htmlEl.classList.toggle('dark');
-            localStorage.setItem(STORAGE_KEY_THEME, isDark ? 'dark' : 'light');
+            try{localStorage.setItem(STORAGE_KEY_THEME, isDark ? 'dark' : 'light');}catch{}
             updateDarkModeIcon(isDark);
             showToast(isDark ? 'Mod Pemanduan Malam diaktifkan 🌙' : 'Mod Siang diaktifkan ☀️', 'info');
         }
@@ -1522,6 +1535,9 @@ function jg52TrackOffRoute(pos,progress){
             jgFinishTrip();
             if(gpsWatchId!==null&&navigator.geolocation)navigator.geolocation.clearWatch(gpsWatchId);
             gpsWatchId=null;navigationActive=false;
+            routeRequestId++;
+            setRouteButtonLoading(false);
+            jg52OffRouteSince=0;
             if(typeof window.jg65NavChanged==='function')window.jg65NavChanged();
             document.getElementById('speed47').classList.add('hidden');
             document.body.classList.remove('driving-mode');
@@ -1580,18 +1596,21 @@ function jg52TrackOffRoute(pos,progress){
             const remaining=gpsDistance(p,destCoords);
             const title=document.getElementById('liveInstruction'),detail=document.getElementById('liveDetail');
             if(remaining<35&&pos.coords.accuracy<75){
-                speakText(tr('Anda telah tiba di destinasi.'));stopLiveNavigation(true);showToast(tr('Anda telah tiba!'),'success');return;
+                stopLiveNavigation(true);speakText(tr('Anda telah tiba di destinasi.'));showToast(tr('Anda telah tiba!'),'success');return;
             }
-            const steps=currentRouteData.legs?.[0]?.steps||[];
-            let best=-1,bestDist=Infinity;
-            steps.forEach((step,i)=>{
-                const [lng,lat]=step.maneuver.location,d=gpsDistance(p,{lat,lng});
-                if(d<bestDist){bestDist=d;best=i;}
+            const steps=currentRouteData.legs?.flatMap((leg,i)=>(leg.steps||[]).map(step=>({...step,jgWaypoint:i<currentRouteData.legs.length-1&&step.maneuver.type==='arrive'})))||[];
+            let best=0,bestDist=Infinity;
+            steps.forEach((candidate,i)=>{
+                const coords=candidate.geometry?.coordinates||[];
+                for(let j=1;j<coords.length;j++){
+                    const d=segmentDistance(p,{lat:coords[j-1][1],lng:coords[j-1][0]},{lat:coords[j][1],lng:coords[j][0]});
+                    if(d<bestDist){bestDist=d;best=i;}
+                }
             });
             const next=Math.min(steps.length-1,best+1),step=steps[next];
             if(step){
                 const [lng,lat]=step.maneuver.location,dist=gpsDistance(p,{lat,lng});
-                const phrase=translateManeuverToBM(step.maneuver,step.name).plainText;
+                const phrase=step.jgWaypoint?(appLanguage==='en'?'Reach the waypoint':'Tiba di hentian'):translateManeuverToBM(step.maneuver,step.name).plainText;
                 title.textContent=phrase;
                 detail.textContent=appLanguage==='en'?`Next turn ~${Math.round(dist)} m • Straight-line ${(remaining/1000).toFixed(1)} km • GPS ±${Math.round(pos.coords.accuracy)} m`:`Arahan ~${Math.round(dist)} m • Jarak terus ${(remaining/1000).toFixed(1)} km • GPS ±${Math.round(pos.coords.accuracy)} m`;
                 if(dist<220&&next!==lastSpokenStep){
@@ -1652,6 +1671,11 @@ function jg52TrackOffRoute(pos,progress){
         // 6. CARIAN PANTAS POI BERDEKATAN (OVERPASS / NOMINATIM)
         // ==========================================
         async function searchNearbyPOI(category) {
+            if(!map||!poiMarkersGroup)return;
+            const reqId=++nearbyRequestId;
+            nearbyController?.abort();
+            const controller=new AbortController();nearbyController=controller;
+            const timeout=setTimeout(()=>controller.abort(),18000);
             const center = map.getCenter();
             const lat = center.lat;
             const lng = center.lng;
@@ -1659,28 +1683,28 @@ function jg52TrackOffRoute(pos,progress){
             const poiConfig = {
                 'fuel': {
                     label: 'Stesen Minyak',
-                    overpass: 'node["amenity"="fuel"]',
+                    overpass: 'nwr["amenity"="fuel"]',
                     nominatim: 'petrol station',
                     icon: 'fa-gas-pump',
                     bg: 'bg-amber-500'
                 },
                 'mosque': {
                     label: 'Masjid / Surau',
-                    overpass: 'node["amenity"="place_of_worship"]["religion"="muslim"]',
+                    overpass: 'nwr["amenity"="place_of_worship"]["religion"="muslim"]',
                     nominatim: 'masjid',
                     icon: 'fa-mosque',
                     bg: 'bg-emerald-600'
                 },
                 'food': {
                     label: 'R&R / Restoran',
-                    overpass: 'node["amenity"~"restaurant|fast_food"]',
+                    overpass: 'nwr["amenity"~"restaurant|fast_food"]',
                     nominatim: 'restoran',
                     icon: 'fa-utensils',
                     bg: 'bg-orange-500'
                 },
                 'ev': {
                     label: 'EV Charging Station',
-                    overpass: 'node["amenity"="charging_station"]',
+                    overpass: 'nwr["amenity"="charging_station"]',
                     nominatim: 'charging station',
                     icon: 'fa-bolt',
                     bg: 'bg-cyan-500'
@@ -1688,24 +1712,29 @@ function jg52TrackOffRoute(pos,progress){
             };
 
             const cfg = poiConfig[category];
-            if (!cfg) return;
+            if (!cfg){clearTimeout(timeout);return;}
 
             showToast(`Mencari ${cfg.label} sekitar peta...`, 'info');
             poiMarkersGroup.clearLayers();
 
             try {
                 // Cuba carian Overpass API (radius 5km dari tengah peta)
-                const query = `[out:json][timeout:8];(${cfg.overpass}(around:5000,${lat},${lng}););out body 12;`;
+                const query = `[out:json][timeout:8];(${cfg.overpass}(around:5000,${lat},${lng}););out center 40;`;
                 const url = `https://overpass-api.de/api/interpreter?data=${encodeURIComponent(query)}`;
                 
-                const res = await fetch(url);
-                const data = await res.json();
+                let data;
+                try{
+                    const res=await fetch(url,{signal:controller.signal});
+                    if(!res.ok)throw Error('Nearby unavailable');
+                    data=await res.json();
+                }catch(err){if(controller.signal.aborted)throw err;data={elements:[]};}
+                if(reqId!==nearbyRequestId)return;
                 let results = [];
 
                 if (data && data.elements && data.elements.length > 0) {
                     results = data.elements.map(el => ({
-                        lat: el.lat,
-                        lon: el.lon,
+                        lat: el.lat??el.center?.lat,
+                        lon: el.lon??el.center?.lon,
                         name: (el.tags && (el.tags.name || el.tags.brand)) || cfg.label
                     }));
                 } else {
@@ -1713,7 +1742,8 @@ function jg52TrackOffRoute(pos,progress){
                     const bBox = map.getBounds();
                     const viewbox = `${bBox.getWest()},${bBox.getNorth()},${bBox.getEast()},${bBox.getSouth()}`;
                     const nomUrl = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(cfg.nominatim)}&viewbox=${viewbox}&bounded=1&limit=10`;
-                    const nomRes = await fetch(nomUrl);
+                    const nomRes = await jgGeocodeFetch(nomUrl,{signal:controller.signal});
+                    if(!nomRes.ok)throw Error('Nearby fallback unavailable');
                     const nomData = await nomRes.json();
                     results = nomData.map(item => ({
                         lat: parseFloat(item.lat),
@@ -1722,6 +1752,10 @@ function jg52TrackOffRoute(pos,progress){
                     }));
                 }
 
+                if(reqId!==nearbyRequestId)return;
+                results=results.filter(item=>Number.isFinite(item.lat)&&Number.isFinite(item.lon));
+                results.sort((a,b)=>gpsDistance({lat,lng},{lat:a.lat,lng:a.lon})-gpsDistance({lat,lng},{lat:b.lat,lng:b.lon}));
+                results=results.slice(0,20);
                 if (results.length === 0) {
                     showToast(`Tiada ${cfg.label} ditemui di kawasan ini. Cuba zum keluar sedikit.`, 'warning');
                     return;
@@ -1767,11 +1801,13 @@ function jg52TrackOffRoute(pos,progress){
                 document.getElementById('clearPoiBtn').classList.remove('hidden');
                 showToast(`Menjumpai ${results.length} ${cfg.label} berdekatan!`, 'success');
             } catch (err) {
+                if(reqId!==nearbyRequestId)return;
                 showToast(`Gagal memuatkan senarai ${cfg.label}. Sila cuba lagi.`, 'error');
-            }
+            }finally{clearTimeout(timeout);}
         }
 
         function clearPOIMarkers() {
+            nearbyRequestId++;nearbyController?.abort();
             poiMarkersGroup.clearLayers();
             document.getElementById('clearPoiBtn').classList.add('hidden');
             showToast('Penanda POI telah dibersihkan.', 'info');
@@ -1820,20 +1856,45 @@ function jg52TrackOffRoute(pos,progress){
         // ==========================================
         // 8. CARIAN & AUTOLENGKAP (NOMINATIM API)
         // ==========================================
+        function invalidateLocationInput(type){
+            clearRoute(true);
+            if(type==='origin'){originCoords=null;if(originMarker)map.removeLayer(originMarker);originMarker=null;}
+            else{destCoords=null;if(destMarker)map.removeLayer(destMarker);destMarker=null;}
+        }
+        function cancelLocationSearch(type){
+            searchSequence[type]++;
+            clearTimeout(searchTimeout[type]);
+            searchControllers[type]?.abort();
+            document.getElementById(type==='origin'?'originSuggestions':'destSuggestions').classList.add('hidden');
+        }
         function setupSearchListeners() {
             const originInput = document.getElementById('originInput');
             const destInput = document.getElementById('destInput');
+            for(const [type,input] of [['origin',originInput],['dest',destInput]]){
+                input.setAttribute('enterkeyhint','search');
+                input.addEventListener('keydown',e=>{
+                    if(e.key==='Enter'){e.preventDefault();triggerNominatimSearch(input.value.trim(),type);}
+                });
+                const button=document.createElement('button');
+                button.type='button';button.className='text-xs font-bold text-blue-600 dark:text-blue-300 px-3 py-2';
+                button.textContent='Cari lokasi';button.dataset.searchType=type;
+                button.addEventListener('click',()=>triggerNominatimSearch(input.value.trim(),type));
+                button.className='text-xs font-bold text-blue-600 dark:text-blue-300 px-2 py-1 shrink-0';
+                input.parentElement.appendChild(button);
+            }
 
             originInput.addEventListener('input', (e) => {
                 const val = e.target.value.trim();
                 document.getElementById('clearOriginBtn').classList.toggle('hidden', val.length === 0);
-                triggerNominatimSearch(val, 'origin');
+                invalidateLocationInput('origin');
+                cancelLocationSearch('origin');
             });
 
             destInput.addEventListener('input', (e) => {
                 const val = e.target.value.trim();
                 document.getElementById('clearDestBtn').classList.toggle('hidden', val.length === 0);
-                triggerNominatimSearch(val, 'dest');
+                invalidateLocationInput('dest');
+                cancelLocationSearch('dest');
             });
 
             document.addEventListener('click', (e) => {
@@ -1850,7 +1911,7 @@ function jg52TrackOffRoute(pos,progress){
             const boxId = type === 'origin' ? 'originSuggestions' : 'destSuggestions';
             const suggestionBox = document.getElementById(boxId);
 
-            if (searchTimeout) clearTimeout(searchTimeout);
+            if (searchTimeout[type]) clearTimeout(searchTimeout[type]);
             searchSequence[type]++;
             if (searchControllers[type]) searchControllers[type].abort();
             const seq=searchSequence[type];
@@ -1860,7 +1921,7 @@ function jg52TrackOffRoute(pos,progress){
                 return;
             }
 
-            searchTimeout = setTimeout(async () => {
+            searchTimeout[type] = setTimeout(async () => {
                 suggestionBox.innerHTML = `
                     <div class="p-3 text-xs text-slate-500 dark:text-slate-400 flex items-center gap-2">
                         <i class="fa-solid fa-spinner fa-spin text-blue-600"></i>
@@ -1873,7 +1934,7 @@ function jg52TrackOffRoute(pos,progress){
                     const controller=new AbortController();
                     searchControllers[type]=controller;
                     const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&countrycodes=my&limit=5&addressdetails=1`;
-                    const res = await fetch(url, {
+                    const res = await jgGeocodeFetch(url, {
                         headers: { 'Accept-Language': 'ms,en' },signal:controller.signal
                     });
                     if(!res.ok) throw Error('Geocoding unavailable');
@@ -1913,7 +1974,7 @@ function jg52TrackOffRoute(pos,progress){
                         suggestionBox.appendChild(btn);
                     });
                 } catch (err) {
-                    if(err.name==='AbortError'||seq!==searchSequence[type])return;
+                    if(seq!==searchSequence[type]||searchControllers[type]?.signal.aborted)return;
                     suggestionBox.innerHTML = `
                         <div class="p-3 text-xs text-rose-500">Ralat sambungan carian. Sila cuba lagi.</div>
                     `;
@@ -1927,7 +1988,7 @@ function jg52TrackOffRoute(pos,progress){
         function selectLocation(type, lat, lng, labelName) {
             searchSequence[type]++;
             if(searchControllers[type])searchControllers[type].abort();
-            if(currentRouteData)clearRoute(true);
+            clearRoute(true);
             if (type === 'origin') {
                 originCoords = { lat, lng, name: labelName };
                 document.getElementById('originInput').value = labelName;
@@ -1991,7 +2052,7 @@ function jg52TrackOffRoute(pos,progress){
 
         async function reverseGeocode(lat, lng) {
             try {
-                const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=18&addressdetails=1`, {
+                const res = await jgGeocodeFetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=18&addressdetails=1`, {
                     headers: { 'Accept-Language': 'ms,en' }
                 });
                 const data = await res.json();
@@ -2135,23 +2196,30 @@ function jg52TrackOffRoute(pos,progress){
         // ==========================================
         // 12. PENGIRAAN LALUAN & ARAHAN (OSRM API)
         // ==========================================
+        function setRouteButtonLoading(loading) {
+            const btn=document.getElementById('calcRouteBtn');
+            if(!btn)return;
+            btn.disabled=loading;
+            btn.innerHTML=loading?'<i class="fa-solid fa-spinner fa-spin"></i> <span>'+ (appLanguage==='en'?'Calculating…':'Mengira…')+'</span>':'<i class="fa-solid fa-route"></i> <span>'+tr('Cari Laluan')+'</span>';
+        }
         async function calculateRoute() {
+            if(navigationActive){showToast(appLanguage==='en'?'Stop navigation before recalculating.':'Hentikan navigasi sebelum kira semula.','warning');return;}
+            const mode=window.jg60GetMode?.()||'car';
+            if(mode==='walk')return window.jg60WalkingRoute?.();
+            if(mode==='rail'){showToast(appLanguage==='en'?'In-app rail routing is unavailable. Use the rail planner.':'Laluan tren dalam aplikasi belum tersedia. Gunakan perancang tren.','info');return;}
             if (!originCoords || !destCoords) {
                 showToast('Sila tetapkan Lokasi Permulaan dan Destinasi terlebih dahulu.', 'warning');
                 return;
             }
 
             const reqId=++routeRequestId;
-            const btn = document.getElementById('calcRouteBtn');
-            const originalHTML = btn.innerHTML;
-            btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> <span>Mengira...</span>`;
-            btn.disabled = true;
+            setRouteButtonLoading(true);
 
             try {
                 const coordsString = `${originCoords.lng},${originCoords.lat};${destCoords.lng},${destCoords.lat}`;
                 const url = `https://router.project-osrm.org/route/v1/driving/${coordsString}?overview=full&geometries=geojson&steps=true&alternatives=true`;
 
-                const res = await fetch(url);
+                const res = await fetch(url,{signal:AbortSignal.timeout(18000)});
                 if(!res.ok)throw Error('Routing unavailable');
                 const data = await res.json();
                 if(reqId!==routeRequestId)return;
@@ -2187,9 +2255,10 @@ function jg52TrackOffRoute(pos,progress){
 
                 showToast('Laluan terbaik & anggaran kos berjaya dikira!', 'success');
             } catch (error) {
+                if(reqId!==routeRequestId)return;
                 showToast('Ralat ketika menghubungi pelayan laluan OSRM.', 'error');
             } finally {
-                if(reqId===routeRequestId){btn.innerHTML = originalHTML;btn.disabled = false;}
+                if(reqId===routeRequestId)setRouteButtonLoading(false);
             }
         }
 
@@ -2220,9 +2289,9 @@ function jg52TrackOffRoute(pos,progress){
             stepMarkersGroup.clearLayers();
             currentRouteStepsBM = [];
 
-            const steps = route.legs[0].steps;
+            const steps = route.legs.flatMap((leg,i)=>(leg.steps||[]).map(step=>({...step,jgWaypoint:i<route.legs.length-1&&step.maneuver.type==='arrive'})));
             steps.forEach((step) => {
-                const instruction = translateManeuverToBM(step.maneuver, step.name);
+                const instruction = step.jgWaypoint?{htmlText:appLanguage==='en'?'Reach the waypoint':'Tiba di hentian',plainText:appLanguage==='en'?'Reach the waypoint':'Tiba di hentian',icon:'fa-location-dot'}:translateManeuverToBM(step.maneuver, step.name);
                 const stepDist = step.distance >= 1000 
                     ? `${(step.distance / 1000).toFixed(1)} km` 
                     : `${Math.round(step.distance)} m`;
@@ -2339,6 +2408,10 @@ function jg52TrackOffRoute(pos,progress){
         // 13. FUNGSI BANTUAN UI
         // ==========================================
         function clearInput(type) {
+            searchSequence[type]++;
+            clearTimeout(searchTimeout[type]);
+            searchControllers[type]?.abort();
+            document.getElementById(type === 'origin' ? 'originSuggestions' : 'destSuggestions').classList.add('hidden');
             clearRoute(true);
             if (type === 'origin') {
                 originCoords = null;
@@ -2358,6 +2431,7 @@ function jg52TrackOffRoute(pos,progress){
                 showToast('Tiada lokasi untuk ditukar.', 'warning');
                 return;
             }
+            clearRoute(true);
             const temp = originCoords;
             originCoords = destCoords;
             destCoords = temp;
@@ -2378,6 +2452,7 @@ function jg52TrackOffRoute(pos,progress){
 
         function clearRoute(silent=false) {
             routeRequestId++;
+            setRouteButtonLoading(false);
             stopLiveNavigation(true);
             if ('speechSynthesis' in window) window.speechSynthesis.cancel();
             isSpeakingNavigation = false;
@@ -2388,6 +2463,9 @@ function jg52TrackOffRoute(pos,progress){
             document.getElementById('routeChoices47').classList.add('hidden');
 
             if (routePolyline) map.removeLayer(routePolyline);
+            routePolyline = null;
+            currentRouteStepsBM = [];
+            jgSync3DRoute();
             stepMarkersGroup.clearLayers();
             document.getElementById('routeSummaryPanel').classList.add('hidden');
             if(!silent)showToast('Laluan telah dipadamkan dari peta.', 'info');
@@ -2407,7 +2485,7 @@ function jg52TrackOffRoute(pos,progress){
         }
 
         function getSavedDestinations(){
-            try{const v=JSON.parse(localStorage.getItem('jg_saved_v42')||'[]');return Array.isArray(v)?v:[];}catch{return [];}
+            try{const v=JSON.parse(localStorage.getItem('jg_saved_v42')||'[]');return Array.isArray(v)?v.filter(p=>p&&Number.isFinite(p.lat)&&Number.isFinite(p.lng)&&typeof p.name==='string'):[];}catch{return [];}
         }
         function saveCurrentDestination(){
             if(!destCoords){showToast('Pilih destinasi dahulu.','warning');return;}
@@ -2465,6 +2543,7 @@ function jg52TrackOffRoute(pos,progress){
         function getDefaultReports() { return []; }
 
         function loadCommunityReports() {
+            if(!communityMarkersGroup)return;
             communityMarkersGroup.clearLayers();
             let reports = [];
             try {
@@ -2478,7 +2557,7 @@ function jg52TrackOffRoute(pos,progress){
                 reports = [];
             }
 
-            reports = reports.filter(r=>r && r.createdAt && Date.now()-r.createdAt<86400000 && Number.isFinite(r.lat) && Number.isFinite(r.lng));
+            reports = (Array.isArray(reports)?reports:[]).filter(r=>r && r.createdAt && Date.now()-r.createdAt<86400000 && Number.isFinite(r.lat) && Number.isFinite(r.lng));
             try {localStorage.setItem(STORAGE_KEY_REPORTS,JSON.stringify(reports));}catch{}
             reports.forEach(r => {
                 addCommunityReportMarker(r.lat, r.lng, r.type, r.note, r.time);

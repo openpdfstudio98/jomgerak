@@ -47,7 +47,7 @@
      const fallback=translate(trim,en);if(fallback!==trim)n.nodeValue=current.replace(trim,fallback);
     }
    }
-   const title=document.getElementById('jgPremiumHeading');if(title)title.textContent=en?'Premium Navigation Views':'Paparan Navigasi Premium';
+   const title=document.getElementById('jgPremiumHeading');const label=en?'Premium Navigation Views':'Paparan Navigasi Premium';if(title&&title.textContent!==label)title.textContent=label;
    document.querySelectorAll('[data-premium]').forEach(el=>{const v={ '2d':['Peta 2D','2D Map'],'3d':['Peta 3D','3D Map'],follow:['Ikut GPS','Follow GPS']}[el.dataset.premium];if(v&&el.textContent!==v[en?1:0])el.textContent=v[en?1:0];});
   }finally{busy=false;}
  }

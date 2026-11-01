@@ -63,8 +63,10 @@
   else if(state.mode==='rail')action.innerHTML=`<button onclick="jg60RailPlanner()">🚆 ${tr('Buka Perancang KTM','Open KTM Planner')}</button>`;
   else action.replaceChildren();
  }
+ window.jg60GetMode=()=>state.mode;
  window.jg60Mode=function(mode){
   if(!['car','motor','walk','rail'].includes(mode))return;
+  if(state.mode!==mode)clearRoute(true);
   state.mode=mode;save('mode',mode);draw();
   if(mode==='rail')notice('Gunakan laman operator rasmi untuk perjalanan tren.','Use official operator sites for train journeys.');
   if(mode==='motor')notice('OSRM tidak mengesahkan jalan khusus motosikal.','OSRM does not verify motorcycle-specific restrictions.');
@@ -87,22 +89,24 @@
  window.jg60WalkingRoute=async function(){
   if(!originCoords||!destCoords)return notice('Tetapkan lokasi mula dan destinasi dahulu.','Set start and destination first.');
   if(navigationActive)return notice('Hentikan navigasi kereta dahulu.','Stop car navigation first.');
+  const reqId=++routeRequestId;
   const action=el('jg60ModeAction');if(action)action.textContent=tr('Mengira laluan berjalan…','Calculating walking route…');
   try{
    const payload={locations:[{lat:originCoords.lat,lon:originCoords.lng},{lat:destCoords.lat,lon:destCoords.lng}],costing:'pedestrian',units:'kilometers',directions_options:{units:'kilometers'}};
    const url='https://valhalla1.openstreetmap.de/route?json='+encodeURIComponent(JSON.stringify(payload));
    const res=await fetch(url,{signal:AbortSignal.timeout(18000)});if(!res.ok)throw Error('service');
-   const data=await res.json();if(!data.trip?.legs?.length)throw Error('no route');
+   const data=await res.json();if(reqId!==routeRequestId)return;if(!data.trip?.legs?.length)throw Error('no route');
    const points=data.trip.legs.flatMap(leg=>decodePolyline6(leg.shape));
    if(points.length<2)throw Error('empty route');
    if(routePolyline)map.removeLayer(routePolyline);
    routePolyline=L.polyline(points,{color:'#16a34a',weight:6,opacity:.9}).addTo(map);
    map.fitBounds(routePolyline.getBounds(),{padding:[45,45]});
    // Walking routes intentionally do not populate OSRM driving steps or start car navigation.
-   currentRouteData=null;routes47=[];if(typeof renderChoices47==='function')renderChoices47();
+   currentRouteData=null;routes47=[];currentRouteStepsBM=[];stepMarkersGroup.clearLayers();el('routeSummaryPanel').classList.add('hidden');jgSync3DRoute();window.jg654ResetToll?.();if(typeof renderChoices47==='function')renderChoices47();
    const mins=Math.round(data.trip.summary.time/60),km=data.trip.summary.length;
    notice('Laluan berjalan: '+km.toFixed(1)+' km, '+mins+' min (anggaran).','Walking route: '+km.toFixed(1)+' km, '+mins+' min (estimate).');
   }catch{
+   if(reqId!==routeRequestId)return;
    notice('Laluan berjalan tidak tersedia. Periksa internet atau cuba lagi.','Walking route unavailable. Check connection or try again.');
   }finally{updateModeNote();}
  };
@@ -194,7 +198,7 @@ function voiceList(){
   }catch{out.textContent=tr('Waktu tidak dapat dimuatkan. Semak jadual rasmi JAKIM.','Unable to load times. Check official JAKIM schedule.');}
  };
  function init(){
-  state.mode=saved('mode','car');state.selectedVoice=saved('voice','');
+  state.mode=saved('mode','car');if(!['car','motor','walk','rail'].includes(state.mode))state.mode='car';state.selectedVoice=saved('voice','');
   const css=document.createElement('style');css.textContent=`
    .jg60module{border:1px solid #cbd5e1;border-radius:13px;padding:10px;margin:8px 0;background:#f8fafc;color:#172554;font:600 12px Inter,system-ui,sans-serif}
    .jg60module b{display:block;margin-bottom:8px}.jg60grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px}
