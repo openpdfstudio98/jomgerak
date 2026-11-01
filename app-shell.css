@@ -69,3 +69,15 @@ html.dark{--jg-ink:#edf3fc;--jg-muted:#a5b4c9;--jg-line:#2b3a50;--jg-panel:#121f
 .jg-app #reportModal input:not([type=radio]){background:var(--jg-surface)!important;color:var(--jg-ink)!important;border-color:var(--jg-line)!important}
 .jg-app #reportModal button{border-radius:14px!important;min-height:40px}
 .jg-app #reportModal>div>div.grid>button{border:1px solid var(--jg-line)!important;background:var(--jg-surface)!important}
+/* Driving controls live below the route HUD, never on its top-left corner. */
+.jg-app.jg65-driving #jg65Dock{
+ top:auto!important;bottom:max(16px,env(safe-area-inset-bottom))!important;
+ left:16px!important;right:auto!important;flex-direction:column-reverse!important;
+ align-items:flex-start!important;gap:8px!important;
+ max-width:min(220px,calc(100vw - 32px))!important;
+ max-height:max(44px,calc(var(--jg-vh,100dvh) - var(--jg-driving-hud-bottom,160px) - 32px - env(safe-area-inset-bottom)))!important;
+}
+.jg-app.jg65-driving #jg65Extra{
+ min-height:0;min-width:156px;overflow-y:auto;overscroll-behavior:contain;
+ max-height:max(0px,calc(var(--jg-vh,100dvh) - var(--jg-driving-hud-bottom,160px) - 92px - env(safe-area-inset-bottom)))!important;
+}

@@ -155,3 +155,10 @@ test('Every report category offered in the UI is accepted by the existing backen
 test('Changing vehicle type remains usable while the map library is still loading',()=>{
  const a=app();a.load('garage.js');a.run('map=undefined;stepMarkersGroup=null');assert.doesNotThrow(()=>a.c.JG_GARAGE.apply({type:'motor',model:'Honda ADV160'}));assert.equal(a.run('jg60GetMode()'),'motor');
 });
+test('Driving controls track actual HUD height after layout changes',()=>{
+ const a=app(),styles={};let bottom=110,resize;
+ a.c.document.documentElement.style={setProperty:(key,value)=>styles[key]=value};a.get('liveNavHUD').getBoundingClientRect=()=>({bottom});
+ a.c.ResizeObserver=class{constructor(fn){resize=fn}observe(){}};a.run('navigationActive=true');a.c.document.readyState='complete';a.load('v65.js');
+ assert.equal(styles['--jg-driving-hud-bottom'],'110px');bottom=184;resize();assert.equal(styles['--jg-driving-hud-bottom'],'184px');
+ a.run('navigationActive=false;jg65NavChanged()');bottom=220;resize();assert.equal(styles['--jg-driving-hud-bottom'],'184px');
+});
