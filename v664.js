@@ -27,35 +27,7 @@
    }
   });
  }
- const pairs={
-  'Tetapan Laluan':'Route Settings','Tetapan Laluan ▾':'Route Settings ▾',
-  'Maklumat Tol':'Toll Information','Cuaca & Banjir':'Weather & Floods',
-  'Sejarah Perjalanan':'Trip History','Tempat Tersimpan':'Saved Places',
-  'Kemudahan Laluan':'Route Facilities','Laporan Komuniti':'Community Reports',
-  'Eksport Perjalanan':'Export Trip','Elak tol*':'Avoid tolls*',
-  'Elak highway*':'Avoid highways*','Perjalanan':'Journey',
-  'Suara navigasi / Navigation voice':'Navigation voice',
-  'Pilih daripada 7 suara yang tersedia. Jantina suara tidak dapat disahkan secara automatik; cuba Test Voice.':'Choose from 7 available voices. Voice gender cannot be determined automatically; try Test Voice.',
-  'V6.5: Cari Laluan → Start Driving. Gunakan Overview dan Recenter untuk kamera.':'V6.5: Find Route → Start Driving. Use Overview and Recenter to adjust the camera.',
-  '* Belum disokong OSRM awam; tidak mengubah laluan. Tol sebenar belum dapat disahkan.':'* Not supported by public OSRM; does not change the route. Actual tolls are unverified.',
-  'Suara navigasi':'Navigation voice','Satelit':'Satellite'
- };
- const rev=Object.fromEntries(Object.entries(pairs).map(([a,b])=>[b,a]));
- function english(){return document.documentElement.lang==='en'||$('languageSelect')?.value==='en';}
- function translate(){
-  const en=english();
-  const walker=document.createTreeWalker($('jgProBody')||document.body,NodeFilter.SHOW_TEXT);
-  let n;while(n=walker.nextNode()){
-   if(n.parentElement?.closest('script,style,textarea,select,option,code,pre'))continue;
-   const t=n.nodeValue,trim=t.trim();if(!trim)continue;
-   let value=(en?pairs:rev)[trim];
-   if(!value){const entries=Object.entries(en?pairs:rev).sort((a,b)=>b[0].length-a[0].length);
-    for(const [from,to] of entries){if(trim.includes(from)&&trim!==to){value=trim.replace(from,to);break;}}
-   }
-   if(value&&value!==trim)n.nodeValue=t.replace(trim,value);
-  }
- }
- let queued=false;function schedule(){if(queued)return;queued=true;setTimeout(()=>{queued=false;refresh();translate()},40)}
+ let queued=false;function schedule(){if(queued)return;queued=true;setTimeout(()=>{queued=false;refresh()},40)}
  function init(){
   const body=$('jgProBody');if(!body)return;
   body.addEventListener('click',e=>{const b=e.target.closest('button');if(b&&body.contains(b))schedule()});

@@ -55,8 +55,7 @@
  };
  window.jg65NavChanged=setUI;
  function init(){setUI();
-  const panel=el('jg55TripTab')||el('jgProPanel');
-  if(panel){const note=document.createElement('p');note.style.cssText='padding:8px;font:600 11px system-ui;color:#64748b';note.textContent=tr('V6.5: Cari Laluan → Start Driving. Gunakan Overview dan Recenter untuk kamera.','V6.5: Find Route → Start Driving. Use Overview and Recenter for camera.');panel.prepend(note);}
+
  }
  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init);else init();
 })();

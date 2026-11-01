@@ -34,6 +34,7 @@ function jg55Lang(){
  document.getElementById('jg55DriveModeLabel')?.replaceChildren(document.createTextNode(jg55T('Pemanduan','Driving')));
 }
 function jg55Show(which){
+ if(which==='vehicle'&&window.JG_GARAGE){window.JG_GARAGE.open();return;}
  const panel=document.getElementById('jg55Panel');
  if(J55.panel===which&&!panel.hidden){panel.hidden=true;J55.panel='';return;}
  J55.panel=which;panel.hidden=false;
@@ -146,7 +147,7 @@ async function jg55RouteStops(){
  if(!J55.stops.length)return jg55Msg('Tambah sekurang-kurangnya satu hentian.','Add at least one stop.');
  if(navigationActive)return jg55Msg('Hentikan navigasi dahulu.','Stop navigation first.');
  const mode=window.jg60GetMode?.()||'car';
- if(mode==='walk'||mode==='rail')return jg55Msg('Multi-hentian kini untuk kereta/motosikal sahaja.','Multi-stop currently supports car/motorcycle routes only.');
+ if(mode==='walk'||mode==='rail'||mode==='truck')return jg55Msg('Multi-hentian kini untuk kereta/motosikal sahaja.','Multi-stop currently supports car/motorcycle routes only.');
  const reqId=++routeRequestId;
  const btn=document.querySelector('#jg55Panel button[onclick="jg55RouteStops()"]');if(btn)btn.disabled=true;
  try{

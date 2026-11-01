@@ -7,19 +7,20 @@
  function id(v){return [v.voiceURI,v.name,v.lang].join('||');}
  function refresh(){
   const e=$('jg652VoiceSelect');if(!e)return;
-  const previous=localStorage.getItem(key)||'';
+  let previous='';try{previous=localStorage.getItem(key)||'';}catch{}
   const available=voices().filter(v=>/^(ms|en|id)(-|_)/i.test(v.lang));
   e.replaceChildren(new Option('Automatic (device)',''));
   for(const v of available)e.add(new Option(v.name+' ('+v.lang+')',id(v)));
   if(available.some(v=>id(v)===previous))e.value=previous;
-  else {e.value='';if(previous)localStorage.removeItem(key);}
+  else {e.value='';if(previous)try{localStorage.removeItem(key);}catch{}}
   const hint=$('jg652VoiceHint');
-  if(hint)hint.textContent=available.length?
+  const en=typeof appLanguage!=='undefined'&&appLanguage==='en';
+  if(hint)hint.textContent=en?(available.length?'Choose from '+available.length+' installed voices. Use Test Voice to preview them.':'No Malay or English voices are installed in this browser. Add a voice through your phone’s text-to-speech settings.'):available.length?
    'Pilih daripada '+available.length+' suara yang tersedia. Jantina suara tidak dapat disahkan secara automatik; cuba Test Voice.':
    'Tiada suara BM/English tersedia pada browser ini. Pasang suara melalui tetapan text-to-speech telefon.';
  }
  window.jg652SelectedVoice=function(){
-  const selected=localStorage.getItem(key);return voices().find(v=>id(v)===selected)||null;
+  let selected;try{selected=localStorage.getItem(key);}catch{}return voices().find(v=>id(v)===selected)||null;
  };
  window.jg652SaveVoice=function(){try{localStorage.setItem(key,$('jg652VoiceSelect')?.value||'');}catch{}};
  window.jg652TestVoice=function(){
@@ -31,6 +32,6 @@
   u.rate=Number($('jgVoiceRate')?.value)||1;
   speechSynthesis.cancel();speechSynthesis.speak(u);
  };
- function boot(){refresh();if('speechSynthesis' in window)speechSynthesis.addEventListener?.('voiceschanged',refresh);}
+ function boot(){window.addEventListener('jg:locale',refresh);refresh();if('speechSynthesis' in window)speechSynthesis.addEventListener?.('voiceschanged',refresh);}
  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot);else boot();
 })();

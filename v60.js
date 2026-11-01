@@ -32,7 +32,7 @@
  function draw(){
   const m=el('jg60Trip'),settings=el('jg60Settings'),mapTab=el('jg60Map');if(!m||!settings||!mapTab)return;
   m.innerHTML=`<section class="jg60module"><b>🚘 ${tr('Mod Pengangkutan','Transport Mode')}</b>
-   <div class="jg60grid">${modeButton('car',tr('Kereta','Car'),'🚗')}${modeButton('motor',tr('Motosikal','Motorcycle'),'🏍️')}${modeButton('walk',tr('Berjalan','Walking'),'🚶')}${modeButton('rail',tr('Keretapi','Rail'),'🚆')}</div>
+   <div class="jg60grid">${modeButton('car',tr('Kereta','Car'),'🚗')}${modeButton('motor',tr('Motosikal','Motorcycle'),'🏍️')}${modeButton('truck',tr('Lori','Truck'),'🚚')}${modeButton('4x4','4×4','🚙')}${modeButton('walk',tr('Berjalan','Walking'),'🚶')}${modeButton('rail',tr('Keretapi','Rail'),'🚆')}</div>
    <p id="jg60modeNote" class="jg60note"></p><div id="jg60ModeAction"></div></section>
    <section class="jg60module"><b>🎙️ ${tr('Carian Suara','Voice Search')}</b>
    <div class="jg60grid"><button onclick="jg60VoiceSearch('dest')">🎤 ${tr('Cari Destinasi','Search Destination')}</button><button onclick="jg60VoiceSearch('origin')">🎤 ${tr('Cari Permulaan','Search Starting Point')}</button></div>
@@ -52,6 +52,8 @@
  function updateModeNote(){
   const n=el('jg60modeNote');if(!n)return;
   const notes={
+   truck:['Profil lori sahaja. Laluan lori belum tersedia.','Truck profile only. Truck routing is unavailable.'],
+   '4x4':['Laluan jalan biasa sahaja; akses luar jalan tidak disahkan.','Standard road routes only; off-road access is not verified.'],
    car:['Laluan kereta menggunakan OSRM.','Car routes use OSRM.'],
    motor:['Laluan OSRM kereta hanya rujukan kasar; sekatan motosikal tidak diperiksa. Jangan guna sebagai laluan motosikal yang disahkan.','OSRM car routing is only an approximation; motorcycle restrictions are not checked. Not a verified motorcycle route.'],
    walk:['Laluan berjalan menggunakan API Valhalla awam jika tersedia; mungkin tidak lengkap.','Walking route uses a public Valhalla API when available; coverage may be incomplete.'],
@@ -65,9 +67,9 @@
  }
  window.jg60GetMode=()=>state.mode;
  window.jg60Mode=function(mode){
-  if(!['car','motor','walk','rail'].includes(mode))return;
+  if(!['car','motor','truck','4x4','walk','rail'].includes(mode))return;
   if(state.mode!==mode)clearRoute(true);
-  state.mode=mode;save('mode',mode);draw();
+  state.mode=mode;window.JG_GARAGE?.syncMode(mode);save('mode',mode);draw();
   if(mode==='rail')notice('Gunakan laman operator rasmi untuk perjalanan tren.','Use official operator sites for train journeys.');
   if(mode==='motor')notice('OSRM tidak mengesahkan jalan khusus motosikal.','OSRM does not verify motorcycle-specific restrictions.');
  };
@@ -198,7 +200,7 @@ function voiceList(){
   }catch{out.textContent=tr('Waktu tidak dapat dimuatkan. Semak jadual rasmi JAKIM.','Unable to load times. Check official JAKIM schedule.');}
  };
  function init(){
-  state.mode=saved('mode','car');if(!['car','motor','walk','rail'].includes(state.mode))state.mode='car';state.selectedVoice=saved('voice','');
+  state.mode=saved('mode','car');if(!['car','motor','truck','4x4','walk','rail'].includes(state.mode))state.mode='car';state.selectedVoice=saved('voice','');
   const css=document.createElement('style');css.textContent=`
    .jg60module{border:1px solid #cbd5e1;border-radius:13px;padding:10px;margin:8px 0;background:#f8fafc;color:#172554;font:600 12px Inter,system-ui,sans-serif}
    .jg60module b{display:block;margin-bottom:8px}.jg60grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px}
