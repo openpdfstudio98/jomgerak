@@ -1031,6 +1031,7 @@ function jgPremiumAddBuildings(){
  }catch(err){console.warn('Optional 3D buildings unavailable:',err.message);}
 }
 function jgSync3DRoute(){
+ window.JG_3D_PINS?.sync();
  if(!jg3d||!jg3d.isStyleLoaded())return;
  jgPremiumAddBuildings();
  const route=currentRouteData?.geometry;
@@ -1893,7 +1894,10 @@ function jg52TrackOffRoute(pos,progress){
             const destInput = document.getElementById('destInput');
             for(const [type,input] of [['origin',originInput],['dest',destInput]]){
                 input.setAttribute('enterkeyhint','search');
+                input.addEventListener('compositionend',()=>triggerNominatimSearch(input.value.trim(),type,true));
                 input.addEventListener('keydown',e=>{
+                    if(e.key==='Escape'){cancelLocationSearch(type);return;}
+                    if(e.isComposing)return;
                     if(e.key==='Enter'){e.preventDefault();triggerNominatimSearch(input.value.trim(),type);}
                 });
                 const button=document.createElement('button');
@@ -1909,6 +1913,7 @@ function jg52TrackOffRoute(pos,progress){
                 document.getElementById('clearOriginBtn').classList.toggle('hidden', val.length === 0);
                 invalidateLocationInput('origin');
                 cancelLocationSearch('origin');
+                if(!e.isComposing)triggerNominatimSearch(val,'origin',true);
             });
 
             destInput.addEventListener('input', (e) => {
@@ -1916,19 +1921,20 @@ function jg52TrackOffRoute(pos,progress){
                 document.getElementById('clearDestBtn').classList.toggle('hidden', val.length === 0);
                 invalidateLocationInput('dest');
                 cancelLocationSearch('dest');
+                if(!e.isComposing)triggerNominatimSearch(val,'dest',true);
             });
 
             document.addEventListener('click', (e) => {
-                if (!e.target.closest('#originInput') && !e.target.closest('#originSuggestions')) {
-                    document.getElementById('originSuggestions').classList.add('hidden');
+                if (!e.target.closest('#originInput') && !e.target.closest('#originSuggestions') && !e.target.closest('[data-search-type="origin"]')) {
+                    cancelLocationSearch('origin');
                 }
-                if (!e.target.closest('#destInput') && !e.target.closest('#destSuggestions')) {
-                    document.getElementById('destSuggestions').classList.add('hidden');
+                if (!e.target.closest('#destInput') && !e.target.closest('#destSuggestions') && !e.target.closest('[data-search-type="dest"]')) {
+                    cancelLocationSearch('dest');
                 }
             });
         }
 
-        function triggerNominatimSearch(query, type) {
+        function triggerNominatimSearch(query, type, autocomplete=false) {
             const boxId = type === 'origin' ? 'originSuggestions' : 'destSuggestions';
             const suggestionBox = document.getElementById(boxId);
 
@@ -1937,7 +1943,7 @@ function jg52TrackOffRoute(pos,progress){
             if (searchControllers[type]) searchControllers[type].abort();
             const seq=searchSequence[type];
 
-            if (query.length < 2) {
+            if (query.length < (autocomplete?3:2)) {
                 suggestionBox.classList.add('hidden');
                 return;
             }
@@ -1955,7 +1961,7 @@ function jg52TrackOffRoute(pos,progress){
                     const controller=new AbortController();
                     searchControllers[type]=controller;
                     const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&countrycodes=my&limit=5&addressdetails=1`;
-                    const res = await jgGeocodeFetch(url, {
+                    const res = autocomplete?await jgAutocompleteFetch(query,{signal:controller.signal}):await jgGeocodeFetch(url, {
                         headers: { 'Accept-Language': 'ms,en' },signal:controller.signal
                     });
                     if(!res.ok) throw Error('Geocoding unavailable');
@@ -2022,6 +2028,7 @@ function jg52TrackOffRoute(pos,progress){
                 updateMarker('dest', lat, lng, labelName);
             }
 
+            window.JG_3D_PINS?.sync();
             if (originCoords && destCoords) {
                 calculateRoute();
             } else {
@@ -2030,14 +2037,18 @@ function jg52TrackOffRoute(pos,progress){
         }
 
         function updateMarker(type, lat, lng, title) {
-            const isOrigin = type === 'origin';
+            if(type==='origin'){
+                if(originMarker)map.removeLayer(originMarker);
+                originMarker=null;
+                return; // The vehicle shows current position; keep only the destination pin.
+            }
             
             const customIcon = L.divIcon({
                 className: 'custom-pin',
                 html: `
                     <div class="relative flex items-center justify-center w-8 h-8">
-                        <div class="w-8 h-8 rounded-full ${isOrigin ? 'bg-emerald-600' : 'bg-rose-600'} text-white flex items-center justify-center shadow-lg border-2 border-white pulse-marker">
-                            <i class="fa-solid ${isOrigin ? 'fa-play text-xs' : 'fa-flag-checkered text-xs'}"></i>
+                        <div class="w-8 h-8 rounded-full bg-rose-600 text-white flex items-center justify-center shadow-lg border-2 border-white pulse-marker">
+                            <i class="fa-solid fa-flag-checkered text-xs"></i>
                         </div>
                     </div>
                 `,
@@ -2046,18 +2057,6 @@ function jg52TrackOffRoute(pos,progress){
                 popupAnchor: [0, -16]
             });
 
-            if (isOrigin) {
-                if (originMarker) map.removeLayer(originMarker);
-                originMarker = L.marker([lat, lng], { icon: customIcon, draggable: true })
-                    .addTo(map)
-                    .bindPopup(`<div class="text-xs font-bold text-emerald-500">Lokasi Permulaan</div><div class="text-xs mt-0.5" data-user-content>${escapeHTML(title)}</div>`);
-                
-                originMarker.on('dragend', async (e) => {
-                    const pos = e.target.getLatLng();
-                    const addr = await reverseGeocode(pos.lat, pos.lng);
-                    selectLocation('origin', pos.lat, pos.lng, addr);
-                });
-            } else {
                 if (destMarker) map.removeLayer(destMarker);
                 destMarker = L.marker([lat, lng], { icon: customIcon, draggable: true })
                     .addTo(map)
@@ -2068,7 +2067,6 @@ function jg52TrackOffRoute(pos,progress){
                     const addr = await reverseGeocode(pos.lat, pos.lng);
                     selectLocation('dest', pos.lat, pos.lng, addr);
                 });
-            }
         }
 
         async function reverseGeocode(lat, lng) {
@@ -2447,6 +2445,7 @@ function jg52TrackOffRoute(pos,progress){
                 document.getElementById('clearDestBtn').classList.add('hidden');
                 if (destMarker) map.removeLayer(destMarker);
             }
+            window.JG_3D_PINS?.sync();
         }
 
         function swapLocations() {
@@ -2470,6 +2469,7 @@ function jg52TrackOffRoute(pos,progress){
             if (originCoords) updateMarker('origin', originCoords.lat, originCoords.lng, originCoords.name);
             if (destCoords) updateMarker('dest', destCoords.lat, destCoords.lng, destCoords.name);
 
+            window.JG_3D_PINS?.sync();
             if (originCoords && destCoords) calculateRoute();
         }
 
@@ -2692,5 +2692,5 @@ function jg52TrackOffRoute(pos,progress){
   <button id="jg65View" type="button" onclick="jg65ToggleView()">◩ 3D</button>
  </div>
 </div>
-<script src="./v656.js" defer></script><script src="./v661.js" defer></script><script src="./v662.js" defer></script><script src="./v65.js" defer></script><script src="./v652.js" defer></script><script src="./v653.js" defer></script><script src="./v654.js" defer></script><script src="./v63.js" defer></script><script src="./v64.js" defer></script><script src="./v655.js" defer></script><script src="./v664.js" defer></script><script src="./v665.js" defer></script><script src="./v666.js" defer></script><script src="./v669.js" defer></script><script src="./v67.js" defer></script><script src="./v671.js" defer></script><script src="./garage.js" defer></script><script src="./app-shell.js" defer></script><script src="./map-controls.js" defer></script><script src="./traffic-flow.js" defer></script><script src="./vehicle-3d.js" defer></script></body>
+<script src="./v656.js" defer></script><script src="./v661.js" defer></script><script src="./v662.js" defer></script><script src="./v65.js" defer></script><script src="./v652.js" defer></script><script src="./v653.js" defer></script><script src="./v654.js" defer></script><script src="./v63.js" defer></script><script src="./v64.js" defer></script><script src="./v655.js" defer></script><script src="./v664.js" defer></script><script src="./v665.js" defer></script><script src="./v666.js" defer></script><script src="./v669.js" defer></script><script src="./v67.js" defer></script><script src="./v671.js" defer></script><script src="./garage.js" defer></script><script src="./app-shell.js" defer></script><script src="./map-controls.js" defer></script><script src="./traffic-flow.js" defer></script><script src="./vehicle-3d.js" defer></script><script src="./route-pins-3d.js" defer></script></body>
 </html>

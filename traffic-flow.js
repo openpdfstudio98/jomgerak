@@ -20,7 +20,7 @@
    layer.setUrl(url());if(!map.hasLayer(layer))layer.addTo(map);
   }
  }
- function legend(){status(t('Traffic · Green: flowing · Amber: slow · Red: congested · © TomTom','Trafik · Hijau: lancar · Kuning: perlahan · Merah: sesak · © TomTom'));}
+ function legend(){const e=box();if(e){e.hidden=true;e.textContent='';}}
  async function start(){
   stop();active=true;const token=++epoch;status(t('Checking traffic availability…','Menyemak data trafik…'));
   try{
