@@ -148,3 +148,17 @@ body>#jg52Install{display:none!important}
 .jg-3d-vehicle svg{display:block;width:100%;height:100%}
 
 .jg-3d-trip-pin{width:40px;height:48px;pointer-events:none!important;filter:drop-shadow(0 2px 3px #0004);color:#e11d48}.jg-3d-trip-pin svg{display:block}
+/* Short landscape viewports must not inherit the desktop summary transform. */
+@media(orientation:landscape) and (max-height:500px){
+ .jg-app.jg65-driving #jgDriveSummary{left:max(16px,env(safe-area-inset-left));right:144px;width:auto;max-width:440px;margin:0;transform:none;bottom:max(12px,env(safe-area-inset-bottom));padding:10px 14px}
+ .jg-app.jg65-driving #liveNavHUD{left:max(16px,env(safe-area-inset-left))!important;right:144px!important;max-width:440px!important;top:max(10px,env(safe-area-inset-top))!important}
+ .jg-app.jg65-driving #liveNavHUD>div{padding:10px 12px!important;border-radius:18px!important}
+ .jg-app.jg65-driving #liveInstruction{font-size:15px!important}
+ .jg-app.jg65-driving #liveDetail{font-size:10px!important}
+ .jg-app.jg65-driving #speed47{bottom:max(12px,env(safe-area-inset-bottom))!important;right:max(12px,env(safe-area-inset-right))!important;width:112px;box-sizing:border-box;padding:8px!important}
+ .jg-app.jg65-driving #jg65Dock{bottom:94px!important;left:max(16px,env(safe-area-inset-left))!important}
+ .jg-app.jg65-driving #jg3dMap .maplibregl-ctrl-bottom-right{bottom:112px!important;right:max(12px,env(safe-area-inset-right))}
+ .jg-app.jg65-driving #jg52TripMetrics strong{font-size:20px}
+ .jg-app.jg65-driving #jg52TripMetrics{gap:8px}
+ #jgTrafficFlow{left:16px;transform:none;max-width:410px}
+}

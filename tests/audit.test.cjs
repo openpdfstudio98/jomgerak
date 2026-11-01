@@ -280,3 +280,10 @@ test('Autocomplete uses Photon, filters Malaysia and caches repeated terms',asyn
  a.c.fetch=async url=>{calls++;assert.match(url,/photon\.komoot\.io/);assert.match(url,/countrycode=MY/);return {ok:true,json:async()=>({features:[{properties:{name:'Klang',countrycode:'MY',country:'Malaysia'},geometry:{coordinates:[101.45,3.04]}},{properties:{name:'Foreign',countrycode:'DE'},geometry:{coordinates:[13,52]}}]})}};
  const r=await a.c.jgAutocompleteFetch('Klang');const data=await r.json();assert.equal(data.length,1);assert.equal(data[0].name,'Klang');assert.equal(data[0].lat,3.04);await a.c.jgAutocompleteFetch('Klang');assert.equal(calls,1);
 });
+test('Orientation resize refreshes both map sizes without resetting camera zoom or follow',()=>{
+ const a=app();let leaflet=0,vector=0;a.c.resizeLeaf=opts=>{assert.equal(opts.pan,false);leaflet++};a.c.resizeVector=()=>vector++;
+ a.run('map.invalidateSize=resizeLeaf;jg3d={resize:resizeVector};navigationActive=false;followGps=false');a.load('v65.js');
+ a.c.jg65ViewportChanged();assert.equal(leaflet,1);assert.equal(vector,1);assert.equal(a.run('followGps'),false);
+ a.c.jg65ViewportChanged();assert.equal([...a.timers.values()].filter(x=>x.ms===250).length,1);
+ [...a.timers.values()].find(x=>x.ms===250).f();assert.equal(leaflet,3);assert.equal(vector,3);
+});
