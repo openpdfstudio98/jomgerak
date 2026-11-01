@@ -2032,14 +2032,18 @@ function jg52TrackOffRoute(pos,progress){
         }
 
         function updateMarker(type, lat, lng, title) {
-            const isOrigin = type === 'origin';
+            if(type==='origin'){
+                if(originMarker)map.removeLayer(originMarker);
+                originMarker=null;
+                return; // The vehicle shows current position; keep only the destination pin.
+            }
             
             const customIcon = L.divIcon({
                 className: 'custom-pin',
                 html: `
                     <div class="relative flex items-center justify-center w-8 h-8">
-                        <div class="w-8 h-8 rounded-full ${isOrigin ? 'bg-emerald-600' : 'bg-rose-600'} text-white flex items-center justify-center shadow-lg border-2 border-white pulse-marker">
-                            <i class="fa-solid ${isOrigin ? 'fa-play text-xs' : 'fa-flag-checkered text-xs'}"></i>
+                        <div class="w-8 h-8 rounded-full bg-rose-600 text-white flex items-center justify-center shadow-lg border-2 border-white pulse-marker">
+                            <i class="fa-solid fa-flag-checkered text-xs"></i>
                         </div>
                     </div>
                 `,
@@ -2048,18 +2052,6 @@ function jg52TrackOffRoute(pos,progress){
                 popupAnchor: [0, -16]
             });
 
-            if (isOrigin) {
-                if (originMarker) map.removeLayer(originMarker);
-                originMarker = L.marker([lat, lng], { icon: customIcon, draggable: true })
-                    .addTo(map)
-                    .bindPopup(`<div class="text-xs font-bold text-emerald-500">Lokasi Permulaan</div><div class="text-xs mt-0.5" data-user-content>${escapeHTML(title)}</div>`);
-                
-                originMarker.on('dragend', async (e) => {
-                    const pos = e.target.getLatLng();
-                    const addr = await reverseGeocode(pos.lat, pos.lng);
-                    selectLocation('origin', pos.lat, pos.lng, addr);
-                });
-            } else {
                 if (destMarker) map.removeLayer(destMarker);
                 destMarker = L.marker([lat, lng], { icon: customIcon, draggable: true })
                     .addTo(map)
@@ -2070,7 +2062,6 @@ function jg52TrackOffRoute(pos,progress){
                     const addr = await reverseGeocode(pos.lat, pos.lng);
                     selectLocation('dest', pos.lat, pos.lng, addr);
                 });
-            }
         }
 
         async function reverseGeocode(lat, lng) {

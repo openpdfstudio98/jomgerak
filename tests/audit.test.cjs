@@ -263,3 +263,10 @@ test('Successful traffic tile load hides the banner while keeping attribution',a
  a.c.L.tileLayer=(url,o)=>{options=o;return{on(k,f){handlers[k]=f;return this},setUrl(){},addTo(){return this}}};
  a.run('map.hasLayer=()=>false');a.c.fetch=async()=>({ok:true,json:async()=>({trafficEnabled:true})});await a.c.JG_TRAFFIC.start();handlers.tileload();assert.equal(a.get('jgTrafficFlow').hidden,true);assert.equal(a.get('jgTrafficFlow').textContent,'');assert.match(options.attribution,/TomTom/);
 });
+test('2D omits the origin pin and retains the draggable destination marker',()=>{
+ const a=app();let removed=0,options;
+ a.c.removeOld=()=>removed++;a.run('map.removeLayer=removeOld;originMarker={};');
+ a.run('updateMarker("origin",3,101,"Start")');assert.equal(a.run('originMarker'),null);assert.equal(removed,1);assert.equal(a.markers.length,0);
+ const original=a.c.L.marker;a.c.L.marker=(p,o)=>{options=o;return original(p,o)};
+ a.run('updateMarker("dest",3.02,101.02,"End")');assert.equal(a.markers.length,1);assert.equal(options.draggable,true);assert.match(options.icon.html,/fa-flag-checkered/);assert.doesNotMatch(options.icon.html,/emerald|fa-play/);
+});
