@@ -152,3 +152,6 @@ test('Asset cache includes the new shell and locale assets; diagnostics have no 
 test('Every report category offered in the UI is accepted by the existing backend',()=>{
  const handler=fs.readFileSync(path.join(root,'api/reports.js'),'utf8');for(const [,type]of html.matchAll(/selectReportType\('([^']+)'\)/g))assert.ok(handler.includes("'"+type+"'"),'Unsupported category '+type);
 });
+test('Changing vehicle type remains usable while the map library is still loading',()=>{
+ const a=app();a.load('garage.js');a.run('map=undefined;stepMarkersGroup=null');assert.doesNotThrow(()=>a.c.JG_GARAGE.apply({type:'motor',model:'Honda ADV160'}));assert.equal(a.run('jg60GetMode()'),'motor');
+});

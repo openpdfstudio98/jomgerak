@@ -2477,7 +2477,7 @@ function jg52TrackOffRoute(pos,progress){
             routePolyline = null;
             currentRouteStepsBM = [];
             jgSync3DRoute();
-            stepMarkersGroup.clearLayers();
+            stepMarkersGroup?.clearLayers();
             document.getElementById('routeSummaryPanel').classList.add('hidden');
             if(!silent)showToast('Laluan telah dipadamkan dari peta.', 'info');
         }

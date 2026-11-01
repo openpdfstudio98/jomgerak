@@ -16,7 +16,7 @@ This change is based on merged main `9978e8e84849a072d14d1abbdbd5b3a6824b5766`. 
 
 ## Validation
 
-`node --test tests/audit.test.cjs`: **30 passing tests**. Includes the previous navigation race/route tests plus locale templates, translation convergence and user-content protection, profile validation/persistence, cost synchronization, vehicle-mode synchronization, truck guards, cached assets and all offered report categories matching backend types. All browser/server JavaScript parses and `git diff --check` passes.
+`node --test tests/audit.test.cjs`: **31 passing tests**. Includes the previous navigation race/route tests plus locale templates, translation convergence and user-content protection, profile validation/persistence, cost synchronization, vehicle-mode synchronization, truck guards, vehicle changes before map startup, cached assets and all offered report categories matching backend types. All browser/server JavaScript parses and `git diff --check` passes.
 
 Browser UI checks performed through the cloud browser:
 
