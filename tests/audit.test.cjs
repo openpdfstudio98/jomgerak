@@ -172,7 +172,7 @@ test('Only one GPS camera controller runs and manual exploration pauses followin
 });
 test('3D activation enables interaction and returning to 2D retains the explored camera',async()=>{
  const a=app();let options,returned;const handlers={};
- a.c.maplibregl={Map:class{constructor(o){options=o}addControl(){}on(name,fn){handlers[name]=fn}getCanvas(){return{addEventListener(){}}}isStyleLoaded(){return false}resize(){}easeTo(){}getCenter(){return{lat:3.25,lng:101.5}}getZoom(){return 14}},NavigationControl:class{}};
+ a.c.maplibregl={Map:class{constructor(o){options=o}addControl(){}on(name,fn){handlers[name]=fn}getCanvasContainer(){return{addEventListener(){}}}isStyleLoaded(){return false}resize(){}easeTo(){}getCenter(){return{lat:3.25,lng:101.5}}getZoom(){return 14}},NavigationControl:class{}};
  a.run('jgLoadMapLibre=async()=>{};map.getZoom=()=>12;map.setView=(p,z)=>window.returnedCamera={p,z};');await a.run('jgToggle3D()');assert.equal(a.run('jg3dActive'),true);assert.equal(options.interactive,true);assert.equal(options.dragPan,true);assert.equal(options.touchZoomRotate,true);assert.equal(options.zoom,12);
  let paused=0;a.c.jg65SuspendFollow=()=>paused++;handlers.movestart({originalEvent:{}});assert.equal(paused,1);handlers.movestart({});assert.equal(paused,1);
  await a.run('jgToggle3D()');assert.equal(a.run('jg3dActive'),false);assert.equal(a.c.returnedCamera.z,14);assert.deepEqual(Array.from(a.c.returnedCamera.p),[3.25,101.5]);
@@ -197,4 +197,43 @@ test('My Location centers the active 3D map rather than only the hidden 2D map',
 });
 test('Selecting 3D view preserves the current zoom rather than forcing a close-up',async()=>{
  const a=app();a.c.cameras=[];a.run('jg3dActive=true;jg3d={easeTo:o=>cameras.push(o)}');a.load('v656.js');await a.run('jgPremiumMode("3d")');assert.equal(a.c.cameras.length,1);assert.equal(a.c.cameras[0].zoom,undefined);assert.equal(a.c.cameras[0].pitch,50);
+});
+
+test('Starting navigation always requests 3D, with a single GPS watch',async()=>{
+ const a=app();locations(a);a.c.fixture=route();let watches=0,opens=0;
+ a.c.navigator.geolocation={watchPosition(){watches++;return 7},clearWatch(){}};
+ a.run('currentRouteData=fixture;map.getZoom=()=>13;map.setView=()=>{};');
+ a.c.jgToggle3D=async navigationOnly=>{assert.equal(navigationOnly,true);opens++;a.run('jg3dActive=true;jg3d={easeTo:()=>{}}')};
+ await a.run('startVoiceNavigation()');assert.equal(opens,1);assert.equal(watches,1);assert.equal(a.run('navigationActive'),true);
+ await a.run('startVoiceNavigation()');assert.equal(watches,1);assert.equal(a.run('navigationActive'),false);
+});
+test('Stopping while 3D loads prevents a late map activation',async()=>{
+ const a=app(),d=deferred();a.c.jgLoadMapLibre=()=>d.promise;a.run('navigationActive=true');
+ const p=a.run('jgToggle3D(true)');a.run('navigationActive=false');d.resolve();await p;
+ assert.equal(a.run('jg3dActive'),false);assert.equal(a.get('jg3dMap').classList.contains('jgshown'),false);
+});
+test('Traffic does not claim live flow without provider configuration, and ignores a stopped request',async()=>{
+ const a=app();a.load('traffic-flow.js');a.c.fetch=async()=>({ok:true,json:async()=>({trafficEnabled:false})});
+ await a.c.JG_TRAFFIC.start();assert.match(a.get('jgTrafficFlow').textContent,/not configured/);
+ const d=deferred();a.c.fetch=()=>d.promise;const p=a.c.JG_TRAFFIC.start();a.c.JG_TRAFFIC.stop();
+ d.resolve({ok:true,json:async()=>({trafficEnabled:true})});await p;assert.equal(a.get('jgTrafficFlow').hidden,true);
+});
+test('Traffic tile proxy validates coordinates, keeps credentials server-side and returns PNG',async()=>{
+ const handler=require('../api/traffic-tile.js');const old=global.fetch,key=process.env.TOMTOM_API_KEY;process.env.TOMTOM_API_KEY='test-secret';
+ const response=()=>({headers:{},setHeader(k,v){this.headers[k]=v},status(n){this.code=n;return this},json(v){this.body=v;return this},send(v){this.body=v;return this}});
+ try{
+  let calls=0;global.fetch=async u=>{calls++;assert.match(u,/relative0\/12\/2044\/1360.png/);return{ok:true,headers:new Headers({'Content-Type':'image/png'}),arrayBuffer:async()=>new Uint8Array([137,80,78,71]).buffer}};
+  let r=response();await handler({method:'GET',query:{z:'2',x:'4',y:'0'}},r);assert.equal(r.code,400);assert.equal(calls,0);
+  r=response();await handler({method:'GET',query:{z:'12',x:'2044',y:'1360'}},r);assert.equal(r.code,200);assert.equal(r.headers['Content-Type'],'image/png');assert.equal(r.body.includes(Buffer.from('test-secret')),false);
+ }finally{global.fetch=old;if(key===undefined)delete process.env.TOMTOM_API_KEY;else process.env.TOMTOM_API_KEY=key;}
+});
+test('Configured traffic mounts in 2D and 3D, then removes both overlays on stop',async()=>{
+ const a=app();a.load('traffic-flow.js');const mounted=new Set(),sources=new Map(),layers=new Map();let removed=0;
+ const tile={on(){return this},setUrl(){},addTo(){mounted.add(this);return this}};a.c.L.tileLayer=()=>tile;
+ a.c.fetch=async()=>({ok:true,json:async()=>({trafficEnabled:true})});a.c.tile=tile;
+ a.c.vector={isStyleLoaded:()=>true,on(){},getSource:id=>sources.get(id),addSource(id,v){sources.set(id,{...v,setTiles(){}})},getLayer:id=>layers.get(id),addLayer(v){layers.set(v.id,v)},removeLayer:id=>layers.delete(id),removeSource:id=>sources.delete(id)};
+ a.c.hasTile=x=>mounted.has(x);a.c.removeTile=x=>{mounted.delete(x);removed++};
+ a.run('map.hasLayer=hasTile;map.removeLayer=removeTile;');await a.c.JG_TRAFFIC.start();assert.equal(mounted.has(tile),true);
+ a.run('jg3d=vector;jg3dActive=true');a.c.JG_TRAFFIC.sync();assert.equal(mounted.size,0);assert.equal(layers.has('jg-traffic-flow'),true);assert.match(sources.get('jg-traffic-flow').tiles[0],/\/api\/traffic-tile\?/);
+ a.c.JG_TRAFFIC.stop();assert.equal(sources.size,0);assert.equal(layers.size,0);assert.equal(a.get('jgTrafficFlow').hidden,true);
 });

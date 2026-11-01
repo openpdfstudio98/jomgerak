@@ -309,7 +309,8 @@ body.jg65-driving #jg3dMap{height:100dvh}
 #jgPremiumHint{font-size:11px;line-height:1.4;color:#526782;margin:9px 0 0}
 body.dark #jgPremiumModes,.dark #jgPremiumModes{background:#172b46;color:#edf4ff;border-color:#345172}
 body.dark #jgPremiumModes button,.dark #jgPremiumModes button{background:#223954;color:#fff;border-color:#45617d}
-#jg3dMap .maplibregl-control-container{pointer-events:auto}
+#jg3dMap .maplibregl-control-container{pointer-events:none}
+#jg3dMap .maplibregl-ctrl{pointer-events:auto}
 body.jg65-driving #jg3dMap .maplibregl-ctrl-top-right{display:none}
 
 /* V6.6.4: consistent selection for Journey and Settings, same as Map */
@@ -660,12 +661,14 @@ body.dark #jgPremiumModes button:not(.jg-selected) i{color:#2563eb!important}
     <div id="liveNavHUD" class="hidden fixed bottom-5 left-3 right-3 md:left-[435px] md:right-24 z-[520] pointer-events-auto">
       <div class="bg-slate-950/95 text-white rounded-2xl p-3 shadow-2xl border border-blue-500/40">
         <div class="flex items-center gap-3">
-          <img src="./icon.svg" alt="" width="44" height="44" class="w-11 h-11 rounded-xl flex-shrink-0">
-          <div class="min-w-0 flex-1"><div id="jg52TripMetrics" class="jg52-metrics">Waiting for GPS…</div><div id="liveInstruction" class="font-extrabold text-sm truncate">Finding GPS...</div><div id="liveDetail" class="text-xs text-slate-300">Allow location access</div></div>
+          <div class="jg-drive-arrow" aria-hidden="true"><i class="fa-solid fa-location-arrow"></i></div>
+          <div class="min-w-0 flex-1"><div id="liveInstruction" class="font-extrabold text-sm truncate">Finding GPS...</div><div id="liveDetail" class="text-xs text-slate-300">Allow location access</div></div>
           <button onclick="stopLiveNavigation()" class="bg-rose-600 rounded-xl px-3 py-2 font-bold text-xs">Stop</button>
         </div>
       </div>
     </div>
+    <div id="jgDriveSummary"><div id="jg52TripMetrics">Waiting for GPS…</div><small>Route estimate · excludes traffic delay</small></div>
+    <div id="jgTrafficFlow" hidden role="status"></div>
     <div id="jg52Safety" class="hidden" role="status" aria-live="polite"></div>
     <button id="jg52Install" class="hidden" onclick="jg52InstallApp()" title="Install JomGerak">⬇ Install App</button>
     <!-- BUTANG TERAPUNG KANAN BAWAH: Kawalan Peta & Lapor Trafik (Gaya Waze) -->
@@ -1068,7 +1071,7 @@ function jg60Refresh3DStyle(){
  jg3d.once('style.load',()=>{jgSync3DRoute();jgPremiumAddBuildings();});
 }
 
-async function jgToggle3D(){
+async function jgToggle3D(navigationOnly=false){
  if(jg52Loading3D)return;
  if(!map){if(typeof showToast==='function')showToast('Wait for the 2D map to load before enabling 3D.','warning');return;}
  if(jg3dActive){
@@ -1076,30 +1079,32 @@ async function jgToggle3D(){
   jg3dActive=false;document.getElementById('jg3dMap').classList.remove('jgshown');
   document.getElementById('jg3dBadge').style.display='none';map.invalidateSize();
   if(center&&Number.isFinite(zoom))map.setView([center.lat,center.lng],zoom,{animate:false});
-  window.JG_MAP_UI?.refresh();return;
+  window.JG_MAP_UI?.refresh();window.JG_TRAFFIC?.sync();return;
  }
  const hasVector3D=Boolean(JG_CFG.maptilerKey);
  if(!hasVector3D)jgStatus('3D perspective uses OpenStreetMap raster tiles. For detailed vector 3D buildings, add a MapTiler key in config.js.');
  jg52Loading3D=true;
  try{
   await jgLoadMapLibre();
+  if(navigationOnly&&!navigationActive)return;
   const center=navigationActive&&followGps&&lastGps?lastGps:map.getCenter();
   document.getElementById('jg3dMap').style.removeProperty('pointer-events');
   document.getElementById('jg3dMap').classList.add('jgshown');
   if(!jg3d){
    const style=jg60MapLibreStyle();
-   jg3d=new maplibregl.Map({container:'jg3dMap',style,center:[center.lng,center.lat],zoom:map.getZoom(),pitch:50,bearing:0,maxPitch:75,interactive:true,dragPan:true,scrollZoom:true,touchZoomRotate:true,attributionControl:true});
+   jg3d=new maplibregl.Map({container:'jg3dMap',style,center:[center.lng,center.lat],zoom:map.getZoom(),pitch:50,bearing:0,maxPitch:75,interactive:true,dragPan:true,scrollZoom:true,touchZoomRotate:true,cooperativeGestures:false,attributionControl:true});
    jg3d.addControl(new maplibregl.NavigationControl(),'bottom-right');
    jg3d.on('movestart',e=>{if(e.originalEvent)window.jg65SuspendFollow?.();});
    jg3d.on('zoomstart',e=>{if(e.originalEvent)window.jg65SuspendFollow?.();});
-   jg3d.getCanvas().addEventListener('touchstart',()=>window.jg65SuspendFollow?.(),{passive:true});
-   jg3d.getCanvas().addEventListener('pointerdown',()=>window.jg65SuspendFollow?.(),{passive:true});
-   jg3d.on('load',()=>{jgSync3DRoute();jgPremiumAddBuildings();jg3d.resize();});jg3d.on('error',e=>{if(e.error)jgStatus('3D tiles error: '+e.error.message);});
+   jg3d.getCanvasContainer().addEventListener('touchstart',()=>{window.jg65SuspendFollow?.();jg3d.stop();},{passive:true,capture:true});
+   jg3d.getCanvasContainer().addEventListener('mousedown',()=>{window.jg65SuspendFollow?.();jg3d.stop();},{passive:true,capture:true});
+   jg3d.on('load',()=>{jgSync3DRoute();jgPremiumAddBuildings();jg3d.resize();window.JG_TRAFFIC?.sync();});jg3d.on('error',e=>{if(e.error)jgStatus('3D tiles error: '+e.error.message);});
   }else{jg3d.resize();jgSync3DRoute();}
+  jg3d.dragPan?.enable();jg3d.touchZoomRotate?.enable();
   jg3dActive=true;document.getElementById('jg3dBadge').style.display='none';
   jg3d.resize();
   jg3d.easeTo({center:[center.lng,center.lat],zoom:map.getZoom(),pitch:50,duration:400});
-  window.JG_MAP_UI?.refresh();
+  window.JG_MAP_UI?.refresh();window.JG_TRAFFIC?.sync();
  }catch(e){jg3dActive=false;document.getElementById('jg3dMap').classList.remove('jgshown');if(!jg3d)document.getElementById('jg3dMap').replaceChildren();jgStatus('3D unavailable: '+e.message);showToast(tr('3D could not load. Check your connection and try again.'),'warning');}finally{jg52Loading3D=false;}
 }
 function jgGPSAdvanced(pos){
@@ -1177,7 +1182,7 @@ function jg52Dashboard(pos){
  const speed=pos.coords.speed!=null&&pos.coords.speed>2?pos.coords.speed:distance/duration;
  const etaSeconds=progress.remaining/Math.max(2,speed);
  const eta=new Date(Date.now()+etaSeconds*1000).toLocaleTimeString(appLanguage==='en'?'en-MY':'ms-MY',{hour:'2-digit',minute:'2-digit'});
- e.textContent=(progress.remaining/1000).toFixed(1)+' km · '+Math.round(etaSeconds/60)+' min · ETA '+eta+' (no live traffic)';
+ e.innerHTML='<span><strong>'+Math.round(etaSeconds/60)+'</strong><small>min</small></span><span><strong>'+(progress.remaining/1000).toFixed(1)+'</strong><small>km</small></span><span><strong>'+eta+'</strong><small>ETA</small></span>';
  if(pos.coords.accuracy>80)jg52Safety(appLanguage==='en'?'GPS accuracy is low. Follow road signs.':'Ketepatan GPS rendah. Ikut papan tanda jalan.');
  if(!navigator.onLine)jg52Safety(appLanguage==='en'?'Offline: routing and map tiles may not load.':'Tiada internet: laluan dan peta mungkin tidak dimuatkan.');
 }
@@ -1515,12 +1520,13 @@ function jg52TrackOffRoute(pos,progress){
             window.speechSynthesis.speak(utterance);
         }
 
-        function startVoiceNavigation() {
+        async function startVoiceNavigation() {
             if(navigationActive){stopLiveNavigation();return;}
             if(window.jg60GetMode?.()==='truck'){showToast(tr('Truck navigation is unavailable until a truck routing provider is configured.'),'warning');return;}
             if(!currentRouteData||!destCoords){showToast(tr('Cari laluan dahulu.'),'warning');return;}
             if(!navigator.geolocation||!window.isSecureContext){showToast(tr('GPS memerlukan HTTPS dan kebenaran lokasi.'),'error');return;}
             navigationActive=true;lastSpokenStep=-1;
+            document.getElementById('jg52TripMetrics').textContent=tr('Waiting for GPS…');
             if(typeof window.jg65NavChanged==='function')window.jg65NavChanged();
             jgTripStarted=Date.now();jgTripPoints=[];
             document.getElementById('speed47').classList.remove('hidden');
@@ -1537,9 +1543,15 @@ function jg52TrackOffRoute(pos,progress){
             gpsWatchId=navigator.geolocation.watchPosition(updateLivePosition,e=>{
                 showToast('GPS gagal: '+e.message,'warning');stopLiveNavigation(true);
             },{enableHighAccuracy:true,maximumAge:1500,timeout:15000});
+            window.JG_TRAFFIC?.start();
+            if(!jg3dActive)await jgToggle3D(true);
+            if(!navigationActive)return;
+            if(jg3dActive&&followGps){const p=lastGps||originCoords;if(p)jg3d.easeTo({center:[p.lng,p.lat],zoom:17,pitch:55,duration:500});}
+            window.jg65NavChanged?.();
             showToast(tr('GPS langsung diaktifkan. Elakkan mengendalikan telefon ketika memandu.'),'success');
         }
         function stopLiveNavigation(silent=false) {
+            window.JG_TRAFFIC?.stop();
             jgFinishTrip();
             if(gpsWatchId!==null&&navigator.geolocation)navigator.geolocation.clearWatch(gpsWatchId);
             gpsWatchId=null;navigationActive=false;
@@ -1797,7 +1809,7 @@ function jg52TrackOffRoute(pos,progress){
                         <div class="text-[10px] font-bold uppercase tracking-wider text-slate-400">${cfg.label}</div>
                         <div class="text-xs font-extrabold text-slate-800 dark:text-white" data-user-content>${escapeHTML(item.name)}</div>
                         <button class="go-here-btn w-full bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold py-1.5 px-3 rounded-xl transition flex items-center justify-center gap-1.5">
-                            <i class="fa-solid fa-diamond-turn-right"></i>
+                            <i class="fa-solid fa-location-arrow"></i>
                             <span>Pergi Sini</span>
                         </button>
                     `;
@@ -2686,5 +2698,5 @@ function jg52TrackOffRoute(pos,progress){
   <button id="jg65View" type="button" onclick="jg65ToggleView()">◩ 3D</button>
  </div>
 </div>
-<script src="./v656.js" defer></script><script src="./v661.js" defer></script><script src="./v662.js" defer></script><script src="./v65.js" defer></script><script src="./v652.js" defer></script><script src="./v653.js" defer></script><script src="./v654.js" defer></script><script src="./v63.js" defer></script><script src="./v64.js" defer></script><script src="./v655.js" defer></script><script src="./v664.js" defer></script><script src="./v665.js" defer></script><script src="./v666.js" defer></script><script src="./v669.js" defer></script><script src="./v67.js" defer></script><script src="./v671.js" defer></script><script src="./garage.js" defer></script><script src="./app-shell.js" defer></script><script src="./map-controls.js" defer></script></body>
+<script src="./v656.js" defer></script><script src="./v661.js" defer></script><script src="./v662.js" defer></script><script src="./v65.js" defer></script><script src="./v652.js" defer></script><script src="./v653.js" defer></script><script src="./v654.js" defer></script><script src="./v63.js" defer></script><script src="./v64.js" defer></script><script src="./v655.js" defer></script><script src="./v664.js" defer></script><script src="./v665.js" defer></script><script src="./v666.js" defer></script><script src="./v669.js" defer></script><script src="./v67.js" defer></script><script src="./v671.js" defer></script><script src="./garage.js" defer></script><script src="./app-shell.js" defer></script><script src="./map-controls.js" defer></script><script src="./traffic-flow.js" defer></script></body>
 </html>

@@ -19,6 +19,7 @@
   const start=el('jg65Start');if(start)start.textContent=nav?tr('■ Henti','■ Stop'):tr('▶ Mula Pandu','▶ Start Driving');
   const dock=el('jg65Dock');if(dock&&!nav)dock.classList.remove('jg65expanded');
   const more=el('jg65More');if(more){more.textContent=tr('☰ Pandu','☰ Driving');more.setAttribute('aria-expanded',String(Boolean(dock?.classList.contains('jg65expanded'))));}
+  mode=typeof jg3dActive!=='undefined'&&jg3dActive?'3d':'2d';
   const view=el('jg65View');if(view)view.textContent=mode==='3d'?'▣ 2D':'◩ 3D';
   requestAnimationFrame(syncDrivingLayout);
  }
@@ -27,7 +28,6 @@
   if(typeof startVoiceNavigation!=='function')return;
   if(navigationActive){stopLiveNavigation();setUI();return;}
   if(!currentRouteData||!destCoords){info('Pilih destinasi dan tekan Cari Laluan dahulu.','Choose a destination and find a route first.');return;}
-  if(mode==='3d'&&!jg3dActive){jgToggle3D().then(()=>{if(jg3dActive)startVoiceNavigation();setUI();});return;}
   startVoiceNavigation();follow=true;overview=false;setUI();
  };
  window.jg65Overview=function(){
@@ -61,7 +61,7 @@
    jg3d.easeTo({center:[lng,lat],bearing,duration:700,padding:{top:Math.round(innerHeight*.15),bottom:Math.round(innerHeight*.18),left:0,right:0}});
   }else if(map){map.panTo([lat,lng],{animate:true,duration:.7});}
  };
- window.jg65NavChanged=setUI;
+ window.jg65NavChanged=function(){if(navigationActive&&!hasNav){follow=true;overview=false;lastCamAt=0;}setUI();};
  window.jg65SyncLayout=syncDrivingLayout;
  function init(){setUI();
   window.addEventListener('resize',syncDrivingLayout);
