@@ -2,9 +2,9 @@
   "name": "JomGerak – GPS Navigation & Community",
   "short_name": "JomGerak",
   "start_url": "./",
-  "display": "standalone",
-  "background_color": "#F7FBFF",
-  "theme_color": "#0879F5",
+  "display": "fullscreen",
+  "background_color": "#10213b",
+  "theme_color": "#10213b",
   "icons": [
     {
       "src": "./icon-192.png",
@@ -33,8 +33,8 @@
   ],
   "description": "Malaysia GPS navigation and route planning",
   "display_override": [
-    "standalone",
-    "minimal-ui"
+    "fullscreen",
+    "standalone"
   ],
   "lang": "ms-MY",
   "categories": [
