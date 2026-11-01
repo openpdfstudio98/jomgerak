@@ -250,13 +250,13 @@ test('3D vehicle uses Garage SVG, updates GPS/heading and replaces blue circles'
 test('Traffic configuration distinguishes a Preview deployment without a key',async()=>{
  const a=app();a.load('traffic-flow.js');a.c.fetch=async()=>({ok:true,json:async()=>({trafficEnabled:false,deploymentEnvironment:'preview'})});await a.c.JG_TRAFFIC.start();assert.match(a.get('jgTrafficFlow').textContent,/Preview/);
 });
-test('3D trip pins include endpoints and routed stops without duplicates and follow edits',()=>{
+test('3D shows only the destination pin, avoids duplicates and removes it when cleared',()=>{
  const a=app();locations(a);a.load('route-pins-3d.js');let created=[],removed=0;
  a.c.maplibregl={Marker:class{constructor(o){this.o=o;created.push(this)}setLngLat(p){this.p=p;return this}addTo(){return this}remove(){removed++}}};
  a.c.fixture=route();a.c.fixture.legs.push({steps:[]});a.run('jg3d={};currentRouteData=fixture');
- a.c.JG_3D_PINS.sync();assert.equal(created.length,3);assert.match(created[0].o.element.className,/start/);assert.match(created[1].o.element.className,/stop/);assert.match(created[2].o.element.className,/destination/);assert.equal(created[2].o.anchor,'bottom');
- a.c.JG_3D_PINS.sync();assert.equal(created.length,3);
- a.run('currentRouteData=null;destCoords=null');a.c.JG_3D_PINS.sync();assert.equal(removed,3);assert.equal(created.length,4);assert.deepEqual(Array.from(created.at(-1).p),[101,3]);
+ a.c.JG_3D_PINS.sync();assert.equal(created.length,1);assert.match(created[0].o.element.className,/destination/);assert.equal(created[0].o.anchor,'bottom');assert.deepEqual(Array.from(created[0].p),[101.02,3]);
+ a.c.JG_3D_PINS.sync();assert.equal(created.length,1);
+ a.run('currentRouteData=null;destCoords=null');a.c.JG_3D_PINS.sync();assert.equal(removed,1);assert.equal(created.length,1);
 });
 test('Successful traffic tile load hides the banner while keeping attribution',async()=>{
  const a=app();a.load('traffic-flow.js');const handlers={};let options;
