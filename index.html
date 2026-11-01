@@ -1894,7 +1894,10 @@ function jg52TrackOffRoute(pos,progress){
             const destInput = document.getElementById('destInput');
             for(const [type,input] of [['origin',originInput],['dest',destInput]]){
                 input.setAttribute('enterkeyhint','search');
+                input.addEventListener('compositionend',()=>triggerNominatimSearch(input.value.trim(),type,true));
                 input.addEventListener('keydown',e=>{
+                    if(e.key==='Escape'){cancelLocationSearch(type);return;}
+                    if(e.isComposing)return;
                     if(e.key==='Enter'){e.preventDefault();triggerNominatimSearch(input.value.trim(),type);}
                 });
                 const button=document.createElement('button');
@@ -1910,6 +1913,7 @@ function jg52TrackOffRoute(pos,progress){
                 document.getElementById('clearOriginBtn').classList.toggle('hidden', val.length === 0);
                 invalidateLocationInput('origin');
                 cancelLocationSearch('origin');
+                if(!e.isComposing)triggerNominatimSearch(val,'origin',true);
             });
 
             destInput.addEventListener('input', (e) => {
@@ -1917,19 +1921,20 @@ function jg52TrackOffRoute(pos,progress){
                 document.getElementById('clearDestBtn').classList.toggle('hidden', val.length === 0);
                 invalidateLocationInput('dest');
                 cancelLocationSearch('dest');
+                if(!e.isComposing)triggerNominatimSearch(val,'dest',true);
             });
 
             document.addEventListener('click', (e) => {
-                if (!e.target.closest('#originInput') && !e.target.closest('#originSuggestions')) {
-                    document.getElementById('originSuggestions').classList.add('hidden');
+                if (!e.target.closest('#originInput') && !e.target.closest('#originSuggestions') && !e.target.closest('[data-search-type="origin"]')) {
+                    cancelLocationSearch('origin');
                 }
-                if (!e.target.closest('#destInput') && !e.target.closest('#destSuggestions')) {
-                    document.getElementById('destSuggestions').classList.add('hidden');
+                if (!e.target.closest('#destInput') && !e.target.closest('#destSuggestions') && !e.target.closest('[data-search-type="dest"]')) {
+                    cancelLocationSearch('dest');
                 }
             });
         }
 
-        function triggerNominatimSearch(query, type) {
+        function triggerNominatimSearch(query, type, autocomplete=false) {
             const boxId = type === 'origin' ? 'originSuggestions' : 'destSuggestions';
             const suggestionBox = document.getElementById(boxId);
 
@@ -1938,7 +1943,7 @@ function jg52TrackOffRoute(pos,progress){
             if (searchControllers[type]) searchControllers[type].abort();
             const seq=searchSequence[type];
 
-            if (query.length < 2) {
+            if (query.length < (autocomplete?3:2)) {
                 suggestionBox.classList.add('hidden');
                 return;
             }
@@ -1956,7 +1961,7 @@ function jg52TrackOffRoute(pos,progress){
                     const controller=new AbortController();
                     searchControllers[type]=controller;
                     const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&countrycodes=my&limit=5&addressdetails=1`;
-                    const res = await jgGeocodeFetch(url, {
+                    const res = autocomplete?await jgAutocompleteFetch(query,{signal:controller.signal}):await jgGeocodeFetch(url, {
                         headers: { 'Accept-Language': 'ms,en' },signal:controller.signal
                     });
                     if(!res.ok) throw Error('Geocoding unavailable');

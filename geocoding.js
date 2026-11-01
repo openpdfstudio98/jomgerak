@@ -43,3 +43,32 @@
   const result=queue.then(run,run);queue=result.catch(()=>{});return result;
  };
 })();
+
+// Photon explicitly supports search-as-you-type. Never send typing to public Nominatim.
+(function(){
+ const cache=new Map();
+ window.jgAutocompleteFetch=async function(query,{signal}={}){
+  const base=window.JOMGERAK_CONFIG?.autocompleteUrl||'https://photon.komoot.io/api/';
+  const url=new URL(base,location.href);
+  if(url.protocol!=='https:'&&url.origin!==location.origin)throw Error('Autocomplete requires HTTPS');
+  url.searchParams.set('q',query);url.searchParams.set('limit','6');url.searchParams.set('countrycode','MY');url.searchParams.set('lang','en');
+  const key=url.href,entry=cache.get(key);
+  if(signal?.aborted)throw new DOMException('Cancelled','AbortError');
+  if(entry&&Date.now()-entry.at<300000)return {ok:true,json:async()=>entry.data};
+  const controller=new AbortController(),abort=()=>controller.abort();signal?.addEventListener('abort',abort,{once:true});
+  const timer=setTimeout(abort,8000);
+  try{
+   const r=await fetch(url.href,{signal:controller.signal});if(!r.ok)throw Error('Autocomplete unavailable');
+   const j=await r.json(),data=[];
+   for(const feature of j.features||[]){
+    const p=feature.properties||{},c=feature.geometry?.coordinates;
+    if(p.countrycode?.toUpperCase()!=='MY'||!Array.isArray(c)||!Number.isFinite(c[0])||!Number.isFinite(c[1]))continue;
+    const address=[p.name,[p.housenumber,p.street].filter(Boolean).join(' '),p.city||p.district,p.state,p.country].filter(Boolean);
+    if(!address.length)continue;
+    data.push({name:p.name||p.street||p.city||address[0],display_name:[...new Set(address)].join(', '),lat:c[1],lon:c[0]});
+   }
+   if(cache.size>=100)cache.delete(cache.keys().next().value);cache.set(key,{at:Date.now(),data});
+   return {ok:true,json:async()=>data};
+  }finally{clearTimeout(timer);signal?.removeEventListener('abort',abort);}
+ };
+})();

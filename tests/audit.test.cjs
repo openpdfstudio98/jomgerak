@@ -53,9 +53,9 @@ test('Routing HTTP failure restores controls',async()=>{
 test('Editing selected input clears coordinates and existing navigation',()=>{
  const a=app();locations(a);a.run('navigationActive=true;invalidateLocationInput("dest")');assert.equal(a.run('destCoords'),null);assert.equal(a.run('navigationActive'),false);
 });
-test('Search is explicit; typing does not call a geocoder',()=>{
+test('Typing queues autocomplete without sending keystrokes to Nominatim',()=>{
  const a=app();locations(a);let calls=0;a.c.jgGeocodeFetch=()=>{calls++;return Promise.reject(Error())};a.run('setupSearchListeners()');
- a.get('destInput').listeners.input({target:{value:'Klang'}});assert.equal(a.run('destCoords'),null);assert.equal(calls,0);assert.equal(a.timers.size,1); // map resize timer from stopping navigation only
+ a.get('destInput').listeners.input({target:{value:'Klang'}});assert.equal(a.run('destCoords'),null);assert.equal(calls,0);assert.equal(a.timers.size,2);assert.ok([...a.timers.values()].some(x=>x.ms===350));
  assert.ok(a.get('destInput').listeners.keydown);
 });
 test('Clearing search cancels queued suggestions',()=>{
@@ -269,4 +269,14 @@ test('2D omits the origin pin and retains the draggable destination marker',()=>
  a.run('updateMarker("origin",3,101,"Start")');assert.equal(a.run('originMarker'),null);assert.equal(removed,1);assert.equal(a.markers.length,0);
  const original=a.c.L.marker;a.c.L.marker=(p,o)=>{options=o;return original(p,o)};
  a.run('updateMarker("dest",3.02,101.02,"End")');assert.equal(a.markers.length,1);assert.equal(options.draggable,true);assert.match(options.icon.html,/fa-flag-checkered/);assert.doesNotMatch(options.icon.html,/emerald|fa-play/);
+});
+test('Typing suggestions use the autocomplete adapter and discard stale results',async()=>{
+ const a=app(),d=deferred();let calls=0;a.c.jgAutocompleteFetch=()=>{calls++;return d.promise};a.c.jgGeocodeFetch=()=>{throw Error('Typing must not use Nominatim')};
+ a.run('triggerNominatimSearch("Klang","dest",true)');const timer=[...a.timers.values()].find(x=>x.ms===350);const pending=timer.f();assert.equal(calls,1);
+ a.run('cancelLocationSearch("dest")');d.resolve({ok:true,json:async()=>[{lat:3,lon:101,name:'Old',display_name:'Old'}]});await pending;assert.equal(a.get('destSuggestions').children.length,0);assert.equal(a.get('destSuggestions').classList.contains('hidden'),true);
+});
+test('Autocomplete uses Photon, filters Malaysia and caches repeated terms',async()=>{
+ const a=app();a.load('geocoding.js');let calls=0;
+ a.c.fetch=async url=>{calls++;assert.match(url,/photon\.komoot\.io/);assert.match(url,/countrycode=MY/);return {ok:true,json:async()=>({features:[{properties:{name:'Klang',countrycode:'MY',country:'Malaysia'},geometry:{coordinates:[101.45,3.04]}},{properties:{name:'Foreign',countrycode:'DE'},geometry:{coordinates:[13,52]}}]})}};
+ const r=await a.c.jgAutocompleteFetch('Klang');const data=await r.json();assert.equal(data.length,1);assert.equal(data[0].name,'Klang');assert.equal(data[0].lat,3.04);await a.c.jgAutocompleteFetch('Klang');assert.equal(calls,1);
 });

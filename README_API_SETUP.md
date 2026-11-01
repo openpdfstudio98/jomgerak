@@ -37,7 +37,7 @@ Upload **all** ZIP contents to the GitHub repo root and commit. Redeploy in Verc
 
 See [AUDIT_2026-11-01.md](./AUDIT_2026-11-01.md) for repaired defects, a function-by-function matrix and the remaining production/device gates. Run `node --test tests/audit.test.cjs` for the regression suite.
 
-Search now uses Enter or **Cari lokasi / Search location**, not public-Nominatim autocomplete. `GEOCODING_BASE_URL` optionally supplies an HTTPS Nominatim-compatible production base URL via `/api/public-config`; no secret may be embedded in that public URL. The public fallback is for low-volume beta use only. Its client queue is per tab, not the required application-wide rate limiter. Read the official policy and audit before public launch.
+Typing at least 3 characters now queues Photon autocomplete after a 350ms pause. Enter and Search retain explicit Nominatim-compatible lookup. Public Nominatim never receives typing requests. Photon demo usage is for low-volume beta, with no availability guarantee; set `JOMGERAK_CONFIG.autocompleteUrl` to a dedicated Photon-compatible HTTPS `/api/` endpoint before public scale. `GEOCODING_BASE_URL` optionally supplies an HTTPS Nominatim-compatible production base URL via `/api/public-config`; no secret may be embedded in that public URL. The public fallback is for low-volume beta use only. Its client queue is per tab, not the required application-wide rate limiter. Read the official policy and audit before public launch.
 
 
 ## 3D interaction and map-control repair
