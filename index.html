@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="ms">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="theme-color" content="#0879F5">
@@ -15,6 +15,8 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="./config.js"></script>
     <script src="./geocoding.js"></script>
+    <script src="./locale-catalog.js"></script>
+    <script src="./locale.js"></script>
     <script>
         tailwind.config = {
             darkMode: 'class',
@@ -357,7 +359,7 @@ body.dark #jgPremiumModes button{background:#f1f5f9!important;color:#172033!impo
 body.dark #jgPremiumModes button.jg-selected{background:#2563eb!important;color:#fff!important}
 body.dark #jgPremiumModes button:not(.jg-selected) i{color:#2563eb!important}
 @media(prefers-reduced-motion:reduce){#jgProBody button{animation:none!important;transition:none!important}}
-</style></head>
+</style><link rel="stylesheet" href="./app-shell.css"></head>
 <body class="bg-slate-900 select-none relative">
 
     <!-- Peta Utama -->
@@ -369,8 +371,8 @@ body.dark #jgPremiumModes button:not(.jg-selected) i{color:#2563eb!important}
     <!-- Banner Mod Menanda Peta -->
     <div id="mapSelectBanner" class="hidden fixed top-16 md:top-4 left-1/2 transform -translate-x-1/2 z-[900] bg-indigo-600 text-white px-5 py-3 rounded-2xl shadow-2xl border border-indigo-400 flex items-center gap-3 w-11/12 max-w-md animate-bounce">
         <i class="fa-solid fa-location-crosshairs text-xl"></i>
-        <div class="flex-1 text-sm font-medium" id="mapSelectBannerText">Sila klik mana-mana lokasi di atas peta...</div>
-        <button onclick="cancelMapSelectionMode()" class="bg-indigo-800 hover:bg-indigo-900 text-xs px-3 py-1.5 rounded-xl font-semibold transition">Batal</button>
+        <div class="flex-1 text-sm font-medium" id="mapSelectBannerText">Tap anywhere on the map...</div>
+        <button onclick="cancelMapSelectionMode()" class="bg-indigo-800 hover:bg-indigo-900 text-xs px-3 py-1.5 rounded-xl font-semibold transition">Cancel</button>
     </div>
 
     <!-- BARIS BUTANG CARIAN PANTAS POI (TOP RIGHT / CENTER) -->
@@ -378,33 +380,33 @@ body.dark #jgPremiumModes button:not(.jg-selected) i{color:#2563eb!important}
         <div id="poiPillsContainer" class="flex items-center gap-2 overflow-x-auto no-scrollbar pointer-events-auto py-1 max-w-full">
             <button onclick="searchNearbyPOI('fuel')" id="poiBtn-fuel" class="poi-pill bg-white/95 dark:bg-slate-900/95 hover:bg-blue-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200 border border-slate-200/80 dark:border-slate-700 px-3.5 py-2 rounded-2xl shadow-lg backdrop-blur-md text-xs font-bold flex items-center gap-2 shrink-0 transition active:scale-95">
                 <span>⛽</span>
-                <span>Stesen Minyak</span>
+                <span>Petrol stations</span>
             </button>
             <button onclick="searchNearbyPOI('mosque')" id="poiBtn-mosque" class="poi-pill bg-white/95 dark:bg-slate-900/95 hover:bg-emerald-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200 border border-slate-200/80 dark:border-slate-700 px-3.5 py-2 rounded-2xl shadow-lg backdrop-blur-md text-xs font-bold flex items-center gap-2 shrink-0 transition active:scale-95">
                 <span>🕌</span>
-                <span>Masjid / Surau</span>
+                <span>Mosques / Prayer rooms</span>
             </button>
             <button onclick="searchNearbyPOI('food')" id="poiBtn-food" class="poi-pill bg-white/95 dark:bg-slate-900/95 hover:bg-amber-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200 border border-slate-200/80 dark:border-slate-700 px-3.5 py-2 rounded-2xl shadow-lg backdrop-blur-md text-xs font-bold flex items-center gap-2 shrink-0 transition active:scale-95">
                 <span>🍔</span>
-                <span>R&R / Makan</span>
+                <span>Food & rest stops</span>
             </button>
             <button onclick="searchNearbyPOI('ev')" id="poiBtn-ev" class="poi-pill bg-white/95 dark:bg-slate-900/95 hover:bg-cyan-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200 border border-slate-200/80 dark:border-slate-700 px-3.5 py-2 rounded-2xl shadow-lg backdrop-blur-md text-xs font-bold flex items-center gap-2 shrink-0 transition active:scale-95">
                 <span>⚡</span>
-                <span>EV Charger</span>
+                <span>EV Chargers</span>
             </button>
             <button onclick="clearPOIMarkers()" id="clearPoiBtn" class="hidden bg-rose-600 hover:bg-rose-700 text-white px-3 py-2 rounded-2xl shadow-lg text-xs font-bold flex items-center gap-1.5 shrink-0 transition">
                 <i class="fa-solid fa-xmark"></i>
-                <span>Padam POI</span>
+                <span>Clear POIs</span>
             </button>
         </div>
     </div>
 
     <!-- Butang mod pemanduan: kembali ke peta dan buka panel jika perlu -->
     <div id="drivingControls" class="hidden fixed top-16 right-3 z-[650] flex-col gap-2 pointer-events-auto">
-      <button onclick="recenterNavigation()" class="bg-blue-600 text-white shadow-xl rounded-xl p-3 text-sm font-bold" title="Ikut GPS / Follow GPS" aria-label="Ikut GPS / Follow GPS"><i class="fa-solid fa-location-crosshairs"></i></button>
-      <button onclick="toggleDrivingPanels()" id="drivingPanelsBtn" class="bg-white/95 text-slate-800 shadow-xl rounded-xl p-3 text-sm font-bold" title="Lihat Butiran / View Details" aria-label="Lihat Butiran / View Details"><i class="fa-solid fa-list"></i></button>
+      <button onclick="recenterNavigation()" class="bg-blue-600 text-white shadow-xl rounded-xl p-3 text-sm font-bold" title="Follow GPS" aria-label="Follow GPS"><i class="fa-solid fa-location-crosshairs"></i></button>
+      <button onclick="toggleDrivingPanels()" id="drivingPanelsBtn" class="bg-white/95 text-slate-800 shadow-xl rounded-xl p-3 text-sm font-bold" title="View trip details" aria-label="View trip details"><i class="fa-solid fa-list"></i></button>
     </div>
-<div id="speed47" class="hidden fixed bottom-[176px] right-3 z-[520] bg-slate-950/90 text-white px-2 py-2 rounded-xl shadow-xl text-center"><div class="text-[10px]">GPS SPEED</div><div class="text-xl font-extrabold"><span id="speedNum47">--</span> <span class="text-xs">km/j</span></div><div class="text-[9px] text-amber-300">Had laju: N/A</div></div>
+<div id="speed47" class="hidden fixed bottom-[176px] right-3 z-[520] bg-slate-950/90 text-white px-2 py-2 rounded-xl shadow-xl text-center"><div class="text-[10px]">GPS SPEED</div><div class="text-xl font-extrabold"><span id="speedNum47">--</span> <span class="text-xs">km/h</span></div><div class="text-[9px] text-amber-300">Speed limit: N/A</div></div>
 <div id="mapStyleControls" class="hidden fixed bottom-24 left-3 z-[480] pointer-events-auto">
   <button onclick="toggleMapStyles48()" class="bg-white/95 dark:bg-slate-900/95 dark:text-white text-slate-800 shadow-xl rounded-2xl px-4 py-3 text-xs font-extrabold border border-slate-200 dark:border-slate-700"><i class="fa-solid fa-layer-group mr-1"></i> <span id="mapStyleLabel48">Map Style</span></button>
   <div id="mapStyles48" class="hidden mt-2 bg-white/95 dark:bg-slate-900/95 text-slate-900 dark:text-white shadow-2xl rounded-2xl p-3 w-56 border border-slate-200 dark:border-slate-700">
@@ -412,9 +414,9 @@ body.dark #jgPremiumModes button:not(.jg-selected) i{color:#2563eb!important}
     <div class="grid grid-cols-2 gap-2">
       <button data-map-style="navigator" onclick="setMapStyle48('navigator')" class="mapstyle-btn bg-slate-100 dark:bg-slate-700 rounded-xl p-2 text-xs font-bold">🧭 Navigator (OSM)</button>
       <button data-map-style="standard" onclick="setMapStyle48('standard')" class="mapstyle-btn bg-slate-100 dark:bg-slate-700 rounded-xl p-2 text-xs font-bold"><i class="fa-solid fa-map"></i> Standard</button>
-      <button data-map-style="smart" onclick="setMapStyle48('smart')" class="mapstyle-btn bg-slate-100 dark:bg-slate-700 rounded-xl p-2 text-xs font-bold"><i class="fa-solid fa-car-side"></i> Pintar</button>
-      <button data-map-style="satellite" onclick="setMapStyle48('satellite')" class="mapstyle-btn bg-slate-100 dark:bg-slate-700 rounded-xl p-2 text-xs font-bold"><i class="fa-solid fa-earth-asia"></i> Satelit</button>
-      <button data-map-style="night" onclick="setMapStyle48('night')" class="mapstyle-btn bg-slate-100 dark:bg-slate-700 rounded-xl p-2 text-xs font-bold"><i class="fa-solid fa-moon"></i> Malam</button>
+      <button data-map-style="smart" onclick="setMapStyle48('smart')" class="mapstyle-btn bg-slate-100 dark:bg-slate-700 rounded-xl p-2 text-xs font-bold"><i class="fa-solid fa-car-side"></i> Smart</button>
+      <button data-map-style="satellite" onclick="setMapStyle48('satellite')" class="mapstyle-btn bg-slate-100 dark:bg-slate-700 rounded-xl p-2 text-xs font-bold"><i class="fa-solid fa-earth-asia"></i> Satellite</button>
+      <button data-map-style="night" onclick="setMapStyle48('night')" class="mapstyle-btn bg-slate-100 dark:bg-slate-700 rounded-xl p-2 text-xs font-bold"><i class="fa-solid fa-moon"></i> Night</button>
     </div>
     <div class="border-t border-slate-200 dark:border-slate-700 mt-3 pt-2">
       <label class="block text-xs font-bold mb-1" for="mapView48">Map View</label>
@@ -422,64 +424,64 @@ body.dark #jgPremiumModes button:not(.jg-selected) i{color:#2563eb!important}
         <option value="north">2D · North Up</option>
         <option value="follow">2D · Follow GPS</option>
       </select>
-      <p class="text-[10px] text-slate-500 dark:text-slate-400 mt-2">True 3D / heading rotation needs a vector map engine. GPS follow works during navigation.</p>
+      <p class="text-[10px] text-slate-500 dark:text-slate-400 mt-2">Real 3D and heading rotation require a vector map engine. GPS follow works during navigation.</p>
     </div>
   </div>
 </div>
 </div>
 <div id="jg3dMap" aria-label="Premium vector navigation map"></div><div id="jg3dBadge">Perspective map · 3D buildings require compatible vector data</div>
 <div id="jgProPanel" class="jgfolded">
- <button onclick="jgTogglePro()" style="width:100%;text-align:left;background:#dbeafe"><i class="fa-solid fa-sliders"></i> <span id="jgUnifiedLabel">Kawalan</span> <span style="float:right">▾</span></button>
+ <button onclick="jgTogglePro()" style="width:100%;text-align:left;background:#dbeafe"><i class="fa-solid fa-sliders"></i> <span id="jgUnifiedLabel">Controls</span> <span style="float:right">▾</span></button>
  <div id="jgProBody">
  <div class="jg55tabs" role="tablist" aria-label="Navigation tools">
-  <button type="button" id="jg55tab-map" onclick="jg55Tab('map')" aria-selected="true"><i class="fa-solid fa-map"></i> <span data-jg55="map">Peta</span></button>
-  <button type="button" id="jg55tab-trip" onclick="jg55Tab('trip')" aria-selected="false"><i class="fa-solid fa-route"></i> <span data-jg55="trip">Perjalanan</span></button>
-  <button type="button" id="jg55tab-settings" onclick="jg55Tab('settings')" aria-selected="false"><i class="fa-solid fa-gear"></i> <span data-jg55="settings">Tetapan</span></button>
+  <button type="button" id="jg55tab-map" onclick="jg55Tab('map')" aria-selected="true"><i class="fa-solid fa-map"></i> <span data-jg55="map">Map</span></button>
+  <button type="button" id="jg55tab-trip" onclick="jg55Tab('trip')" aria-selected="false"><i class="fa-solid fa-route"></i> <span data-jg55="trip">Trip</span></button>
+  <button type="button" id="jg55tab-settings" onclick="jg55Tab('settings')" aria-selected="false"><i class="fa-solid fa-gear"></i> <span data-jg55="settings">Settings</span></button>
  </div>
  <div id="jg55MapTab"><div id="jg60Map"></div><div id="jg64Mount"></div>
- <section id="jgPremiumModes" aria-label="Premium navigation views"><div class="jg-premium-title"><i class="fa-solid fa-diamond-turn-right"></i> <span id="jgPremiumHeading">Paparan Navigasi Premium</span></div><div class="jg-premium-grid"><button type="button" onclick="jgPremiumMode('2d')"><i class="fa-solid fa-map"></i> <span data-premium="2d">Peta 2D</span></button><button type="button" onclick="jgPremiumMode('3d')"><i class="fa-solid fa-cubes-stacked"></i> <span data-premium="3d">Peta 3D</span></button><button type="button" onclick="jgPremiumMode('follow')"><i class="fa-solid fa-location-arrow"></i> <span data-premium="follow">Ikut GPS</span></button></div><p id="jgPremiumHint">Peta vektor MapTiler dengan kamera perspektif. Bangunan 3D dipaparkan jika data tersedia.</p></section>
- <div class="jg52-section-title"><i class="fa-solid fa-map"></i> Peta</div>
+ <section id="jgPremiumModes" aria-label="Premium navigation views"><div class="jg-premium-title"><i class="fa-solid fa-diamond-turn-right"></i> <span id="jgPremiumHeading">Navigation view</span></div><div class="jg-premium-grid"><button type="button" onclick="jgPremiumMode('2d')"><i class="fa-solid fa-map"></i> <span data-premium="2d">2D map</span></button><button type="button" onclick="jgPremiumMode('3d')"><i class="fa-solid fa-cubes-stacked"></i> <span data-premium="3d">3D map</span></button><button type="button" onclick="jgPremiumMode('follow')"><i class="fa-solid fa-location-arrow"></i> <span data-premium="follow">Follow GPS</span></button></div><p id="jgPremiumHint">MapTiler vector map with perspective camera. 3D buildings appear when data is available.</p></section>
+ <div class="jg52-section-title"><i class="fa-solid fa-map"></i> Map</div>
  <div class="jg52-grid">
   <button onclick="setMapStyle48('navigator')"><i class="fa-solid fa-map"></i> Navigator (OSM)</button>
   <button onclick="jg64MapTiler()"><i class="fa-solid fa-layer-group"></i> MapTiler Streets</button>
   <button onclick="setMapStyle48('standard')"><i class="fa-solid fa-map"></i> Standard</button>
-  <button onclick="setMapStyle48('smart')"><i class="fa-solid fa-car-side"></i> Pintar</button>
-  <button onclick="setMapStyle48('satellite')"><i class="fa-solid fa-earth-asia"></i> Satelit</button>
-  <button onclick="setMapStyle48('night')"><i class="fa-solid fa-moon"></i> Malam</button>
+  <button onclick="setMapStyle48('smart')"><i class="fa-solid fa-car-side"></i> Smart</button>
+  <button onclick="setMapStyle48('satellite')"><i class="fa-solid fa-earth-asia"></i> Satellite</button>
+  <button onclick="setMapStyle48('night')"><i class="fa-solid fa-moon"></i> Night</button>
  </div>
- <div class="jg52-grid"><button onclick="setMapView48('north')"><i class="fa-solid fa-arrow-up"></i> Utara Atas</button><button onclick="setMapView48('follow')"><i class="fa-solid fa-location-crosshairs"></i> Ikut GPS</button></div>
+ <div class="jg52-grid"><button onclick="setMapView48('north')"><i class="fa-solid fa-arrow-up"></i> North Up</button><button onclick="setMapView48('follow')"><i class="fa-solid fa-location-crosshairs"></i> Follow GPS</button></div>
  </div><div id="jg55TripTab" hidden><div id="jg60Trip"></div>
- <div class="jg52-section-title">🚘 Perjalanan</div>
- <button onclick="document.getElementById('smartRoute48').classList.toggle('hidden')" class="jgtoolsToggle">🛣️ Tetapan Laluan ▾</button>
+ <div class="jg52-section-title">🚘 Journey</div>
+ <button onclick="document.getElementById('smartRoute48').classList.toggle('hidden')" class="jgtoolsToggle">🛣️ Route Settings ▾</button>
 <div id="smartRoute48" class="hidden rounded-xl p-3 bg-blue-50 dark:bg-slate-800 text-xs space-y-2 border border-blue-200 dark:border-blue-900">
-<b class="text-blue-800 dark:text-blue-200">🛣️ Tetapan Laluan</b>
+<b class="text-blue-800 dark:text-blue-200">🛣️ Route Settings</b>
 <div class="flex gap-3 flex-wrap text-slate-700 dark:text-white">
-<label><input id="avoidToll47" type="checkbox" onchange="settings47()"> Elak tol*</label>
-<label><input id="avoidHighway47" type="checkbox" onchange="settings47()"> Elak highway*</label>
-</div><p class="text-[10px] text-amber-700 dark:text-amber-300">* Belum disokong OSRM awam; tidak mengubah laluan. Tol sebenar belum dapat disahkan.</p>
+<label><input id="avoidToll47" type="checkbox" onchange="settings47()"> Avoid tolls*</label>
+<label><input id="avoidHighway47" type="checkbox" onchange="settings47()"> Avoid highways*</label>
+</div><p class="text-[10px] text-amber-700 dark:text-amber-300">* Not supported by public OSRM; does not change the route. Actual tolls are unverified.</p>
 </div>
 
- <div class="jgrow"><button onclick="jgToggle3D()" id="jg3dBtn">🧭 3D View</button><button onclick="jgTollCheck()">🛣️ Maklumat Tol</button><button onclick="jgWeatherAlerts()">🌦 Cuaca & Banjir</button></div>
- <div class="jgrow"><button onclick="jgShowHistory()">🕘 Sejarah Perjalanan</button><button onclick="showSavedDestinations()">⭐ Tempat Tersimpan</button><button onclick="alongRoute47()">⛽ Kemudahan Laluan</button></div>
- <div class="jgrow"><button onclick="jgRefreshReports()">🔄 Laporan Komuniti</button><button onclick="jgDownloadTrip()">📄 Eksport Perjalanan</button></div>
+ <div class="jgrow"><button onclick="jgToggle3D()" id="jg3dBtn">🧭 3D View</button><button onclick="jgTollCheck()">🛣️ Toll Information</button><button onclick="jgWeatherAlerts()">🌦 Weather & Flood</button></div>
+ <div class="jgrow"><button onclick="jgShowHistory()">🕘 Trip History</button><button onclick="showSavedDestinations()">⭐ Saved Places</button><button onclick="alongRoute47()">⛽ Route Facilities</button></div>
+ <div class="jgrow"><button onclick="jgRefreshReports()">🔄 Community Reports</button><button onclick="jgDownloadTrip()">📄 Export Trip</button></div>
  <div class="jg55actions">
- <button onclick="jg55Show('compare')">🧭 <span data-jg55="compare">Banding Laluan</span></button>
+ <button onclick="jg55Show('compare')">🧭 <span data-jg55="compare">Compare Routes</span></button>
  <button onclick="jg55Show('stops')">📍 <span data-jg55="stops">Multi-Hentian</span></button>
  <button onclick="jg55Show('pit')">⛽ <span data-jg55="pit">Pit Stop</span></button>
- <button onclick="jg55Show('cost')">💰 <span data-jg55="cost">Kos Perjalanan</span></button>
- <button onclick="jg55Show('weather')">🌦️ <span data-jg55="weather">Cuaca Laluan</span></button>
- <button onclick="jg55Show('offline')">📥 <span data-jg55="offline">Simpan Offline</span></button>
- <button onclick="jg55Show('reports')">🛡️ <span data-jg55="reports">Sahkan Laporan</span></button>
+ <button onclick="jg55Show('cost')">💰 <span data-jg55="cost">Travel Cost</span></button>
+ <button onclick="jg55Show('weather')">🌦️ <span data-jg55="weather">Route Weather</span></button>
+ <button onclick="jg55Show('offline')">📥 <span data-jg55="offline">Save Offline</span></button>
+ <button onclick="jg55Show('reports')">🛡️ <span data-jg55="reports">Verify Reports</span></button>
  </div>
  </div><div id="jg55SettingsTab" hidden><div id="jg60Settings"></div>
- <div class="jg52-section-title"><i class="fa-solid fa-gear"></i> <span data-jg55="settings">Tetapan</span></div>
- <div class="jg55actions"><button onclick="jg55Show('vehicle')">🚗 <span data-jg55="vehicle">Profil Kenderaan</span></button><button onclick="jg55VoiceStart()">🎙️ <span data-jg55="voice">Arahan Suara</span></button><button onclick="jg55ToggleDriving()">🛣️ <span data-jg55="drive">Paparan Pemanduan</span></button></div>
- <div class="jgrow"><label>Kelajuan Suara <select id="jgVoiceRate" onchange="jgStoreVoice()"><option value="0.85">Perlahan</option><option value="1" selected>Normal</option><option value="1.15">Laju</option></select></label></div>
- <div class="jg652voice"><label for="jg652VoiceSelect"><i class="fa-solid fa-volume-high"></i> <span id="jg652VoiceLabel">Suara navigasi / Navigation voice</span></label>
+ <div class="jg52-section-title"><i class="fa-solid fa-gear"></i> <span data-jg55="settings">Settings</span></div>
+ <div class="jg55actions"><button onclick="jg55Show('vehicle')">🚗 <span data-jg55="vehicle">Vehicle Profile</span></button><button onclick="jg55VoiceStart()">🎙️ <span data-jg55="voice">Voice Command</span></button><button onclick="jg55ToggleDriving()">🛣️ <span data-jg55="drive">Driving Display</span></button></div>
+ <div class="jgrow"><label>Voice Speed <select id="jgVoiceRate" onchange="jgStoreVoice()"><option value="0.85">Slow</option><option value="1" selected>Normal</option><option value="1.15">Fast</option></select></label></div>
+ <div class="jg652voice"><label for="jg652VoiceSelect"><i class="fa-solid fa-volume-high"></i> <span id="jg652VoiceLabel">Navigation voice</span></label>
  <select id="jg652VoiceSelect" onchange="jg652SaveVoice()" aria-label="Navigation voice"><option value="">Automatic (device)</option></select>
  <button type="button" onclick="jg652TestVoice()"><i class="fa-solid fa-play"></i> Test Voice</button>
- <p id="jg652VoiceHint">Suara lelaki/perempuan bergantung pada suara yang dipasang dalam telefon. Pilih suara yang tersedia.</p></div>
- <div class="jgmuted" id="jgProStatus">Route toll rates, speed limits, flood alerts and true offline routing need verified external datasets. Community sync needs backend setup.</div>
+ <p id="jg652VoiceHint">Voice availability depends on the voices installed on your phone. Choose an available voice.</p></div>
+ <div class="jgmuted" id="jgProStatus">Toll rates, speed limits, flood alerts and offline routing require verified data. Community sync needs backend setup.</div>
  <div id="jgTripHistory" style="max-height:140px;overflow:auto"></div>
  </div></div>
  <div id="jg55Panel" hidden role="region" aria-live="polite"></div>
@@ -491,7 +493,7 @@ body.dark #jgPremiumModes button:not(.jg-selected) i{color:#2563eb!important}
         <div class="bg-white/95 dark:bg-slate-900/95 backdrop-blur-md rounded-2xl shadow-xl border border-slate-200/80 dark:border-slate-700/80 p-4 pointer-events-auto transition-all duration-300">
             
             <!-- Header App -->
-            <div class="flex items-center justify-between mb-3">
+            <div id="legacySearchHeader" class="flex items-center justify-between mb-3">
                 <div class="flex items-center gap-2.5">
                     <img src="./icon.svg" alt="JomGerak" width="40" height="40" class="w-10 h-10 rounded-xl shadow-md shadow-blue-500/20 flex-shrink-0" decoding="async">
                     <div>
@@ -499,23 +501,23 @@ body.dark #jgPremiumModes button:not(.jg-selected) i{color:#2563eb!important}
                             JomGerak
                             
                         </h1>
-                        <p class="text-[11px] text-slate-500 dark:text-slate-400 font-medium">Navigasi GPS & Komuniti</p>
+                        <p class="text-[11px] text-slate-500 dark:text-slate-400 font-medium">GPS Navigation & Community</p>
                     </div>
                 </div>
                 
                 <!-- Kawalan Atas: Suara (Mute/Unmute), Mod Malam & Toggle Mobile -->
                 <div class="flex items-center gap-1.5">
-                    <label for="languageSelect" class="sr-only">Language / Bahasa</label>
-                    <select id="languageSelect" onchange="setLanguage(this.value)" aria-label="Language / Bahasa" class="bg-blue-50 dark:bg-slate-800 text-blue-700 dark:text-blue-200 text-[11px] font-bold rounded-lg px-1 py-2 border border-blue-100 dark:border-slate-700">
-                      <option value="ms">BM</option><option value="en">EN</option>
+                    <label for="languageSelect" class="sr-only">Language</label>
+                    <select id="languageSelect" onchange="setLanguage(this.value)" aria-label="Language" class="bg-blue-50 dark:bg-slate-800 text-blue-700 dark:text-blue-200 text-[11px] font-bold rounded-lg px-1 py-2 border border-blue-100 dark:border-slate-700">
+                      <option value="ms">BM</option><option value="en" selected>EN</option>
                     </select>
                     <!-- Butang Toggle Suara -->
-                    <button id="voiceMuteBtn" onclick="toggleVoiceMute()" title="Hidup/Matikan Panduan Suara" class="w-8 h-8 rounded-xl bg-blue-50 dark:bg-slate-800 text-blue-600 dark:text-blue-400 flex items-center justify-center hover:bg-blue-100 dark:hover:bg-slate-700 transition">
+                    <button id="voiceMuteBtn" onclick="toggleVoiceMute()" title="Toggle voice guidance" class="w-8 h-8 rounded-xl bg-blue-50 dark:bg-slate-800 text-blue-600 dark:text-blue-400 flex items-center justify-center hover:bg-blue-100 dark:hover:bg-slate-700 transition">
                         <i id="voiceMuteIcon" class="fa-solid fa-volume-high text-sm"></i>
                     </button>
 
                     <!-- Butang Toggle Mod Malam -->
-                    <button id="darkModeBtn" onclick="toggleDarkMode()" title="Tukar Mod Siang / Malam" class="w-8 h-8 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-amber-400 flex items-center justify-center hover:bg-slate-200 dark:hover:bg-slate-700 transition">
+                    <button id="darkModeBtn" onclick="toggleDarkMode()" title="Toggle day/night mode" class="w-8 h-8 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-amber-400 flex items-center justify-center hover:bg-slate-200 dark:hover:bg-slate-700 transition">
                         <i id="darkModeIcon" class="fa-solid fa-moon text-sm"></i>
                     </button>
 
@@ -530,20 +532,20 @@ body.dark #jgPremiumModes button:not(.jg-selected) i{color:#2563eb!important}
             <div id="searchInputsContainer" class="space-y-2.5 transition-all">
                 
                 <!-- Input Lokasi Permulaan -->
-                <div class="relative">
+                <div class="relative jg-location-field">
                     <div class="flex items-center bg-slate-100 dark:bg-slate-800/90 focus-within:bg-white dark:focus-within:bg-slate-800 focus-within:ring-2 focus-within:ring-blue-500 rounded-xl border border-slate-200/80 dark:border-slate-700 px-3 py-2 transition">
                         <i class="fa-solid fa-circle-dot text-emerald-500 text-sm mr-2.5"></i>
                         <input 
                             type="text" 
                             id="originInput" 
-                            placeholder="Lokasi Permulaan (cth: KLCC)" 
+                            placeholder="Starting point (e.g. KLCC)"
                             class="w-full bg-transparent text-sm text-slate-800 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none font-medium"
                             autocomplete="off"
                         >
                         <button onclick="clearInput('origin')" id="clearOriginBtn" class="hidden text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 px-1.5">
                             <i class="fa-solid fa-xmark text-sm"></i>
                         </button>
-                        <button onclick="activateMapPick('origin')" title="Pilih di atas peta" class="text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 pl-1.5 border-l border-slate-200 dark:border-slate-700 ml-1">
+                        <button onclick="activateMapPick('origin')" title="Choose on map" class="text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 pl-1.5 border-l border-slate-200 dark:border-slate-700 ml-1">
                             <i class="fa-solid fa-map-pin text-sm"></i>
                         </button>
                     </div>
@@ -551,20 +553,20 @@ body.dark #jgPremiumModes button:not(.jg-selected) i{color:#2563eb!important}
                 </div>
 
                 <!-- Input Destinasi -->
-                <div class="relative">
+                <div class="relative jg-location-field">
                     <div class="flex items-center bg-slate-100 dark:bg-slate-800/90 focus-within:bg-white dark:focus-within:bg-slate-800 focus-within:ring-2 focus-within:ring-blue-500 rounded-xl border border-slate-200/80 dark:border-slate-700 px-3 py-2 transition">
                         <i class="fa-solid fa-location-dot text-rose-500 text-base mr-2.5"></i>
                         <input 
                             type="text" 
                             id="destInput" 
-                            placeholder="Destinasi (cth: Putrajaya / Shah Alam)" 
+                            placeholder="Destination (e.g. Putrajaya / Shah Alam)"
                             class="w-full bg-transparent text-sm text-slate-800 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none font-medium"
                             autocomplete="off"
                         >
                         <button onclick="clearInput('dest')" id="clearDestBtn" class="hidden text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 px-1.5">
                             <i class="fa-solid fa-xmark text-sm"></i>
                         </button>
-                        <button onclick="activateMapPick('dest')" title="Pilih di atas peta" class="text-slate-400 hover:text-rose-600 dark:hover:text-rose-400 pl-1.5 border-l border-slate-200 dark:border-slate-700 ml-1">
+                        <button onclick="activateMapPick('dest')" title="Choose on map" class="text-slate-400 hover:text-rose-600 dark:hover:text-rose-400 pl-1.5 border-l border-slate-200 dark:border-slate-700 ml-1">
                             <i class="fa-solid fa-map-pin text-sm"></i>
                         </button>
                     </div>
@@ -575,25 +577,25 @@ body.dark #jgPremiumModes button:not(.jg-selected) i{color:#2563eb!important}
                 <div class="flex items-center gap-2 pt-1">
                     <button onclick="useMyLocation()" class="flex-1 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 text-xs font-semibold py-2.5 px-3 rounded-xl flex items-center justify-center gap-1.5 transition">
                         <i class="fa-solid fa-location-crosshairs text-blue-600 dark:text-blue-400"></i>
-                        <span>Lokasi Saya</span>
+                        <span>My Location</span>
                     </button>
-                    <button onclick="swapLocations()" title="Tukar arah" class="bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 p-2.5 rounded-xl transition">
+                    <button onclick="swapLocations()" title="Swap endpoints" class="bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 p-2.5 rounded-xl transition">
                         <i class="fa-solid fa-right-left text-xs rotate-90"></i>
                     </button>
                     <button onclick="calculateRoute()" id="calcRouteBtn" class="flex-1 bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white text-xs font-semibold py-2.5 px-4 rounded-xl flex items-center justify-center gap-1.5 shadow-md shadow-blue-500/20 transition">
                         <i class="fa-solid fa-route"></i>
-                        <span>Cari Laluan</span>
+                        <span>Find Route</span>
                     </button>
                 </div>
 
-                <div class="flex flex-wrap gap-2">
-                  <button onclick="saveCurrentDestination()" class="text-xs font-bold bg-indigo-100 dark:bg-indigo-900 text-indigo-700 dark:text-white rounded-xl px-3 py-2">★ Simpan Destinasi</button>
-                  <button onclick="showSavedDestinations()" class="text-xs font-bold bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-white rounded-xl px-3 py-2">⌚ Tersimpan</button>
-                  <button onclick="shareCurrentRoute()" class="text-xs font-bold bg-emerald-100 dark:bg-emerald-900 text-emerald-800 dark:text-white rounded-xl px-3 py-2">↗ Kongsi</button>
+                <div id="destinationActions" class="flex flex-wrap gap-2">
+                  <button onclick="saveCurrentDestination()" class="text-xs font-bold bg-indigo-100 dark:bg-indigo-900 text-indigo-700 dark:text-white rounded-xl px-3 py-2">★ Save Destination</button>
+                  <button onclick="showSavedDestinations()" class="text-xs font-bold bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-white rounded-xl px-3 py-2">⌚ Saved</button>
+                  <button onclick="shareCurrentRoute()" class="text-xs font-bold bg-emerald-100 dark:bg-emerald-900 text-emerald-800 dark:text-white rounded-xl px-3 py-2">↗ Share</button>
                 </div>
                 <!-- Lokasi Pantas Popular Lembah Klang -->
-                <div class="pt-1 flex items-center gap-1.5 overflow-x-auto pb-0.5 no-scrollbar">
-                    <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider shrink-0 mr-1">Pantas:</span>
+                <div id="quickPlaces" class="pt-1 flex items-center gap-1.5 overflow-x-auto pb-0.5 no-scrollbar">
+                    <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider shrink-0 mr-1">Quick places</span>
                     <button onclick="setQuickDestination('KLCC, Kuala Lumpur', 3.1579, 101.7116)" class="text-[11px] bg-slate-100 dark:bg-slate-800 hover:bg-blue-50 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 px-2.5 py-1 rounded-lg font-medium shrink-0 transition">🗼 KLCC</button>
                     <button onclick="setQuickDestination('KL Sentral, Kuala Lumpur', 3.1342, 101.6861)" class="text-[11px] bg-slate-100 dark:bg-slate-800 hover:bg-blue-50 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 px-2.5 py-1 rounded-lg font-medium shrink-0 transition">🚆 KL Sentral</button>
                     <button onclick="setQuickDestination('Sunway Pyramid, Subang Jaya', 3.0733, 101.6067)" class="text-[11px] bg-slate-100 dark:bg-slate-800 hover:bg-blue-50 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 px-2.5 py-1 rounded-lg font-medium shrink-0 transition">🦁 Sunway</button>
@@ -613,14 +615,14 @@ body.dark #jgPremiumModes button:not(.jg-selected) i{color:#2563eb!important}
                             <span id="summaryTime" class="text-2xl font-extrabold text-emerald-400">0 min</span>
                             <span id="summaryDistance" class="text-sm font-semibold text-slate-300">(0.0 km)</span>
                         </div>
-                        <p id="summaryEta" class="text-[11px] text-slate-400 mt-0.5">Anggaran tiba: --:--</p>
+                        <p id="summaryEta" class="text-[11px] text-slate-400 mt-0.5">Estimated arrival: --:--</p>
                     </div>
                     <div class="flex items-center gap-1.5">
                         <button onclick="startVoiceNavigation()" id="startNavBtn" class="bg-emerald-500 hover:bg-emerald-600 active:scale-95 text-slate-950 font-extrabold text-xs px-3 py-2 rounded-xl flex items-center gap-1.5 shadow-lg shadow-emerald-500/20 transition">
                             <i id="startNavIcon" class="fa-solid fa-volume-high"></i>
-                            <span id="startNavText">Mula Navigasi</span>
+                            <span id="startNavText">Start Navigation</span>
                         </button>
-                        <button onclick="clearRoute()" title="Padam Laluan" class="bg-rose-500/20 hover:bg-rose-500/40 text-rose-300 p-2 rounded-xl transition">
+                        <button onclick="clearRoute()" title="Clear route" class="bg-rose-500/20 hover:bg-rose-500/40 text-rose-300 p-2 rounded-xl transition">
                             <i class="fa-solid fa-trash-can text-xs"></i>
                         </button>
                     </div>
@@ -633,7 +635,7 @@ body.dark #jgPremiumModes button:not(.jg-selected) i{color:#2563eb!important}
                             <i class="fa-solid fa-gas-pump"></i>
                         </div>
                         <div>
-                            <div class="text-[10px] text-slate-400 font-medium uppercase tracking-wider">Anggaran Kos Perjalanan</div>
+                            <div class="text-[10px] text-slate-400 font-medium uppercase tracking-wider">Estimated Travel Cost</div>
                             <div class="flex items-baseline gap-1.5">
                                 <span id="fuelCostDisplay" class="text-sm font-extrabold text-amber-300">RM 0.00</span>
                                 <span id="fuelLitresDisplay" class="text-[11px] text-slate-400">(~0.0 L)</span>
@@ -649,13 +651,13 @@ body.dark #jgPremiumModes button:not(.jg-selected) i{color:#2563eb!important}
                     </div>
                 </div>
                 <div id="jg653Toll" class="jg653-toll" aria-live="polite">
-                  <div class="jg653-toll-row"><span><i class="fa-solid fa-road"></i> <b id="jg653TollTitle">Semakan Tol Automatik</b></span><button type="button" id="jg654Retry" onclick="jg654CheckToll()"><i class="fa-solid fa-rotate"></i> Semak</button></div>
-                  <div class="jg653-toll-row"><span id="jg653TollAmount">Tol: menunggu laluan</span></div>
-                  <small id="jg654TollNote">Kos petrol dan tol dipaparkan berasingan. Harga tol memerlukan data kadar plaza yang disahkan.</small>
+                  <div class="jg653-toll-row"><span><i class="fa-solid fa-road"></i> <b id="jg653TollTitle">Automatic Toll Check</b></span><button type="button" id="jg654Retry" onclick="jg654CheckToll()"><i class="fa-solid fa-rotate"></i> Check</button></div>
+                  <div class="jg653-toll-row"><span id="jg653TollAmount">Toll: waiting for a route</span></div>
+                  <small id="jg654TollNote">Fuel and toll costs are displayed separately. Toll pricing requires verified toll-plaza rates.</small>
                 </div>
             </div>
 
-<div id="routeChoices47" class="hidden px-3 py-2 bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-white text-xs"><b>🧭 Laluan Alternatif</b><div id="routeButtons47" class="flex flex-wrap gap-2 mt-2"></div><p id="jg655Unverified" class="text-amber-700 dark:text-amber-300 mt-1">Caj tol dan status tol belum disahkan.</p></div>
+<div id="routeChoices47" class="hidden px-3 py-2 bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-white text-xs"><b>🧭 Alternative Routes</b><div id="routeButtons47" class="flex flex-wrap gap-2 mt-2"></div><p id="jg655Unverified" class="text-amber-700 dark:text-amber-300 mt-1">Toll charges and toll status are unverified.</p></div>
             <!-- Senarai Arahan Belok-demi-Belok (Turn-by-Turn) -->
             <div id="stepsContainer" class="overflow-y-auto divide-y divide-slate-100 dark:divide-slate-800 p-2 space-y-1 flex-1">
                 <!-- Diisi secara dinamik oleh JS -->
@@ -667,8 +669,8 @@ body.dark #jgPremiumModes button:not(.jg-selected) i{color:#2563eb!important}
       <div class="bg-slate-950/95 text-white rounded-2xl p-3 shadow-2xl border border-blue-500/40">
         <div class="flex items-center gap-3">
           <img src="./icon.svg" alt="" width="44" height="44" class="w-11 h-11 rounded-xl flex-shrink-0">
-          <div class="min-w-0 flex-1"><div id="jg52TripMetrics" class="jg52-metrics">GPS menunggu…</div><div id="liveInstruction" class="font-extrabold text-sm truncate">Mencari GPS...</div><div id="liveDetail" class="text-xs text-slate-300">Benarkan akses lokasi</div></div>
-          <button onclick="stopLiveNavigation()" class="bg-rose-600 rounded-xl px-3 py-2 font-bold text-xs">Henti</button>
+          <div class="min-w-0 flex-1"><div id="jg52TripMetrics" class="jg52-metrics">Waiting for GPS…</div><div id="liveInstruction" class="font-extrabold text-sm truncate">Finding GPS...</div><div id="liveDetail" class="text-xs text-slate-300">Allow location access</div></div>
+          <button onclick="stopLiveNavigation()" class="bg-rose-600 rounded-xl px-3 py-2 font-bold text-xs">Stop</button>
         </div>
       </div>
     </div>
@@ -679,13 +681,13 @@ body.dark #jgPremiumModes button:not(.jg-selected) i{color:#2563eb!important}
         
         <!-- Butang Zoom & Lokasi Semasa -->
         <div class="flex flex-col bg-white/95 dark:bg-slate-900/95 backdrop-blur-md rounded-2xl shadow-lg border border-slate-200/80 dark:border-slate-700 overflow-hidden pointer-events-auto">
-            <button onclick="useMyLocation(true)" title="Pusatkan ke Lokasi Saya" class="p-3 text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition border-b border-slate-100 dark:border-slate-800">
+            <button onclick="useMyLocation(true)" title="Centre on my location" class="p-3 text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition border-b border-slate-100 dark:border-slate-800">
                 <i class="fa-solid fa-location-crosshairs text-blue-600 dark:text-blue-400 text-lg"></i>
             </button>
-            <button onclick="map.zoomIn()" title="Besarkan Peta" class="p-3 text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition border-b border-slate-100 dark:border-slate-800">
+            <button onclick="map.zoomIn()" title="Zoom in" class="p-3 text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition border-b border-slate-100 dark:border-slate-800">
                 <i class="fa-solid fa-plus text-sm"></i>
             </button>
-            <button onclick="map.zoomOut()" title="Kecilkan Peta" class="p-3 text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition">
+            <button onclick="map.zoomOut()" title="Zoom out" class="p-3 text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition">
                 <i class="fa-solid fa-minus text-sm"></i>
             </button>
         </div>
@@ -693,12 +695,12 @@ body.dark #jgPremiumModes button:not(.jg-selected) i{color:#2563eb!important}
         <!-- Butang Utama Lapor Trafik (Gaya Waze) -->
         <button onclick="openReportModal()" class="pointer-events-auto group relative flex items-center gap-2.5 bg-gradient-to-tr from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white font-bold px-4 py-3.5 rounded-2xl shadow-xl shadow-orange-500/30 border-2 border-white dark:border-slate-800 transform active:scale-95 transition-all">
             <i class="fa-solid fa-triangle-exclamation text-xl animate-pulse"></i>
-            <span class="text-sm tracking-wide">Lapor Trafik</span>
+            <span class="text-sm tracking-wide">Report Traffic</span>
         </button>
     </div>
 
     <!-- MODAL LAPORAN KOMUNITI (GAYA WAZE) DENGAN LOCALSTORAGE -->
-    <div id="reportModal" class="hidden fixed inset-0 z-[800] bg-slate-900/60 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4">
+    <div id="reportModal" role="dialog" aria-modal="true" aria-labelledby="jgReportTitle" class="hidden fixed inset-0 z-[800] bg-slate-900/60 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4">
         <div class="bg-white dark:bg-slate-900 w-full sm:max-w-md rounded-t-3xl sm:rounded-3xl shadow-2xl border border-slate-100 dark:border-slate-800 p-6">
             <div class="flex items-center justify-between pb-4 border-b border-slate-100 dark:border-slate-800">
                 <div class="flex items-center gap-2.5">
@@ -706,11 +708,11 @@ body.dark #jgPremiumModes button:not(.jg-selected) i{color:#2563eb!important}
                         <i class="fa-solid fa-bullhorn"></i>
                     </div>
                     <div>
-                        <h3 class="font-extrabold text-slate-800 dark:text-white text-base">Laporan Komuniti</h3>
-                        <p class="text-xs text-slate-500 dark:text-slate-400">Disimpan secara automatik di peranti anda</p>
+                        <h3 id="jgReportTitle" class="font-extrabold text-slate-800 dark:text-white text-base">Community Reports</h3>
+                        <p class="text-xs text-slate-500 dark:text-slate-400">Saved locally on your device</p>
                     </div>
                 </div>
-                <button onclick="closeReportModal()" class="w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 hover:bg-slate-200 flex items-center justify-center">
+                <button onclick="closeReportModal()" aria-label="Close road report" class="w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 hover:bg-slate-200 flex items-center justify-center">
                     <i class="fa-solid fa-xmark"></i>
                 </button>
             </div>
@@ -721,32 +723,32 @@ body.dark #jgPremiumModes button:not(.jg-selected) i{color:#2563eb!important}
                     <div class="w-12 h-12 rounded-2xl bg-red-100 dark:bg-red-500/20 text-red-600 dark:text-red-400 flex items-center justify-center text-2xl mb-2 group-hover:scale-110 transition">
                         <i class="fa-solid fa-car-tunnel"></i>
                     </div>
-                    <span class="font-bold text-slate-800 dark:text-slate-100 text-sm">Kesesakan Trafik</span>
-                    <span class="text-[11px] text-slate-400 mt-0.5">Jalan sesak / perlahan</span>
+                    <span class="font-bold text-slate-800 dark:text-slate-100 text-sm">Traffic Jam</span>
+                    <span class="text-[11px] text-slate-400 mt-0.5">Slow or congested traffic</span>
                 </button>
 
-                <button onclick="selectReportType('Polis')" class="group flex flex-col items-center p-4 rounded-2xl border-2 border-slate-100 dark:border-slate-800 hover:border-blue-500 hover:bg-blue-50/50 dark:hover:bg-blue-950/30 transition text-center">
+                <button onclick="selectReportType('Jalan Ditutup')" class="group flex flex-col items-center p-4 rounded-2xl border-2 border-slate-100 dark:border-slate-800 hover:border-blue-500 hover:bg-blue-50/50 dark:hover:bg-blue-950/30 transition text-center">
                     <div class="w-12 h-12 rounded-2xl bg-blue-100 dark:bg-blue-500/20 text-blue-600 dark:text-blue-400 flex items-center justify-center text-2xl mb-2 group-hover:scale-110 transition">
                         <i class="fa-solid fa-shield-halved"></i>
                     </div>
-                    <span class="font-bold text-slate-800 dark:text-slate-100 text-sm">Polis / Roadblock</span>
-                    <span class="text-[11px] text-slate-400 mt-0.5">Rondaan atau SJR</span>
+                    <span class="font-bold text-slate-800 dark:text-slate-100 text-sm">Road closure</span>
+                    <span class="text-[11px] text-slate-400 mt-0.5">Closed or inaccessible road</span>
                 </button>
 
                 <button onclick="selectReportType('Kemalangan')" class="group flex flex-col items-center p-4 rounded-2xl border-2 border-slate-100 dark:border-slate-800 hover:border-orange-500 hover:bg-orange-50/50 dark:hover:bg-orange-950/30 transition text-center">
                     <div class="w-12 h-12 rounded-2xl bg-orange-100 dark:bg-orange-500/20 text-orange-600 dark:text-orange-400 flex items-center justify-center text-2xl mb-2 group-hover:scale-110 transition">
                         <i class="fa-solid fa-car-burst"></i>
                     </div>
-                    <span class="font-bold text-slate-800 dark:text-slate-100 text-sm">Kemalangan</span>
-                    <span class="text-[11px] text-slate-400 mt-0.5">Kenderaan berlanggar</span>
+                    <span class="font-bold text-slate-800 dark:text-slate-100 text-sm">Accident</span>
+                    <span class="text-[11px] text-slate-400 mt-0.5">Vehicle collision</span>
                 </button>
 
                 <button onclick="selectReportType('Bahaya di Jalan')" class="group flex flex-col items-center p-4 rounded-2xl border-2 border-slate-100 dark:border-slate-800 hover:border-amber-500 hover:bg-amber-50/50 dark:hover:bg-amber-950/30 transition text-center">
                     <div class="w-12 h-12 rounded-2xl bg-amber-100 dark:bg-amber-500/20 text-amber-600 dark:text-amber-400 flex items-center justify-center text-2xl mb-2 group-hover:scale-110 transition">
                         <i class="fa-solid fa-triangle-exclamation"></i>
                     </div>
-                    <span class="font-bold text-slate-800 dark:text-slate-100 text-sm">Bahaya di Jalan</span>
-                    <span class="text-[11px] text-slate-400 mt-0.5">Lubang / banjir / objek</span>
+                    <span class="font-bold text-slate-800 dark:text-slate-100 text-sm">Road Hazard</span>
+                    <span class="text-[11px] text-slate-400 mt-0.5">Pothole / flood / obstruction</span>
                 </button>
             </div>
 
@@ -755,25 +757,25 @@ body.dark #jgPremiumModes button:not(.jg-selected) i{color:#2563eb!important}
                 <input 
                     type="text" 
                     id="reportNoteInput" 
-                    placeholder="Nota tambahan (pilihan, cth: Lorong kanan terhalang)" 
+                    placeholder="Optional note (e.g. blocked lane)"
                     class="w-full bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3.5 py-2.5 text-sm text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-amber-500"
                 >
                 <div class="flex items-center justify-between text-xs text-slate-500 dark:text-slate-400 bg-slate-50 dark:bg-slate-800/60 p-3 rounded-xl">
-                    <span>Kaedah penandaan:</span>
+                    <span>Report location:</span>
                     <div class="flex items-center gap-3">
                         <label class="flex items-center gap-1 cursor-pointer font-semibold text-slate-700 dark:text-slate-200">
                             <input type="radio" name="reportLocMode" value="map" checked class="accent-amber-600">
-                            Klik Peta
+                            Tap Map
                         </label>
                         <label class="flex items-center gap-1 cursor-pointer font-semibold text-slate-700 dark:text-slate-200">
                             <input type="radio" name="reportLocMode" value="center" class="accent-amber-600">
-                            Tengah Skrin
+                            Map Centre
                         </label>
                     </div>
                 </div>
                 <div class="flex justify-end pt-1">
                     <button onclick="resetSavedReports()" class="text-[11px] text-rose-500 hover:underline font-medium">
-                        Reset Laporan Tersimpan
+                        Clear Saved Reports
                     </button>
                 </div>
             </div>
@@ -876,8 +878,8 @@ body.dark #jgPremiumModes button:not(.jg-selected) i{color:#2563eb!important}
           'Destinasi (cth: Putrajaya / Shah Alam)':'Destination (e.g. Putrajaya / Shah Alam)',
           'Nota tambahan (pilihan, cth: Lorong kanan terhalang)':'Optional note (e.g. right lane blocked)'
         };
-        let appLanguage='ms';
-        function tr(v){return appLanguage==='en'?(TRANSLATIONS[v]||v):v;}
+        let appLanguage='en';
+        function tr(v){return window.JG_I18N?window.JG_I18N.text(v):(appLanguage==='en'?(TRANSLATIONS[v]||v):v);}
         function setLanguage(lang){
           appLanguage=lang==='en'?'en':'ms';
           try{localStorage.setItem('jomgerak_language',appLanguage);}catch{}
@@ -892,7 +894,7 @@ body.dark #jgPremiumModes button:not(.jg-selected) i{color:#2563eb!important}
             const original=el.getAttribute('data-jg-title');el.title=tr(original);
           });
           updateNavButtonUI();
-          document.querySelectorAll('[data-search-type]').forEach(b=>b.textContent=appLanguage==='en'?'Search location':'Cari lokasi');
+          document.querySelectorAll('[data-search-type]').forEach(b=>b.setAttribute('aria-label',appLanguage==='en'?(b.dataset.searchType==='origin'?'Search starting point':'Search destination'):(b.dataset.searchType==='origin'?'Cari lokasi permulaan':'Cari destinasi')));
           const speedLabel=document.querySelector('#speed47 .text-\\[9px\\]');
           if(speedLabel)speedLabel.textContent=appLanguage==='en'?'Speed limit: N/A':'Had laju: N/A';
           if(navigationActive){
@@ -902,7 +904,7 @@ body.dark #jgPremiumModes button:not(.jg-selected) i{color:#2563eb!important}
           if(lastGps&&navigationActive)document.getElementById('liveInstruction').textContent=appLanguage==='en'?'Following your route':'Mengikuti laluan anda';
           if('speechSynthesis' in window)window.speechSynthesis.cancel();
           lastSpokenStep=-1;
-          window.jg655Translate?.();window.jgPremiumUpdateLabels?.();
+          window.jg655Translate?.();window.jgPremiumUpdateLabels?.();window.JG_I18N?.setLanguage(appLanguage);
         }
         function initLanguage(){
           const walker=document.createTreeWalker(document.body,NodeFilter.SHOW_TEXT);
@@ -916,7 +918,7 @@ body.dark #jgPremiumModes button:not(.jg-selected) i{color:#2563eb!important}
           document.querySelectorAll('[placeholder]').forEach(el=>{if(PLACEHOLDERS[el.placeholder])el.setAttribute('data-jg-placeholder',el.placeholder);});
           document.querySelectorAll('[title]').forEach(el=>{if(TRANSLATIONS[el.title])el.setAttribute('data-jg-title',el.title);});
           const saved=(()=>{try{return localStorage.getItem('jomgerak_language')}catch{return null}})();
-          setLanguage(saved==='en'?'en':'ms');
+          setLanguage(saved==='ms'?'ms':'en');
         }
 
         let routes47=[];
@@ -966,7 +968,7 @@ body.dark #jgPremiumModes button:not(.jg-selected) i{color:#2563eb!important}
               if(!Number.isFinite(x.lat)||!Number.isFinite(x.lon))continue;
               const name=(x.tags?.name||x.tags?.amenity||'Kemudahan').slice(0,100);
               const div=document.createElement('div'),h=document.createElement('strong'),b=document.createElement('button');
-              h.textContent=name;b.textContent='Pergi Sini';b.className='block mt-2 bg-blue-600 text-white p-2 rounded-lg';
+              h.setAttribute('data-user-content','');h.textContent=name;b.textContent='Pergi Sini';b.className='block mt-2 bg-blue-600 text-white p-2 rounded-lg';
               b.onclick=()=>{map.closePopup();selectLocation('dest',x.lat,x.lon,name);};
               div.append(h,b);L.marker([x.lat,x.lon]).addTo(poiMarkersGroup).bindPopup(div);n++;
             }
@@ -1263,7 +1265,7 @@ function jg52TrackOffRoute(pos,progress){
                 bg: 'bg-red-600',
                 badge: 'bg-red-100 text-red-700'
             },
-            'Polis': {
+            'Jalan Ditutup': {
                 icon: 'fa-shield-halved',
                 bg: 'bg-blue-600',
                 badge: 'bg-blue-100 text-blue-700'
@@ -1440,7 +1442,7 @@ function jg52TrackOffRoute(pos,progress){
         // ==========================================
         function initTheme() {
             let savedTheme;try{savedTheme=localStorage.getItem(STORAGE_KEY_THEME);}catch{}
-            if (savedTheme === 'dark') {
+            if (savedTheme !== 'light') {
                 document.documentElement.classList.add('dark');
                 updateDarkModeIcon(true);
             }
@@ -1488,7 +1490,7 @@ function jg52TrackOffRoute(pos,progress){
             }
 
             window.speechSynthesis.cancel();
-            const utterance = new SpeechSynthesisUtterance(text);
+            const utterance = new SpeechSynthesisUtterance(tr(text));
 
             // Cuba cari suara Bahasa Melayu (ms-MY) atau Indonesia (id-ID), jika tiada guna lalai
             const voices = window.speechSynthesis.getVoices();
@@ -1510,6 +1512,7 @@ function jg52TrackOffRoute(pos,progress){
 
         function startVoiceNavigation() {
             if(navigationActive){stopLiveNavigation();return;}
+            if(window.jg60GetMode?.()==='truck'){showToast(tr('Truck navigation is unavailable until a truck routing provider is configured.'),'warning');return;}
             if(!currentRouteData||!destCoords){showToast(tr('Cari laluan dahulu.'),'warning');return;}
             if(!navigator.geolocation||!window.isSecureContext){showToast(tr('GPS memerlukan HTTPS dan kebenaran lokasi.'),'error');return;}
             navigationActive=true;lastSpokenStep=-1;
@@ -1586,7 +1589,7 @@ function jg52TrackOffRoute(pos,progress){
             document.getElementById('speedNum47').textContent=Number.isFinite(pos.coords.speed)&&pos.coords.speed>=0?Math.round(pos.coords.speed*3.6):'--';
             jgGPSAdvanced(pos);
             if(!userLocationMarker){
-                userLocationMarker=L.marker([p.lat,p.lng],{icon:L.divIcon({className:'gps-user-icon',html:'<div class="w-5 h-5 rounded-full bg-blue-600 border-2 border-white shadow-md pulse-marker"></div>',iconSize:[20,20],iconAnchor:[10,10]})}).addTo(map);
+                userLocationMarker=L.marker([p.lat,p.lng],{icon:window.JG_GARAGE?.leafletIcon()||L.divIcon({className:'gps-user-icon',html:'<div class="w-5 h-5 rounded-full bg-blue-600 border-2 border-white shadow-md pulse-marker"></div>',iconSize:[20,20],iconAnchor:[10,10]})}).addTo(map);
             }else userLocationMarker.setLatLng([p.lat,p.lng]);
             if(!navigationActive||!currentRouteData)return;
             if(followGps) {
@@ -1643,6 +1646,7 @@ function jg52TrackOffRoute(pos,progress){
         // 5. KALKULATOR KOS MINYAK & EV MALAYSIA
         // ==========================================
         function setFuelType(type) {
+            window.JG_GARAGE?.changeFuel(type);
             selectedFuelType = type;
             ['RON95', 'RON97', 'EV'].forEach(t => {
                 const btn = document.getElementById(`fuelBtn-${t}`);
@@ -1657,6 +1661,12 @@ function jg52TrackOffRoute(pos,progress){
 
         function updateFuelCalculation() {
             if (!currentRouteData) return;
+            const profile=window.JG_GARAGE?.get();
+            if(profile){
+                const units=currentRouteData.distance/1000*profile.consumption/100;
+                document.getElementById('fuelCostDisplay').textContent='RM '+(units*profile.price).toFixed(2);
+                document.getElementById('fuelLitresDisplay').textContent='(~'+units.toFixed(1)+' '+(profile.fuel==='EV'?'kWh':'L')+' · '+profile.fuel+')';return;
+            }
             const distanceKm = currentRouteData.distance / 1000;
             const cfg = FUEL_RATES[selectedFuelType];
 
@@ -1735,7 +1745,7 @@ function jg52TrackOffRoute(pos,progress){
                     results = data.elements.map(el => ({
                         lat: el.lat??el.center?.lat,
                         lon: el.lon??el.center?.lon,
-                        name: (el.tags && (el.tags.name || el.tags.brand)) || cfg.label
+                        name: (el.tags && (el.tags.name || el.tags.brand)) || tr(cfg.label)
                     }));
                 } else {
                     // Fallback ke Nominatim jika Overpass tiada hasil
@@ -1780,7 +1790,7 @@ function jg52TrackOffRoute(pos,progress){
                     popupDiv.className = 'min-w-[160px] text-center space-y-2';
                     popupDiv.innerHTML = `
                         <div class="text-[10px] font-bold uppercase tracking-wider text-slate-400">${cfg.label}</div>
-                        <div class="text-xs font-extrabold text-slate-800 dark:text-white">${escapeHTML(item.name)}</div>
+                        <div class="text-xs font-extrabold text-slate-800 dark:text-white" data-user-content>${escapeHTML(item.name)}</div>
                         <button class="go-here-btn w-full bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold py-1.5 px-3 rounded-xl transition flex items-center justify-center gap-1.5">
                             <i class="fa-solid fa-diamond-turn-right"></i>
                             <span>Pergi Sini</span>
@@ -1877,7 +1887,7 @@ function jg52TrackOffRoute(pos,progress){
                 });
                 const button=document.createElement('button');
                 button.type='button';button.className='text-xs font-bold text-blue-600 dark:text-blue-300 px-3 py-2';
-                button.textContent='Cari lokasi';button.dataset.searchType=type;
+                button.innerHTML='<i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i>';button.setAttribute('aria-label',type==='origin'?'Search starting point':'Search destination');button.dataset.searchType=type;
                 button.addEventListener('click',()=>triggerNominatimSearch(input.value.trim(),type));
                 button.className='text-xs font-bold text-blue-600 dark:text-blue-300 px-2 py-1 shrink-0';
                 input.parentElement.appendChild(button);
@@ -1963,8 +1973,8 @@ function jg52TrackOffRoute(pos,progress){
                         btn.innerHTML = `
                             <i class="fa-solid fa-location-dot text-slate-400 mt-1 text-xs shrink-0"></i>
                             <div class="overflow-hidden">
-                                <div class="text-xs font-bold text-slate-800 dark:text-slate-100 truncate">${escapeHTML(title)}</div>
-                                <div class="text-[11px] text-slate-500 dark:text-slate-400 truncate">${escapeHTML(subtitle)}</div>
+                                <div class="text-xs font-bold text-slate-800 dark:text-slate-100 truncate" data-user-content>${escapeHTML(title)}</div>
+                                <div class="text-[11px] text-slate-500 dark:text-slate-400 truncate" data-user-content>${escapeHTML(subtitle)}</div>
                             </div>
                         `;
                         btn.onclick = () => {
@@ -2029,7 +2039,7 @@ function jg52TrackOffRoute(pos,progress){
                 if (originMarker) map.removeLayer(originMarker);
                 originMarker = L.marker([lat, lng], { icon: customIcon, draggable: true })
                     .addTo(map)
-                    .bindPopup(`<div class="text-xs font-bold text-emerald-500">Lokasi Permulaan</div><div class="text-xs mt-0.5">${escapeHTML(title)}</div>`);
+                    .bindPopup(`<div class="text-xs font-bold text-emerald-500">Lokasi Permulaan</div><div class="text-xs mt-0.5" data-user-content>${escapeHTML(title)}</div>`);
                 
                 originMarker.on('dragend', async (e) => {
                     const pos = e.target.getLatLng();
@@ -2040,7 +2050,7 @@ function jg52TrackOffRoute(pos,progress){
                 if (destMarker) map.removeLayer(destMarker);
                 destMarker = L.marker([lat, lng], { icon: customIcon, draggable: true })
                     .addTo(map)
-                    .bindPopup(`<div class="text-xs font-bold text-rose-500">Destinasi</div><div class="text-xs mt-0.5">${escapeHTML(title)}</div>`);
+                    .bindPopup(`<div class="text-xs font-bold text-rose-500">Destinasi</div><div class="text-xs mt-0.5" data-user-content>${escapeHTML(title)}</div>`);
 
                 destMarker.on('dragend', async (e) => {
                     const pos = e.target.getLatLng();
@@ -2172,7 +2182,7 @@ function jg52TrackOffRoute(pos,progress){
                         iconAnchor: [10, 10]
                     });
 
-                    userLocationMarker = L.marker([lat, lng], { icon: gpsIcon })
+                    userLocationMarker = L.marker([lat, lng], { icon: window.JG_GARAGE?.leafletIcon()||gpsIcon })
                         .addTo(map)
                         .bindPopup('<div class="text-xs font-bold text-blue-500">Lokasi Semasa Anda</div>');
 
@@ -2206,6 +2216,7 @@ function jg52TrackOffRoute(pos,progress){
             if(navigationActive){showToast(appLanguage==='en'?'Stop navigation before recalculating.':'Hentikan navigasi sebelum kira semula.','warning');return;}
             const mode=window.jg60GetMode?.()||'car';
             if(mode==='walk')return window.jg60WalkingRoute?.();
+            if(mode==='truck'){showToast(tr('Truck routing is unavailable. Height, weight and truck restrictions cannot be checked.'),'warning');return;}
             if(mode==='rail'){showToast(appLanguage==='en'?'In-app rail routing is unavailable. Use the rail planner.':'Laluan tren dalam aplikasi belum tersedia. Gunakan perancang tren.','info');return;}
             if (!originCoords || !destCoords) {
                 showToast('Sila tetapkan Lokasi Permulaan dan Destinasi terlebih dahulu.', 'warning');
@@ -2271,7 +2282,7 @@ function jg52TrackOffRoute(pos,progress){
             if (totalMinutes >= 60) {
                 const hrs = Math.floor(totalMinutes / 60);
                 const mins = totalMinutes % 60;
-                timeFormatted = `${hrs} j ${mins} min`;
+                timeFormatted = `${hrs} ${appLanguage==='en'?'h':'j'} ${mins} min`;
             } else {
                 timeFormatted = `${Math.max(1, totalMinutes)} min`;
             }
@@ -2282,7 +2293,7 @@ function jg52TrackOffRoute(pos,progress){
 
             document.getElementById('summaryTime').textContent = timeFormatted;
             document.getElementById('summaryDistance').textContent = `(${distanceKm} km)`;
-            document.getElementById('summaryEta').textContent = `Anggaran tiba: ${etaStr} • Anggaran tanpa trafik langsung`;
+            document.getElementById('summaryEta').textContent = appLanguage==='en'?`Estimated arrival: ${etaStr} • No live traffic`:`Anggaran tiba: ${etaStr} • Anggaran tanpa trafik langsung`;
 
             const stepsContainer = document.getElementById('stepsContainer');
             stepsContainer.innerHTML = '';
@@ -2297,7 +2308,7 @@ function jg52TrackOffRoute(pos,progress){
                     : `${Math.round(step.distance)} m`;
 
                 currentRouteStepsBM.push({
-                    plainText: `${instruction.plainText} sejauh ${stepDist}`
+                    plainText: `${instruction.plainText} ${appLanguage==='en'?'for':'sejauh'} ${stepDist}`
                 });
 
                 const stepEl = document.createElement('div');
@@ -2331,7 +2342,7 @@ function jg52TrackOffRoute(pos,progress){
             if(appLanguage==='en') {
                 const type=maneuver.type,mod=maneuver.modifier||'';
                 const road=roadName?' onto '+roadName:' ahead';
-                const roadHTML=roadName?' onto <span class="text-blue-600 dark:text-blue-400">'+escapeHTML(roadName)+'</span>':' ahead';
+                const roadHTML=roadName?' onto <span class="text-blue-600 dark:text-blue-400" data-user-content>'+escapeHTML(roadName)+'</span>':' ahead';
                 const dirs={left:['Turn left','fa-turn-up -rotate-90'],right:['Turn right','fa-turn-up rotate-90'],straight:['Continue straight','fa-arrow-up'],uturn:['Make a U-turn','fa-rotate-left'],'slight left':['Keep slightly left','fa-arrow-up -rotate-45'],'slight right':['Keep slightly right','fa-arrow-up rotate-45'],'sharp left':['Turn sharply left','fa-turn-up -rotate-90'],'sharp right':['Turn sharply right','fa-turn-up rotate-90']};
                 let txt,icon='fa-arrow-up';
                 if(type==='depart'){txt='Start your journey';icon='fa-circle-play';}
@@ -2344,7 +2355,7 @@ function jg52TrackOffRoute(pos,progress){
             }
             const type = maneuver.type;
             const modifier = maneuver.modifier || '';
-            const roadHTML = roadName ? `ke <span class="text-blue-600 dark:text-blue-400">${escapeHTML(roadName)}</span>` : 'di hadapan';
+            const roadHTML = roadName ? `ke <span class="text-blue-600 dark:text-blue-400" data-user-content>${escapeHTML(roadName)}</span>` : 'di hadapan';
             const roadPlain = roadName ? `ke ${roadName}` : 'di hadapan';
 
             const modMap = {
@@ -2523,7 +2534,7 @@ function jg52TrackOffRoute(pos,progress){
             list.forEach((place,index)=>{
                 const row=document.createElement('div');row.style.cssText='display:flex;align-items:center;gap:10px;border-bottom:1px solid #e2e8f0;padding:10px 0;';
                 const pick=document.createElement('button');pick.style.cssText='flex:1;text-align:left;padding:12px;border-radius:12px;background:#eff6ff;color:#1d4ed8;font-weight:700;overflow-wrap:anywhere;';
-                pick.textContent='📍 '+(place.name||'Destination');
+                pick.setAttribute('data-user-content','');pick.textContent=place.name||'Destination';
                 pick.onclick=()=>{if(!Number.isFinite(Number(place.lat))||!Number.isFinite(Number(place.lng))){showToast('Koordinat tidak sah.','warning');return;}selectLocation('dest',Number(place.lat),Number(place.lng),place.name);closeSavedDestinations();};
                 const del=document.createElement('button');del.textContent='🗑️';del.setAttribute('aria-label',appLanguage==='en'?'Delete destination':'Padam destinasi');del.style.cssText='padding:12px;border-radius:12px;background:#fff1f2;color:#be123c;';del.onclick=()=>deleteSavedDestination(index);
                 row.append(pick,del);panel.appendChild(row);
@@ -2586,7 +2597,7 @@ function jg52TrackOffRoute(pos,progress){
             addCommunityReportMarker(newReport.lat, newReport.lng, newReport.type, newReport.note, newReport.time);
             jgSendReport(newReport);
             showToast(`Laporan "${type}" disimpan & ditanda di peta!`, 'success');
-            speakText(`Amaran ${type} telah dilaporkan.`);
+            speakText(appLanguage==='en'?`${tr(type)} reported nearby.`:`Amaran ${type} telah dilaporkan.`);
         }
 
         function resetSavedReports() {
@@ -2623,7 +2634,7 @@ function jg52TrackOffRoute(pos,progress){
         function addCommunityReportMarker(lat, lng, type, customNote = '', customTimeStr = null) {
             const cfg = REPORT_CONFIG[type] || REPORT_CONFIG['Bahaya di Jalan'];
             const timeStr = customTimeStr || new Date().toLocaleTimeString('ms-MY', { hour: '2-digit', minute: '2-digit' });
-            const noteText = customNote || 'Dilaporkan oleh komuniti JomGerak';
+            const noteText = customNote || tr('Dilaporkan oleh komuniti JomGerak');
 
             const reportIcon = L.divIcon({
                 className: 'waze-report-marker',
@@ -2646,10 +2657,10 @@ function jg52TrackOffRoute(pos,progress){
             marker.bindPopup(`
                 <div class="min-w-[190px]">
                     <div class="flex items-center justify-between gap-2 mb-1.5">
-                        <span class="text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-full ${cfg.badge}">${type}</span>
+                        <span class="text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-full ${cfg.badge}">${escapeHTML(tr(type))}</span>
                         <span class="text-[10px] text-slate-400 font-medium"><i class="fa-regular fa-clock mr-1"></i>${escapeHTML(timeStr)}</span>
                     </div>
-                    <p class="text-xs font-semibold mb-2">${escapeHTML(noteText)}</p>
+                    <p class="text-xs font-semibold mb-2" ${customNote&&customNote!=='Dilaporkan oleh komuniti JomGerak'?'data-user-content':''}>${escapeHTML(noteText)}</p>
                     <div class="flex items-center justify-between pt-1.5 border-t border-slate-100 dark:border-slate-700 text-[11px] text-slate-400">
                         <span>👍 Terima kasih pemandu!</span>
                     </div>
@@ -2669,5 +2680,5 @@ function jg52TrackOffRoute(pos,progress){
   <button id="jg65View" type="button" onclick="jg65ToggleView()">◩ 3D</button>
  </div>
 </div>
-<script src="./v656.js" defer></script><script src="./v661.js" defer></script><script src="./v662.js" defer></script><script src="./v65.js" defer></script><script src="./v652.js" defer></script><script src="./v653.js" defer></script><script src="./v654.js" defer></script><script src="./v63.js" defer></script><script src="./v64.js" defer></script><script src="./v655.js" defer></script><script src="./v663.js" defer></script><script src="./v664.js" defer></script><script src="./v665.js" defer></script><script src="./v666.js" defer></script><script src="./v669.js" defer></script><script src="./v67.js" defer></script><script src="./v671.js" defer></script></body>
+<script src="./v656.js" defer></script><script src="./v661.js" defer></script><script src="./v662.js" defer></script><script src="./v65.js" defer></script><script src="./v652.js" defer></script><script src="./v653.js" defer></script><script src="./v654.js" defer></script><script src="./v63.js" defer></script><script src="./v64.js" defer></script><script src="./v655.js" defer></script><script src="./v664.js" defer></script><script src="./v665.js" defer></script><script src="./v666.js" defer></script><script src="./v669.js" defer></script><script src="./v67.js" defer></script><script src="./v671.js" defer></script><script src="./garage.js" defer></script><script src="./app-shell.js" defer></script></body>
 </html>

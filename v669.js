@@ -34,8 +34,7 @@
  function start(){
   panel();watchTiles();setInterval(watchTiles,1500);
   setTimeout(()=>{let ready=false;try{ready=typeof map!=='undefined'&&!!map&&!!map.getContainer?.().querySelector('.leaflet-pane');}catch{}if(!ready||(!loadedTiles&&failedTiles>=1))show();},8500);
-  // Give the user a visible way to open diagnostics even when tile events never fire.
-  const btn=document.createElement('button');btn.type='button';btn.textContent='ⓘ';btn.title='JomGerak diagnostics';btn.setAttribute('aria-label','JomGerak diagnostics');btn.style.cssText='position:fixed;right:12px;bottom:15px;z-index:1750;border-radius:50%;background:#fff;color:#1d4ed8;border:1px solid #bfdbfe;width:32px;height:32px;font:700 16px system-ui;box-shadow:0 2px 8px #0003';btn.onclick=()=>{shown=false;show();};document.body.append(btn);
+
  }
  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',start,{once:true});else start();
 })();

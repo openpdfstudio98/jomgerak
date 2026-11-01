@@ -72,7 +72,7 @@ test('Clear POIs discards a delayed Nearby response',async()=>{
  const a=app(),d=deferred();a.c.fetch=()=>d.promise;const pending=a.run('searchNearbyPOI("fuel")');a.run('clearPOIMarkers()');d.resolve({ok:true,json:async()=>({elements:[{lat:3,lon:101,tags:{}}]})});await pending;assert.equal(a.markers.length,0);
 });
 test('Multi-leg route summary includes all legs and labels intermediate arrival as waypoint',()=>{
- const a=app(),r=route();r.legs.push({steps:[{name:'Second road',distance:600,maneuver:{type:'turn',modifier:'left',location:[101.01,3]}}]});a.c.fixture=r;a.run('renderRouteSummary(fixture)');assert.equal(a.get('stepsContainer').children.length,3);assert.equal(a.run('currentRouteStepsBM.length'),3);assert.match(a.run('currentRouteStepsBM[1].plainText'),/hentian/);
+ const a=app(),r=route();r.legs.push({steps:[{name:'Second road',distance:600,maneuver:{type:'turn',modifier:'left',location:[101.01,3]}}]});a.c.fixture=r;a.run('renderRouteSummary(fixture)');assert.equal(a.get('stepsContainer').children.length,3);assert.equal(a.run('currentRouteStepsBM.length'),3);assert.match(a.run('currentRouteStepsBM[1].plainText'),/waypoint/);
 });
 test('Alternative selection synchronizes the 3D route',()=>{
  const a=app();a.c.fixture=route();a.run('routes47=[fixture];renderRouteSummary=()=>{};renderChoices47=()=>{};updateFuelCalculation=()=>{};selectRoute47(0)');assert.equal(a.c.synced,1);
@@ -117,4 +117,38 @@ test('Sparse route geometry reports remaining distance from projected position',
 });
 test('Automatic reroute never silently drops multi-stop waypoints',async()=>{
  const a=app();locations(a);let calls=0;a.c.fetch=async()=>{calls++;throw Error()};a.c.fixture=route();a.run('currentRouteData=fixture;currentRouteData.legs.push(currentRouteData.legs[0]);navigationActive=true');await a.run('jg52Reroute({coords:{latitude:3,longitude:101}})');assert.equal(calls,0);
+});
+test('English is the default and includes dynamic notifications',()=>{
+ const a=app();a.load('locale-catalog.js');a.load('locale.js');assert.equal(a.run('appLanguage'),'en');
+ for(const [ms,en]of [['Pilih di atas peta','Choose on map'],['Tiada suara BM/English tersedia pada browser ini. Pasang suara melalui tetapan text-to-speech telefon.','No Malay or English voices are installed in this browser. Add a voice through your phone’s text-to-speech settings.'],['Mencari Stesen Minyak sekitar peta...','Searching for Petrol stations near the map…'],['Menjumpai 4 Stesen Minyak berdekatan!','4 nearby Petrol stations found.'],['Laporan "Banjir" disimpan & ditanda di peta!','Report "Flooding" saved on the map.']])assert.equal(a.c.JG_I18N.text(ms),en);
+});
+test('Translation protects user notes and converges after a language switch',()=>{
+ const a=app();a.load('locale-catalog.js');a.load('locale.js');a.c.NodeFilter={SHOW_TEXT:4};const root={nodeType:1,getAttribute:()=>null,closest:()=>null,querySelectorAll:()=>[]};let writes=0,value='Laporan Komuniti';
+ const node={nodeType:3,parentElement:{closest:()=>null}};Object.defineProperty(node,'nodeValue',{get:()=>value,set:v=>{writes++;value=v}});
+ a.c.document.createTreeWalker=()=>{let done=false;return{nextNode(){if(done)return null;done=true;return node}}};
+ a.c.JG_I18N.apply(root);a.c.JG_I18N.apply(root);assert.equal(value,'Community Reports');assert.equal(writes,1);
+ node.parentElement.closest=()=>({});value='Banjir';a.c.JG_I18N.apply(root);assert.equal(value,'Banjir');
+ node.parentElement.closest=()=>null;a.c.JG_I18N.setLanguage('ms');assert.equal(a.c.JG_I18N.text('Choose on map'),'Pilih di atas peta');
+});
+test('Garage validates stored profile values and supports all requested vehicle classes',()=>{
+ const a=app();a.load('garage.js');const garage=a.c.JG_GARAGE;
+ assert.deepEqual(Object.keys(garage.types),['car','motor','truck','4x4']);
+ const invalid=garage.validate({type:'unknown',model:42,color:'url(javascript:bad)',consumption:Infinity,price:-1,height:100});assert.equal(invalid.type,'car');assert.equal(invalid.color,'#3b82f6');assert.equal(invalid.consumption,7.2);assert.equal(invalid.height,0);
+});
+test('Garage profile controls trip cost and persists across reloads',()=>{
+ const a=app();a.load('garage.js');a.c.JG_GARAGE.apply({type:'4x4',model:'Toyota Hilux',color:'#ef4444',fuel:'diesel',consumption:10,price:3});a.c.fixture=route();a.run('currentRouteData=fixture;updateFuelCalculation()');assert.equal(a.get('fuelCostDisplay').textContent,'RM 0.60');assert.match(a.get('fuelLitresDisplay').textContent,/diesel/);assert.equal(a.run('jg60GetMode()'),'4x4');
+ const stored=JSON.parse(a.storage.get('jg_garage_v1'));assert.equal(stored.model,'Toyota Hilux');a.load('garage.js');assert.equal(a.c.JG_GARAGE.get().model,'Toyota Hilux');assert.equal(JSON.parse(a.storage.get('jg55_vehicle')).liters,10);
+});
+test('Selecting a truck clears old routes and blocks unsupported routing/navigation',async()=>{
+ const a=app();locations(a);a.c.fixture=route();a.run('currentRouteData=fixture');a.load('garage.js');a.c.JG_GARAGE.apply({type:'truck',model:'Isuzu NPR',height:3.4,weight:5});let requests=0;a.c.fetch=()=>{requests++;throw Error()};assert.equal(a.run('currentRouteData'),null);await a.run('calculateRoute()');a.run('startVoiceNavigation()');assert.equal(requests,0);assert.equal(a.run('navigationActive'),false);
+});
+test('Transport mode selection synchronizes the active garage identity',()=>{
+ const a=app();a.load('garage.js');a.run('jg60Mode("motor")');assert.equal(a.c.JG_GARAGE.get().type,'motor');assert.equal(a.c.JG_GARAGE.get().model,'Yamaha Y15ZR');assert.equal(a.run('jg60GetMode()'),'motor');
+});
+test('Asset cache includes the new shell and locale assets; diagnostics have no floating launcher',()=>{
+ const sw=fs.readFileSync(path.join(root,'sw.js'),'utf8');for(const file of ['app-shell.css','app-shell.js','garage.js','locale.js','locale-catalog.js'])assert.ok(sw.includes('./'+file),file);
+ assert.doesNotMatch(fs.readFileSync(path.join(root,'v669.js'),'utf8'),/document\.body\.append\(btn\)/);assert.doesNotMatch(fs.readFileSync(path.join(root,'v671.js'),'utf8'),/document\.body\.append\(b\)/);
+});
+test('Every report category offered in the UI is accepted by the existing backend',()=>{
+ const handler=fs.readFileSync(path.join(root,'api/reports.js'),'utf8');for(const [,type]of html.matchAll(/selectReportType\('([^']+)'\)/g))assert.ok(handler.includes("'"+type+"'"),'Unsupported category '+type);
 });
