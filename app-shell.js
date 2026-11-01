@@ -34,7 +34,7 @@
  function boot(){
   document.body.classList.add('jg-app');
   const top=document.createElement('header');top.id='jgTopBar';
-  top.innerHTML='<button type="button" class="jg-wordmark" aria-label="JomGerak map"><span class="jg-brand-mark"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m5 19 5-14 9 5-14 9Z" fill="currentColor"/><path d="m10 5 3 8 6-3" fill="none" stroke="#0e67e9" stroke-width="1.5"/></svg></span><span>JomGerak<small>MOVE WITH CONFIDENCE</small></span></button><div id="jgHeaderActions"></div>';
+  top.innerHTML='<button type="button" class="jg-wordmark" aria-label="JomGerak map"><span class="jg-brand-mark"><img src="./icon.svg" alt="" width="36" height="36" decoding="async"></span><span>JomGerak<small>MOVE WITH CONFIDENCE</small></span></button><div id="jgHeaderActions"></div>';
   top.querySelector('button').onclick=()=>navigate('map');document.body.appendChild(top);
   const actions=$('jgHeaderActions');
   for(const id of ['voiceMuteBtn','darkModeBtn','languageSelect']){const el=$(id);if(el){el.classList.add('jg-header-control');actions.appendChild(el)}}
