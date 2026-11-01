@@ -17,7 +17,8 @@ function app(){
  const c={console,document,navigator:{onLine:true},location:{href:'https://jomgerak.test/',origin:'https://jomgerak.test',protocol:'https:'},localStorage:{getItem:k=>storage.get(k)??null,setItem:(k,v)=>storage.set(k,v),removeItem:k=>storage.delete(k)},URL,URLSearchParams,AbortController,AbortSignal,DOMException,Response,Date,CustomEvent:class {},setTimeout:(f,ms)=>{timers.set(++next,{f,ms});return next},clearTimeout:id=>timers.delete(id),setInterval:()=>0,requestAnimationFrame:f=>f(),addEventListener(){},dispatchEvent(){},isSecureContext:true};
  c.window=c;c.JOMGERAK_CONFIG={};vm.createContext(c);
  for(const [,code]of html.matchAll(/<script\b[^>]*>([\s\S]*?)<\/script>/g))if(code.includes('const TRANSLATIONS'))vm.runInContext(code,c);
- for(const name of ['v55.js','v60.js'])vm.runInContext(fs.readFileSync(path.join(root,name),'utf8'),c);
+ for(const name of ['routing.js','v55.js','v60.js'])vm.runInContext(fs.readFileSync(path.join(root,name),'utf8'),c);
+ const requestDriving=c.jgRequestDrivingRoute;c.jgRequestDrivingRoute=async(points,o)=>{const original=c.fetch;c.fetch=(url,opts)=>url==='/api/route'?Promise.resolve({ok:false}):original(url,opts);try{return await requestDriving(points,o)}finally{c.fetch=original}};
  const markers=[];
  c.L={divIcon:x=>x,marker:(coords)=>{const m={coords,addTo(group){group.markers?.push(this);return this},bindPopup(){return this},on(){return this},setLatLng(){}};markers.push(m);return m},geoJSON:()=>({addTo(){return this},getBounds(){return {}}}),polyline:()=>({addTo(){return this},getBounds(){return {}}})};
  vm.runInContext(`map={getCenter:()=>({lat:3,lng:101}),getBounds:()=>({getWest:()=>100,getEast:()=>102,getNorth:()=>4,getSouth:()=>2}),removeLayer(){},flyTo(){},fitBounds(){},invalidateSize(){}};stepMarkersGroup={clearLayers(){}};communityMarkersGroup={clearLayers(){}};poiMarkersGroup={markers:[],clearLayers(){this.markers=[]}};showToast=(...v)=>{window.lastToast=v};jgSync3DRoute=()=>{window.synced=(window.synced||0)+1};`,c);
@@ -286,4 +287,29 @@ test('Orientation resize refreshes both map sizes without resetting camera zoom 
  a.c.jg65ViewportChanged();assert.equal(leaflet,1);assert.equal(vector,1);assert.equal(a.run('followGps'),false);
  a.c.jg65ViewportChanged();assert.equal([...a.timers.values()].filter(x=>x.ms===250).length,1);
  [...a.timers.values()].find(x=>x.ms===250).f();assert.equal(leaflet,3);assert.equal(vector,3);
+});
+function tomtomFixture(){return {summary:{lengthInMeters:2000,travelTimeInSeconds:600,trafficDelayInSeconds:180},legs:[{summary:{lengthInMeters:2000,travelTimeInSeconds:600},points:[{latitude:3,longitude:101},{latitude:3.01,longitude:101.01},{latitude:3.02,longitude:101.02}]}],guidance:{instructions:[{pointIndex:0,maneuver:'DEPART',message:'Start',routeOffsetInMeters:0,travelTimeInSeconds:0},{pointIndex:1,maneuver:'TURN_RIGHT',message:'Turn right',street:'Test road',routeOffsetInMeters:1000,travelTimeInSeconds:450},{pointIndex:2,maneuver:'ARRIVE',message:'Arrive',routeOffsetInMeters:2000,travelTimeInSeconds:600}]}}}
+test('TomTom normalizer preserves traffic duration, geometry and authoritative instructions',()=>{
+ const {normalize}=require('../api/route.js');const r=normalize(tomtomFixture());assert.equal(r.duration,600);assert.equal(r.trafficDelay,180);assert.equal(r.trafficAware,true);assert.deepEqual(r.geometry.coordinates[0],[101,3]);assert.equal(r.legs[0].steps[1].jgInstruction,'Turn right');assert.equal(r.legs[0].steps[1].distance,1000);assert.equal(r.legs[0].steps.at(-1).maneuver.type,'arrive');
+ assert.throws(()=>normalize({...tomtomFixture(),guidance:{}}));
+});
+test('Traffic remaining time uses the route timing profile rather than instantaneous speed',()=>{
+ const a=app(),{normalize}=require('../api/route.js');const r=normalize(tomtomFixture());assert.equal(a.c.jgTrafficRemainingSeconds(r,1000,2000),150);assert.equal(a.c.jgTrafficRemainingSeconds(r,2000,2000),600);assert.equal(a.c.jgTrafficRemainingSeconds(r,0,2000),0);assert.match(a.c.jgTrafficRouteLabel(r),/Traffic-aware/);assert.match(a.c.jgTrafficRouteLabel({trafficAware:false}),/excludes traffic/);
+});
+test('Driving route adapter prefers TomTom and marks OSRM fallback honestly',async()=>{
+ const a=app();a.load('routing.js');let calls=[];
+ a.c.fetch=async url=>{calls.push(url);return{ok:true,json:async()=>({trafficAware:true,routes:[{...route(),trafficAware:true,provider:'TomTom'}]})}};
+ let j=await a.c.jgRequestDrivingRoute([{lat:3,lng:101},{lat:3.02,lng:101.02}]);assert.equal(calls.length,1);assert.equal(j.routes[0].provider,'TomTom');
+ calls=[];a.c.fetch=async url=>{calls.push(url);return url==='/api/route'?{ok:false}:{ok:true,json:async()=>({code:'Ok',routes:[route()]})}};
+ j=await a.c.jgRequestDrivingRoute([{lat:3,lng:101},{lat:3.02,lng:101.02}]);assert.equal(calls.length,2);assert.equal(j.routes[0].trafficAware,false);assert.equal(j.routes[0].provider,'OSRM');
+});
+test('Traffic route proxy validates requests and never exposes keys',async()=>{
+ const handler=require('../api/route.js'),old=global.fetch,key=process.env.TOMTOM_API_KEY;process.env.TOMTOM_API_KEY='private-test-key';
+ const response=()=>({setHeader(){},status(n){this.code=n;return this},json(j){this.body=j;return this}});
+ try{
+  let calls=0;global.fetch=async url=>{calls++;const u=new URL(url);assert.equal(u.searchParams.get('traffic'),'true');assert.equal(u.searchParams.get('departAt'),'now');assert.equal(u.searchParams.get('travelMode'),'car');return{ok:true,json:async()=>({routes:[tomtomFixture()]})}};
+  let r=response();await handler({method:'POST',body:{points:[{lat:91,lng:101},{lat:3,lng:101}]}},r);assert.equal(r.code,400);assert.equal(calls,0);
+  r=response();await handler({method:'POST',body:{points:[{lat:3,lng:101},{lat:3.02,lng:101.02}],mode:'car',language:'en'}},r);assert.equal(r.code,200);assert.equal(r.body.routes[0].trafficAware,true);assert.doesNotMatch(JSON.stringify(r.body),/private-test-key/);
+  global.fetch=async()=>({ok:false,status:403});r=response();await handler({method:'POST',body:{points:[{lat:3,lng:101},{lat:3.02,lng:101.02}]}},r);assert.equal(r.code,502);assert.match(r.body.error,/access unavailable/);
+ }finally{global.fetch=old;if(key===undefined)delete process.env.TOMTOM_API_KEY;else process.env.TOMTOM_API_KEY=key;}
 });

@@ -667,7 +667,7 @@ body.dark #jgPremiumModes button:not(.jg-selected) i{color:#2563eb!important}
         </div>
       </div>
     </div>
-    <div id="jgDriveSummary"><div id="jg52TripMetrics">Waiting for GPS…</div><small>Route estimate · excludes traffic delay</small></div>
+    <div id="jgDriveSummary"><div id="jg52TripMetrics">Waiting for GPS…</div><small id="jgRouteTrafficNote">Estimate excludes traffic delay</small></div>
     <div id="jgTrafficFlow" hidden role="status"></div>
     <div id="jg52Safety" class="hidden" role="status" aria-live="polite"></div>
     <button id="jg52Install" class="hidden" onclick="jg52InstallApp()" title="Install JomGerak">⬇ Install App</button>
@@ -1167,7 +1167,7 @@ function jg52RouteProgress(p){
   if(distance<nearest){nearest=distance;bestProgress=travelled+length*t;}
   travelled+=length;total+=length;
  }
- return {remaining:Math.max(0,total-bestProgress),nearest};
+ return {remaining:Math.max(0,total-bestProgress),nearest,total};
 }
 function jg52Dashboard(pos){
  const e=document.getElementById('jg52TripMetrics');if(!e||!navigationActive)return;
@@ -1175,7 +1175,8 @@ function jg52Dashboard(pos){
  const progress=jg52RouteProgress(p);if(!progress)return;
  const duration=Math.max(1,currentRouteData.duration||1),distance=Math.max(1,currentRouteData.distance||1);
  const speed=pos.coords.speed!=null&&pos.coords.speed>2?pos.coords.speed:distance/duration;
- const etaSeconds=progress.remaining/Math.max(2,speed);
+ const etaSeconds=currentRouteData.trafficAware?jgTrafficRemainingSeconds(currentRouteData,progress.remaining,progress.total):progress.remaining/Math.max(2,speed);
+ document.getElementById('jgRouteTrafficNote').textContent=window.jgTrafficRouteLabel?.(currentRouteData)||'Estimate excludes traffic delay';
  const eta=new Date(Date.now()+etaSeconds*1000).toLocaleTimeString(appLanguage==='en'?'en-MY':'ms-MY',{hour:'2-digit',minute:'2-digit'});
  e.innerHTML='<span><strong>'+Math.round(etaSeconds/60)+'</strong><small>min</small></span><span><strong>'+(progress.remaining/1000).toFixed(1)+'</strong><small>km</small></span><span><strong>'+eta+'</strong><small>ETA</small></span>';
  if(pos.coords.accuracy>80)jg52Safety(appLanguage==='en'?'GPS accuracy is low. Follow road signs.':'Ketepatan GPS rendah. Ikut papan tanda jalan.');
@@ -1188,10 +1189,7 @@ async function jg52Reroute(pos){
  }
  jg52Rerouting=true;const reqId=++routeRequestId;
  try{
-   const url='https://router.project-osrm.org/route/v1/driving/'+pos.coords.longitude+','+pos.coords.latitude+';'+destCoords.lng+','+destCoords.lat+'?overview=full&geometries=geojson&steps=true&alternatives=true';
-   const res=await fetch(url,{signal:AbortSignal.timeout(13000)});
-   if(!res.ok)throw Error('OSRM '+res.status);
-   const data=await res.json();if(reqId!==routeRequestId||!navigationActive)return;if(data.code!=='Ok'||!data.routes?.length)throw Error('No route');
+   const data=await jgRequestDrivingRoute([{lat:pos.coords.latitude,lng:pos.coords.longitude},destCoords]);if(reqId!==routeRequestId||!navigationActive)return;if(data.code!=='Ok'||!data.routes?.length)throw Error('No route');
    routes47=data.routes.slice(0,3);selected47=0;currentRouteData=routes47[0];lastSpokenStep=-1;
    if(routePolyline)map.removeLayer(routePolyline);
    routePolyline=L.geoJSON(currentRouteData.geometry,{style:{color:'#2563eb',weight:6,opacity:.9}}).addTo(map);
@@ -1625,7 +1623,7 @@ function jg52TrackOffRoute(pos,progress){
             const next=Math.min(steps.length-1,best+1),step=steps[next];
             if(step){
                 const [lng,lat]=step.maneuver.location,dist=gpsDistance(p,{lat,lng});
-                const phrase=step.jgWaypoint?(appLanguage==='en'?'Reach the waypoint':'Tiba di hentian'):translateManeuverToBM(step.maneuver,step.name).plainText;
+                const phrase=step.jgWaypoint?(appLanguage==='en'?'Reach the waypoint':'Tiba di hentian'):jgStepInstruction(step).plainText;
                 title.textContent=phrase;
                 detail.textContent=appLanguage==='en'?`Next turn ~${Math.round(dist)} m • Straight-line ${(remaining/1000).toFixed(1)} km • GPS ±${Math.round(pos.coords.accuracy)} m`:`Arahan ~${Math.round(dist)} m • Jarak terus ${(remaining/1000).toFixed(1)} km • GPS ±${Math.round(pos.coords.accuracy)} m`;
                 if(dist<220&&next!==lastSpokenStep){
@@ -1636,6 +1634,7 @@ function jg52TrackOffRoute(pos,progress){
             let nearest=Infinity;
             for(let i=1;i<coords.length;i++)nearest=Math.min(nearest,segmentDistance(p,{lat:coords[i-1][1],lng:coords[i-1][0]},{lat:coords[i][1],lng:coords[i][0]}));
             jg52Dashboard(pos);
+            window.jgMaybeRefreshTraffic?.(pos);
             jg52TrackOffRoute(pos,{nearest});
         }
         function updateNavButtonUI() {
@@ -2237,12 +2236,7 @@ function jg52TrackOffRoute(pos,progress){
             setRouteButtonLoading(true);
 
             try {
-                const coordsString = `${originCoords.lng},${originCoords.lat};${destCoords.lng},${destCoords.lat}`;
-                const url = `https://router.project-osrm.org/route/v1/driving/${coordsString}?overview=full&geometries=geojson&steps=true&alternatives=true`;
-
-                const res = await fetch(url,{signal:AbortSignal.timeout(18000)});
-                if(!res.ok)throw Error('Routing unavailable');
-                const data = await res.json();
+                const data=await jgRequestDrivingRoute([originCoords,destCoords]);
                 if(reqId!==routeRequestId)return;
 
                 if (data.code !== 'Ok' || !data.routes || data.routes.length === 0) {
@@ -2303,7 +2297,8 @@ function jg52TrackOffRoute(pos,progress){
 
             document.getElementById('summaryTime').textContent = timeFormatted;
             document.getElementById('summaryDistance').textContent = `(${distanceKm} km)`;
-            document.getElementById('summaryEta').textContent = appLanguage==='en'?`Estimated arrival: ${etaStr} • No live traffic`:`Anggaran tiba: ${etaStr} • Anggaran tanpa trafik langsung`;
+            document.getElementById('summaryEta').textContent=(appLanguage==='en'?'Estimated arrival: ':'Anggaran tiba: ')+etaStr+' · '+(window.jgTrafficRouteLabel?.(route)||'No live traffic');
+            document.getElementById('jgRouteTrafficNote').textContent=window.jgTrafficRouteLabel?.(route)||'Estimate excludes traffic delay';
 
             const stepsContainer = document.getElementById('stepsContainer');
             stepsContainer.innerHTML = '';
@@ -2312,7 +2307,7 @@ function jg52TrackOffRoute(pos,progress){
 
             const steps = route.legs.flatMap((leg,i)=>(leg.steps||[]).map(step=>({...step,jgWaypoint:i<route.legs.length-1&&step.maneuver.type==='arrive'})));
             steps.forEach((step) => {
-                const instruction = step.jgWaypoint?{htmlText:appLanguage==='en'?'Reach the waypoint':'Tiba di hentian',plainText:appLanguage==='en'?'Reach the waypoint':'Tiba di hentian',icon:'fa-location-dot'}:translateManeuverToBM(step.maneuver, step.name);
+                const instruction = step.jgWaypoint?{htmlText:appLanguage==='en'?'Reach the waypoint':'Tiba di hentian',plainText:appLanguage==='en'?'Reach the waypoint':'Tiba di hentian',icon:'fa-location-dot'}:jgStepInstruction(step);
                 const stepDist = step.distance >= 1000 
                     ? `${(step.distance / 1000).toFixed(1)} km` 
                     : `${Math.round(step.distance)} m`;
@@ -2348,6 +2343,10 @@ function jg52TrackOffRoute(pos,progress){
             document.getElementById('routeSummaryPanel').classList.remove('hidden');
         }
 
+        function jgStepInstruction(step){
+            if(step.jgInstruction)return {plainText:step.jgInstruction,htmlText:escapeHTML(step.jgInstruction),icon:'fa-location-arrow'};
+            return translateManeuverToBM(step.maneuver,step.name);
+        }
         function translateManeuverToBM(maneuver, roadName) {
             if(appLanguage==='en') {
                 const type=maneuver.type,mod=maneuver.modifier||'';
@@ -2680,7 +2679,7 @@ function jg52TrackOffRoute(pos,progress){
             `);
         }
     </script>
-<script src="./v55.js" defer></script>
+<script src="./routing.js" defer></script><script src="./v55.js" defer></script>
 <script src="./v56.js" defer></script>
 <script src="./v60.js" defer></script>
 <div id="jg65Dock" role="group" aria-label="Driving controls">
