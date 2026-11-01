@@ -23,7 +23,7 @@ Upload **all** ZIP contents to the GitHub repo root and commit. Redeploy in Verc
 ## What is / isn't implemented
 - MapTiler streets raster style is enabled by a button in Map controls; existing MapLibre 3D perspective uses MapTiler vector style if key is configured. OpenStreetMap fallback remains.
 - Supabase community report GET/POST via Vercel Functions; RLS SQL included. If backend fails, local report storage still works.
-- TomTom live *nearby road-segment speed* via server-side proxy, **not** live route-wide ETA or automatic traffic-aware routing.
+- TomTom nearby road-segment speed and traffic-flow raster overlays in 2D/3D via server-side proxies. Flow starts with navigation and refreshes once per minute while the page is visible. Requires `TOMTOM_API_KEY` with Traffic API access in Vercel, then redeploy. Green/amber/red roads show provider flow; unavailable coverage or credentials are never interpreted as clear traffic. OSRM route ETA still excludes traffic delay; traffic-aware route selection is not implemented.
 - Existing driving/running/walking/rail/prayer and other V6.3.2 functionality retained.
 - No genuine traffic-light countdown, smartwatch pairing, native CarPlay/Android Auto, or dialect voice engines.
 - Browser/GPS and third-party service calls must still be tested on deployed site; static checks do not establish successful live integrations.
