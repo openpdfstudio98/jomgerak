@@ -12,10 +12,11 @@
     if(!jg3dActive)return;
     if(mode==='follow'){
      if(typeof followGps!=='undefined')followGps=true;
+     if(navigationActive&&window.jg65Recenter)window.jg65Recenter();
      if(typeof lastGps!=='undefined'&&lastGps)jg3d.easeTo({center:[lastGps.lng,lastGps.lat],zoom:17.2,pitch:58,duration:700});
     }else{
      if(typeof followGps!=='undefined')followGps=false;
-     jg3d.easeTo({pitch:55,zoom:Math.max(jg3d.getZoom(),15.5),duration:650});
+     jg3d.easeTo({pitch:50,duration:350});
     }
    }
    const hint=document.getElementById('jgPremiumHint');
@@ -24,8 +25,8 @@
  };
  function updateLabels(){
   const en=typeof appLanguage!=='undefined'&&appLanguage==='en';
-  const title=document.getElementById('jgPremiumHeading');if(title)title.textContent=en?'Premium Navigation Views':'Paparan Navigasi Premium';
-  const labels={ '2d':['Peta 2D','2D Map'],'3d':['Peta 3D','3D Map'],follow:['Ikut GPS','Follow GPS']};
+  const title=document.getElementById('jgPremiumHeading');if(title)title.textContent=en?'View':'Paparan';
+  const labels={ '2d':['2D','2D'],'3d':['3D','3D'],follow:['Ikut GPS','Follow GPS']};
   document.querySelectorAll('[data-premium]').forEach(el=>{const v=labels[el.dataset.premium];if(v)el.textContent=v[en?1:0];});
  }
  document.addEventListener('DOMContentLoaded',()=>{

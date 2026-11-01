@@ -41,7 +41,7 @@
  window.jg65Recenter=function(){
   follow=true;overview=false;followGps=true;
   if(!lastGps){info('Menunggu bacaan GPS.','Waiting for GPS fix.');return;}
-  if(jg3dActive&&jg3d)jg3d.easeTo({center:[lastGps.lng,lastGps.lat],zoom:17,pitch:54,duration:600});
+  if(jg3dActive&&jg3d)jg3d.easeTo({center:[lastGps.lng,lastGps.lat],zoom:jg3d.getZoom(),duration:500});
   else if(map)map.setView([lastGps.lat,lastGps.lng],17,{animate:true});
  };
  window.jg65ToggleView=async function(){
@@ -49,15 +49,16 @@
   await jgToggle3D();mode=jg3dActive?'3d':'2d';setUI();
   if(navigationActive&&follow)window.jg65Recenter();
  };
+ window.jg65SuspendFollow=function(){follow=false;overview=false;followGps=false;};
  window.jg65OnGps=function(pos){
-  if(!navigationActive||!follow||overview)return;
+  if(!navigationActive||!followGps||!follow||overview)return;
   if(Date.now()-lastCamAt<850)return;
   lastCamAt=Date.now();
   const {latitude:lat,longitude:lng,heading,speed,accuracy}=pos.coords;
   if(!Number.isFinite(lat)||!Number.isFinite(lng)||accuracy>120)return;
   if(jg3dActive&&jg3d){
    const bearing=Number.isFinite(heading)&&Number(speed)>1.5?heading:jg3d.getBearing();
-   jg3d.easeTo({center:[lng,lat],zoom:17,pitch:54,bearing,duration:850,padding:{top:Math.round(innerHeight*.15),bottom:Math.round(innerHeight*.18),left:0,right:0}});
+   jg3d.easeTo({center:[lng,lat],bearing,duration:700,padding:{top:Math.round(innerHeight*.15),bottom:Math.round(innerHeight*.18),left:0,right:0}});
   }else if(map){map.panTo([lat,lng],{animate:true,duration:.7});}
  };
  window.jg65NavChanged=setUI;

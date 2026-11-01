@@ -17,7 +17,7 @@ Upload **all** ZIP contents to the GitHub repo root and commit. Redeploy in Verc
 - `https://YOUR-DOMAIN/api/public-config` should show flags and a public MapTiler key only.
 - `https://YOUR-DOMAIN/api/reports` should show `{"reports":[]}` or actual reports after SQL is run.
 - `https://YOUR-DOMAIN/api/traffic?lat=3.0738&lng=101.5183` should show one road segment's traffic flow (if TomTom plan allows it).
-- Controls → Map → **API Connections** → MapTiler / Nearby Traffic.
+- Tools → Map → **Map layer** → Road / Satellite. A configured MapTiler key is used by the road-layer handler; provider-specific duplicate buttons are no longer shown.
 - Post a road report and open the app on a different device to verify Supabase sync.
 
 ## What is / isn't implemented
@@ -38,3 +38,8 @@ Upload **all** ZIP contents to the GitHub repo root and commit. Redeploy in Verc
 See [AUDIT_2026-11-01.md](./AUDIT_2026-11-01.md) for repaired defects, a function-by-function matrix and the remaining production/device gates. Run `node --test tests/audit.test.cjs` for the regression suite.
 
 Search now uses Enter or **Cari lokasi / Search location**, not public-Nominatim autocomplete. `GEOCODING_BASE_URL` optionally supplies an HTTPS Nominatim-compatible production base URL via `/api/public-config`; no secret may be embedded in that public URL. The public fallback is for low-volume beta use only. Its client queue is per tab, not the required application-wide rate limiter. Read the official policy and audit before public launch.
+
+
+## 3D interaction and map-control repair
+
+See [MAP_INTERACTION_REPAIR.md](./MAP_INTERACTION_REPAIR.md) for the pointer-event and GPS-camera fixes, the consolidated map menu, Settings-only installation, reference technology findings and the WebGL verification limit.

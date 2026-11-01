@@ -426,5 +426,17 @@ window.JG_LOCALE_CATALOG = {
   "Kembangkan carian": "Expand search",
   "Kecilkan carian": "Collapse search",
   "Simpan, kongsi & lokasi pantas": "Save, share & quick places",
-  "Jalan ditutup / tidak boleh dilalui": "Closed or inaccessible road"
+  "Jalan ditutup / tidak boleh dilalui": "Closed or inaccessible road",
+  "Paparan": "View",
+  "Lapisan peta": "Map layer",
+  "Jalan raya": "Road",
+  "Pilihan peta lanjut": "More map options",
+  "Bangunan 3D": "3D buildings",
+  "Bangunan memerlukan data vektor yang serasi.": "Buildings require compatible vector data.",
+  "Seret untuk meneroka. Cubit atau guna + / − untuk zum.": "Drag to explore. Pinch or use + / − to zoom.",
+  "Butiran perjalanan & kos": "Trip details & costs",
+  "Ubah perjalanan": "Edit trip",
+  "Pasang aplikasi": "Install app",
+  "3D gagal dimuatkan. Semak sambungan dan cuba lagi.": "3D could not load. Check your connection and try again.",
+  "Tukar lapisan peta": "Map layers"
 };
