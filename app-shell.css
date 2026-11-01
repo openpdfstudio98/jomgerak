@@ -81,3 +81,44 @@ html.dark{--jg-ink:#edf3fc;--jg-muted:#a5b4c9;--jg-line:#2b3a50;--jg-panel:#121f
  min-height:0;min-width:156px;overflow-y:auto;overscroll-behavior:contain;
  max-height:max(0px,calc(var(--jg-vh,100dvh) - var(--jg-driving-hud-bottom,160px) - 92px - env(safe-area-inset-bottom)))!important;
 }
+/* The hidden map never receives input; the visible 3D canvas must receive touch. */
+#jg3dMap{pointer-events:none!important}
+#jg3dMap.jgshown{pointer-events:auto!important;touch-action:none}
+#jg3dMap .maplibregl-canvas-container,#jg3dMap canvas{touch-action:none}
+.jg-app #jg3dMap .maplibregl-ctrl-bottom-right{bottom:calc(96px + env(safe-area-inset-bottom));right:8px}
+.jg-app.jg65-driving #jg3dMap .maplibregl-ctrl-bottom-right{bottom:230px}
+.jg-app #jg3dMap .maplibregl-ctrl-group{border-radius:13px;overflow:hidden;box-shadow:var(--jg-shadow);background:var(--jg-panel)}
+.jg-app #jg3dMap .maplibregl-ctrl-group button{width:40px;height:40px}
+html.dark .maplibregl-ctrl-icon{filter:invert(1)}
+.jg-app #jgProPanel #jgPremiumModes{border:0!important;padding:0 0 18px!important;border-bottom:1px solid var(--jg-line)!important;border-radius:0!important;margin-top:0!important;background:transparent!important}
+.jg-app #jgPremiumModes .jg-premium-grid{gap:7px!important;background:transparent!important}
+.jg-app #jgPremiumModes button{display:flex;align-items:center;justify-content:center;gap:8px;min-height:46px!important}
+.jg-app #jgPremiumHint{font-size:11px!important;line-height:1.6!important;margin:12px 0 0}
+.jg-map-layers h3{font-size:12px;font-weight:700;margin:16px 0 12px}.jg-map-layer-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.jg-app #jgProPanel .jg-map-layer-grid button{display:flex;flex-direction:column;align-items:flex-start;gap:10px;padding:10px!important;border:1px solid var(--jg-line)!important;border-radius:15px!important;background:var(--jg-panel)!important;text-align:left;font-size:12px!important}
+.jg-app #jgProPanel .jg-map-layer-grid button[aria-pressed=true]{border-color:var(--jg-blue)!important;color:var(--jg-blue)!important;background:var(--jg-surface)!important}
+.jg-layer-preview{display:block;position:relative;height:65px;width:100%;border-radius:8px;overflow:hidden;background:#dce7df}
+.jg-layer-preview:before{content:'';position:absolute;inset:-30%;transform:rotate(-25deg);border:12px double #fff;background:repeating-linear-gradient(90deg,transparent 0 26px,#fff9 27px 30px,transparent 31px 57px)}
+.jg-layer-road{background:#dce7df}.jg-layer-satellite{background:#384e3f}.jg-layer-satellite:before{border-color:#c1c8ba;background:repeating-linear-gradient(90deg,transparent 0 26px,#a0aa8577 27px 30px,transparent 31px 57px)}
+.jg-map-advanced{border-top:1px solid var(--jg-line);margin-top:20px;padding-top:14px;font-size:11px;color:var(--jg-muted)}.jg-map-advanced summary{cursor:pointer;min-height:34px}.jg-map-advanced label{display:flex;align-items:center;gap:8px;padding:10px 0}.jg-app #jgProPanel .jg-map-advanced input[type=checkbox]{min-height:20px!important;width:20px!important;accent-color:var(--jg-blue)}
+.jg-app #jgAdditionalTools #jg52Install{position:static!important;inset:auto!important;z-index:auto!important;width:auto!important;margin:0!important;box-shadow:none!important;background:var(--jg-surface)!important;color:var(--jg-ink)!important}
+.jg-map-layer-button{pointer-events:auto}.jg-app #floatingMapTools button[onclick*="jgMapZoom"]{pointer-events:auto}
+.jg-app.jg-route-ready #searchPanelWrap>div:first-child{display:none!important}
+.jg-route-destination{display:flex;align-items:center;justify-content:space-between;gap:12px;padding-bottom:12px;margin-bottom:12px;border-bottom:1px solid #ffffff24;font-size:12px;font-weight:700}.jg-route-destination>span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.jg-route-destination button{flex-shrink:0;min-height:34px;padding:5px 9px;border-radius:9px;border:1px solid #ffffff30;background:transparent;color:#d9e9ff;font-size:10px}
+#jgTripDetails{background:var(--jg-panel);border-top:1px solid var(--jg-line);border-radius:0 0 21px 21px;overflow:hidden}#jgTripDetails>summary{list-style:none;cursor:pointer;min-height:46px;padding:15px;font-size:11px;font-weight:650;color:var(--jg-muted)}#jgTripDetails>summary:after{content:'+';float:right;font-size:14px}#jgTripDetails[open]>summary:after{content:'−'}#jgTripDetailsContent{background:#14243c;padding:0 12px 12px}#jgTripDetailsContent #jgRouteCost{margin-top:0;padding-top:14px}#jgTripDetailsContent #stepsContainer{border-radius:12px;margin-top:12px}#jgTripDetailsContent #jg655Unverified{font-size:10px;margin-top:12px;color:#c7d7ee!important}
+.jg-app #routeButtons47{display:flex;flex-direction:column;gap:6px}.jg-app #routeButtons47 button{width:100%;text-align:left;padding:11px 12px!important;border-radius:11px!important;background:var(--jg-panel);color:var(--jg-ink)}.jg-app #routeButtons47 button.bg-blue-600{background:#1268e8!important;color:white!important}
+@media(max-width:767px){.jg-app #floatingMapTools button[onclick*="jgMapZoom"]{display:flex!important}.jg-app #floatingMapTools{gap:6px!important}.jg-app #jg3dMap .maplibregl-ctrl-bottom-right{bottom:calc(96px + env(safe-area-inset-bottom))}.jg-app.jg-route-ready #jg3dMap .maplibregl-ctrl-bottom-right{bottom:calc(96px + env(safe-area-inset-bottom))}.jg-app.jg65-driving #jg3dMap .maplibregl-ctrl-bottom-right{bottom:230px}}
+
+.jg-app #searchPanelWrap>#routeSummaryPanel{padding:0!important;overflow:hidden!important}
+.jg-app #routeSummaryPanel>div:first-child{border-radius:21px 21px 0 0!important}
+.jg-app #routeChoices47{background:var(--jg-panel)!important;padding:12px!important}
+.jg-app #routeChoices47>b{font-size:10px;color:var(--jg-muted)}
+.jg-route-actions{display:flex;gap:8px;padding:0 12px 12px;background:var(--jg-panel)}
+.jg-app .jg-route-actions #startNavBtn{flex:1;justify-content:center;min-height:46px!important;font-size:12px!important;white-space:nowrap}
+.jg-route-actions button[onclick="clearRoute()"]{min-width:42px;min-height:46px;background:var(--jg-surface);color:var(--jg-muted);border:1px solid var(--jg-line)}
+.jg-app #jgPremiumModes .jg-premium-title{display:block!important;font-size:12px!important;color:var(--jg-ink)!important;margin-bottom:12px}
+/* Use one visible zoom control set while browsing; 3D keeps its controls in driving mode. */
+.jg-app:not(.jg65-driving) #jg3dMap .maplibregl-ctrl-group{display:none}
+
+/* Even before app bootstrap, Install is never a floating map overlay. */
+body>#jg52Install{display:none!important}

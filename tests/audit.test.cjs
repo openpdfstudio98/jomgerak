@@ -162,3 +162,39 @@ test('Driving controls track actual HUD height after layout changes',()=>{
  assert.equal(styles['--jg-driving-hud-bottom'],'110px');bottom=184;resize();assert.equal(styles['--jg-driving-hud-bottom'],'184px');
  a.run('navigationActive=false;jg65NavChanged()');bottom=220;resize();assert.equal(styles['--jg-driving-hud-bottom'],'184px');
 });
+test('Only one GPS camera controller runs and manual exploration pauses following',()=>{
+ const a=app();a.c.innerHeight=844;a.load('v65.js');a.c.cameras=[];a.c.zooms=[];
+ a.run(`navigationActive=true;followGps=true;jg3dActive=true;jg3d={getBearing:()=>0,getZoom:()=>14,easeTo:o=>cameras.push(o),zoomTo:(z,o)=>zooms.push(z),getSource:()=>null};`);
+ a.run('jgGPSAdvanced({coords:{latitude:3,longitude:101,accuracy:5,speed:10,heading:20}})');assert.equal(a.c.cameras.length,1);assert.equal(a.c.cameras[0].zoom,undefined);
+ a.run('jg65SuspendFollow();jgGPSAdvanced({coords:{latitude:3.001,longitude:101.001,accuracy:5,speed:10,heading:20}})');assert.equal(a.c.cameras.length,1);assert.equal(a.run('followGps'),false);
+ a.run('jgMapZoom(1)');assert.equal(a.c.zooms[0],15);assert.equal(a.run('followGps'),false);
+ a.run('lastGps={lat:3,lng:101};jg65Recenter()');assert.equal(a.run('followGps'),true);assert.equal(a.c.cameras.at(-1).zoom,14);
+});
+test('3D activation enables interaction and returning to 2D retains the explored camera',async()=>{
+ const a=app();let options,returned;const handlers={};
+ a.c.maplibregl={Map:class{constructor(o){options=o}addControl(){}on(name,fn){handlers[name]=fn}getCanvas(){return{addEventListener(){}}}isStyleLoaded(){return false}resize(){}easeTo(){}getCenter(){return{lat:3.25,lng:101.5}}getZoom(){return 14}},NavigationControl:class{}};
+ a.run('jgLoadMapLibre=async()=>{};map.getZoom=()=>12;map.setView=(p,z)=>window.returnedCamera={p,z};');await a.run('jgToggle3D()');assert.equal(a.run('jg3dActive'),true);assert.equal(options.interactive,true);assert.equal(options.dragPan,true);assert.equal(options.touchZoomRotate,true);assert.equal(options.zoom,12);
+ let paused=0;a.c.jg65SuspendFollow=()=>paused++;handlers.movestart({originalEvent:{}});assert.equal(paused,1);handlers.movestart({});assert.equal(paused,1);
+ await a.run('jgToggle3D()');assert.equal(a.run('jg3dActive'),false);assert.equal(a.c.returnedCamera.z,14);assert.deepEqual(Array.from(a.c.returnedCamera.p),[3.25,101.5]);
+});
+test('A failed 3D activation restores the 2D interaction state',async()=>{
+ const a=app();a.run('jgLoadMapLibre=async()=>{throw Error("offline")};');await a.run('jgToggle3D()');assert.equal(a.run('jg3dActive'),false);assert.equal(a.get('jg3dMap').classList.contains('jgshown'),false);assert.equal(a.run('jg52Loading3D'),false);
+});
+test('Map layer choices select genuinely distinct road and satellite sources',()=>{
+ const a=app();a.load('map-controls.js');a.c.layers=[];a.run('setMapStyle48=(style)=>layers.push(style);');a.c.JG_MAP_UI.layer('road');a.c.JG_MAP_UI.layer('satellite');a.c.JG_MAP_UI.layer('unknown');assert.deepEqual(a.c.layers,['standard','satellite']);
+});
+test('Building blocks can be disabled without hiding road layers',()=>{
+ const a=app();a.load('map-controls.js');a.c.visibility=[];a.run(`jg3d={getStyle:()=>({layers:[{id:'buildings',type:'fill-extrusion'},{id:'roads',type:'line'}]}),setLayoutProperty:(...args)=>visibility.push(args)};jgPremiumAddBuildings=()=>{};`);a.c.JG_MAP_UI.buildings(false);assert.equal(a.run('JG_CFG.show3DBuildings'),false);assert.deepEqual(Array.from(a.c.visibility[0]),['buildings','visibility','none']);assert.equal(a.c.visibility.length,1);
+});
+test('Install prompt only opens after an explicit action; fallback remains available',async()=>{
+ const a=app();let prompted=0;a.c.promptFixture={prompt:async()=>prompted++};a.run('jg52InstallPrompt=promptFixture');assert.equal(prompted,0);await a.run('jg52InstallApp()');assert.equal(prompted,1);await a.run('jg52InstallApp()');assert.equal(prompted,1);assert.match(a.c.lastToast[0],/browser menu/);
+});
+test('Simplifying map settings retains all required transport module mounts',()=>{
+ for(const id of ['jg60Map','jg60Trip','jg60Settings'])assert.ok(html.includes('id="'+id+'"'),'Missing transport mount '+id);
+});
+test('My Location centers the active 3D map rather than only the hidden 2D map',()=>{
+ const a=app();a.c.cameras=[];a.run('originCoords={lat:3,lng:101};jg3dActive=true;jg3d={getZoom:()=>13,easeTo:o=>cameras.push(o)}');a.c.navigator.geolocation={getCurrentPosition:success=>success({coords:{latitude:3.2,longitude:101.4}})};a.run('useMyLocation(true)');assert.equal(a.c.cameras.length,1);assert.deepEqual(Array.from(a.c.cameras[0].center),[101.4,3.2]);assert.equal(a.c.cameras[0].zoom,13);
+});
+test('Selecting 3D view preserves the current zoom rather than forcing a close-up',async()=>{
+ const a=app();a.c.cameras=[];a.run('jg3dActive=true;jg3d={easeTo:o=>cameras.push(o)}');a.load('v656.js');await a.run('jgPremiumMode("3d")');assert.equal(a.c.cameras.length,1);assert.equal(a.c.cameras[0].zoom,undefined);assert.equal(a.c.cameras[0].pitch,50);
+});

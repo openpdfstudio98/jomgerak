@@ -9,7 +9,7 @@ function ready(){try{return typeof map!=='undefined'&&map&&!!map.getContainer().
 function diagnose(){return ['JomGerak V6.7.1','Leaflet: '+(window.L?'loaded':'missing'),'Map: '+(ready()?'initialized':'not initialized'),'3D overlay: '+(document.getElementById('jg3dMap')?.classList.contains('jgshown')?'visible':'hidden'),'Recent errors: '+(errors.join(' | ')||'none captured')].join('\n');}
 function boot(){
  // A stale 3D layer must never cover the Leaflet interface after refresh.
- const layer=document.getElementById('jg3dMap');if(layer&&!layer.classList.contains('jgshown'))layer.style.pointerEvents='none';
+ // CSS owns hit testing for hidden/visible 3D maps.
  window.jgOpenDiagnostics=()=>{
   const old=document.getElementById('jg671Panel');if(old){old.remove();return;}
   const panel=document.createElement('section');panel.id='jg671Panel';panel.style.cssText='position:fixed;z-index:2147483641;right:12px;bottom:64px;width:min(420px,calc(100vw - 24px));background:#fff;color:#14233b;border:1px solid #93c5fd;border-radius:14px;padding:15px;box-shadow:0 8px 35px #0007;font:13px/1.5 system-ui;white-space:pre-wrap;overflow-wrap:anywhere;pointer-events:auto';
