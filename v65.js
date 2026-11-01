@@ -63,9 +63,21 @@
  };
  window.jg65NavChanged=function(){if(navigationActive&&!hasNav){follow=true;overview=false;lastCamAt=0;}setUI();};
  window.jg65SyncLayout=syncDrivingLayout;
+ let viewportFrame=false,viewportTimer=null;
+ function resizeMaps(){
+  if(typeof map!=='undefined'&&map)map.invalidateSize({pan:false});
+  if(typeof jg3d!=='undefined'&&jg3d)jg3d.resize();
+  syncDrivingLayout();
+ }
+ function viewportChanged(){
+  if(!viewportFrame){viewportFrame=true;requestAnimationFrame(()=>{viewportFrame=false;resizeMaps();});}
+  clearTimeout(viewportTimer);viewportTimer=setTimeout(resizeMaps,250);
+ }
+ window.jg65ViewportChanged=viewportChanged;
  function init(){setUI();
-  window.addEventListener('resize',syncDrivingLayout);
-  window.visualViewport?.addEventListener('resize',syncDrivingLayout);
+  window.addEventListener('resize',viewportChanged);
+  window.addEventListener('orientationchange',viewportChanged);
+  window.visualViewport?.addEventListener('resize',viewportChanged);
   if(typeof ResizeObserver!=='undefined'&&el('liveNavHUD'))new ResizeObserver(syncDrivingLayout).observe(el('liveNavHUD'));
  }
  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init);else init();
